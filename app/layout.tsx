@@ -4,6 +4,7 @@ import "./globals.css";
 import Providers from "./providers";
 import AppLayout from "@/components/layout/AppLayout";
 import { AuthProvider } from "@/context/AuthProvider";
+import { Analytics } from "@vercel/analytics/next";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -36,6 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <AppLayout>{children}</AppLayout>
           </Providers>
         </AuthProvider>
+        <Analytics />
       </body>
     </html>
   );
