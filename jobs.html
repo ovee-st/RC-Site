@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Browse current hiring opportunities from MX VENTURE LAB across operations, corporate, and technical roles." />
+  <title>Jobs | MX VENTURE LAB</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ["Inter", "ui-sans-serif", "system-ui"],
+          },
+        },
+      },
+    };
+  </script>
+  <link rel="stylesheet" href="style.css?v=platform-1" />
+</head>
+<body data-page="jobs">
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a class="brand" href="index.html" aria-label="MX VENTURE LAB home">
+        <img class="brand-logo" src="MX.png" alt="MX VENTURE LAB logo" />
+        <span class="brand-text">MX VENTURE LAB</span>
+      </a>
+      <button class="nav-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="primary-nav">Menu</button>
+      <nav id="primary-nav" class="site-nav" aria-label="Primary navigation"></nav>
+    </div>
+  </header>
+
+  <main class="h-[calc(100vh-60px)] bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-white">
+    <section class="flex h-full flex-col" id="live-jobs">
+      <div class="flex flex-col gap-3 border-b border-slate-200 bg-white px-6 py-4 dark:border-slate-800 dark:bg-slate-950 md:flex-row">
+        <input
+          class="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-slate-800 dark:bg-slate-900 dark:text-white"
+          type="search"
+          placeholder="Search jobs, skills, companies..."
+          data-public-search-filter
+        />
+        <select class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-slate-800 dark:bg-slate-900 dark:text-white" data-public-location-filter>
+          <option value="all">Location</option>
+        </select>
+        <select class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-slate-800 dark:bg-slate-900 dark:text-white" data-public-job-type-filter>
+          <option value="all">Job Type</option>
+          <option value="Remote">Remote</option>
+          <option value="Hybrid">Hybrid</option>
+          <option value="On-site">On-site</option>
+        </select>
+        <select class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-slate-800 dark:bg-slate-900 dark:text-white" data-public-sort-filter>
+          <option value="relevance">Sort: Relevance</option>
+          <option value="latest">Sort: Latest</option>
+          <option value="salary">Sort: Salary</option>
+        </select>
+      </div>
+
+      <div class="grid flex-1 grid-cols-1 overflow-hidden md:grid-cols-12">
+        <aside class="border-r border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950 md:col-span-3 md:overflow-y-auto">
+          <form class="sticky top-20 flex w-full flex-col gap-4 public-jobs-filter marketplace-sidebar-filters" data-public-job-filters>
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Filters</h2>
+                <p class="text-xs font-semibold text-slate-500"><span data-active-filter-count>0</span> active</p>
+              </div>
+              <button class="text-sm font-semibold text-blue-600 hover:text-blue-700" type="button" data-clear-public-filters>Clear</button>
+            </div>
+
+            <details class="marketplace-filter-accordion" data-filter-accordion="category">
+              <summary>
+                <span>Category</span>
+                <span class="filter-chevron" aria-hidden="true"></span>
+              </summary>
+              <div class="filter-dropdown-content" data-public-category-checkboxes></div>
+            </details>
+
+            <details class="marketplace-filter-accordion" data-filter-accordion="experience">
+              <summary>
+                <span>Experience</span>
+                <span class="filter-chevron" aria-hidden="true"></span>
+              </summary>
+              <div class="filter-dropdown-content" data-public-experience-checkboxes>
+                <label class="marketplace-check"><input type="checkbox" value="Entry Level" data-filter-experience /><span>Entry Level</span></label>
+                <label class="marketplace-check"><input type="checkbox" value="Mid Level" data-filter-experience /><span>Mid Level</span></label>
+                <label class="marketplace-check"><input type="checkbox" value="Senior Level" data-filter-experience /><span>Senior Level</span></label>
+                <label class="marketplace-check"><input type="checkbox" value="Top-Level" data-filter-experience /><span>Top-Level</span></label>
+              </div>
+            </details>
+
+            <details class="marketplace-filter-accordion" data-filter-accordion="job-type">
+              <summary>
+                <span>Job Type</span>
+                <span class="filter-chevron" aria-hidden="true"></span>
+              </summary>
+              <div class="filter-dropdown-content" data-public-job-type-checkboxes>
+                <label class="marketplace-check"><input type="checkbox" value="Full Time" data-filter-job-type /><span>Full Time</span></label>
+                <label class="marketplace-check"><input type="checkbox" value="Part Time" data-filter-job-type /><span>Part Time</span></label>
+                <label class="marketplace-check"><input type="checkbox" value="Contractual" data-filter-job-type /><span>Contractual</span></label>
+                <label class="marketplace-check"><input type="checkbox" value="Intern" data-filter-job-type /><span>Intern</span></label>
+                <label class="marketplace-check"><input type="checkbox" value="Remote" data-filter-job-type /><span>Remote</span></label>
+                <label class="marketplace-check"><input type="checkbox" value="Hybrid" data-filter-job-type /><span>Hybrid</span></label>
+                <label class="marketplace-check"><input type="checkbox" value="On-site" data-filter-job-type /><span>On-site</span></label>
+              </div>
+            </details>
+
+            <details class="marketplace-filter-accordion" data-filter-accordion="salary">
+              <summary>
+                <span>Salary Range</span>
+                <span class="filter-chevron" aria-hidden="true"></span>
+              </summary>
+              <div class="filter-dropdown-content">
+              <input class="w-full accent-blue-600" type="range" min="0" max="200000" step="5000" value="200000" data-public-salary-range />
+              <p class="mt-2 text-sm font-semibold text-slate-500">Up to BDT <span data-public-salary-value>200,000</span></p>
+              </div>
+            </details>
+
+            <details class="marketplace-filter-accordion" data-filter-accordion="skills">
+              <summary>
+                <span>Skills</span>
+                <span class="filter-chevron" aria-hidden="true"></span>
+              </summary>
+              <div class="filter-dropdown-content filter-skill-content" data-public-skill-tags></div>
+            </details>
+          </form>
+        </aside>
+
+        <section class="space-y-3 overflow-y-auto p-3 md:col-span-4" aria-label="Marketplace jobs">
+          <div class="flex items-center justify-between px-1">
+            <div>
+              <h1 class="text-lg font-bold text-slate-900 dark:text-white">Recommended jobs</h1>
+              <p class="text-xs text-slate-500" data-public-jobs-status aria-live="polite">Loading jobs...</p>
+            </div>
+          </div>
+          <div class="public-job-groups" data-public-job-groups></div>
+          <div class="job-pagination" data-public-job-pagination></div>
+          <p class="admin-empty-state" data-public-jobs-empty hidden>No jobs found for the selected filters.</p>
+        </section>
+
+        <aside class="hidden border-l border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-950 md:col-span-5 md:block md:overflow-y-auto">
+          <div id="jobPreview" data-public-job-preview>
+            <h2 class="mb-2 text-xl font-bold text-slate-900 dark:text-white">Select a job to view details</h2>
+            <p class="text-sm text-slate-500 dark:text-slate-400">Job details, salary, requirements, and apply action will appear here without reloading the page.</p>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <div class="report-modal" id="public-job-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="public-job-modal-title">
+    <div class="report-modal-backdrop" data-public-job-modal-close></div>
+    <div class="report-modal-content employer-candidate-modal-content">
+      <button class="report-close-btn" type="button" aria-label="Close job details" data-public-job-modal-close>&times;</button>
+      <div data-public-job-modal-content></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
+  <script src="script.js?v=platform-1"></script>
+  <script src="platform.js?v=platform-1"></script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Employer portal dashboard for MX VENTURE LAB hiring, candidate matching, applications, and shortlists." />
+  <title>Employer Portal | MX VENTURE LAB</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=platform-1" />
+</head>
+<body data-page="employer-dashboard" data-dashboard-role="employer">
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a class="brand" href="index.html" aria-label="MX VENTURE LAB home">
+        <img class="brand-logo" src="MX.png" alt="MX VENTURE LAB logo" />
+        <span class="brand-text">MX VENTURE LAB</span>
+      </a>
+      <button class="nav-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="primary-nav">Menu</button>
+      <nav id="primary-nav" class="site-nav" aria-label="Primary navigation"></nav>
+    </div>
+  </header>
+
+  <main class="employer-portal-main">
+    <section class="page-hero platform-dashboard-hero">
+      <div class="container dashboard-hero-row">
+        <div>
+          <p class="eyebrow">Employer Portal</p>
+          <h1>Hiring Command Center</h1>
+          <p class="lead">Post requirements, review matched candidates, manage applications, and unlock shortlisted candidate details.</p>
+        </div>
+        <button class="btn secondary" type="button" data-auth-logout>Logout</button>
+      </div>
+    </section>
+
+    <section class="section employer-portal-section">
+      <div class="container candidate-portal-layout">
+        <aside class="candidate-sidebar platform-panel">
+          <div class="candidate-sidebar-profile">
+            <div class="profile-photo-preview small-avatar"><span>MX</span></div>
+            <div>
+              <h2 data-account-name>Loading...</h2>
+              <p data-account-email></p>
+            </div>
+          </div>
+          <nav class="candidate-side-nav" aria-label="Employer portal navigation">
+            <button class="is-active" type="button" data-employer-tab="dashboard">Dashboard</button>
+            <button type="button" data-employer-tab="post-job">Post Job</button>
+            <button type="button" data-employer-tab="my-jobs">Published Jobs</button>
+            <button type="button" data-employer-tab="matched-candidates">Matched Candidates</button>
+            <button type="button" data-employer-tab="applied-candidates">Applied Candidates</button>
+            <button type="button" data-employer-tab="shortlisted">Shortlisted</button>
+            <button type="button" data-employer-tab="profile">Profile</button>
+            <button type="button" data-auth-logout>Logout</button>
+          </nav>
+        </aside>
+
+        <div class="candidate-portal-content">
+          <section class="portal-panel is-active" data-employer-panel="dashboard">
+            <div class="dashboard-stat-grid">
+              <article class="platform-panel"><span>Active Jobs</span><strong data-stat-jobs>0</strong></article>
+              <article class="platform-panel"><span>Matched Candidates</span><strong data-stat-candidates>0</strong></article>
+              <article class="platform-panel"><span>Applications</span><strong data-stat-applications>0</strong></article>
+              <article class="platform-panel"><span>Shortlisted</span><strong data-stat-shortlisted>0</strong></article>
+            </div>
+            <div class="platform-panel">
+              <div class="section-heading"><p class="eyebrow">Latest Matches</p><h2>Recommended Candidates</h2></div>
+              <div class="dashboard-match-list" data-employer-dashboard-matches></div>
+            </div>
+          </section>
+
+          <section class="portal-panel" data-employer-panel="post-job">
+            <section class="platform-panel">
+              <div class="panel-heading-row"><div><p class="eyebrow">Requirement</p><h2>Post Job / Hiring Requirement</h2></div></div>
+              <form class="form-modern" data-platform-form="job-post" novalidate>
+                <div class="form-row">
+                  <div><label for="job-company-name">Company Name</label><input id="job-company-name" name="company_name" type="text" placeholder="Auto-filled from profile" /></div>
+                  <div><label for="job-title">Designation / Job Title</label><input id="job-title" name="job_title" type="text" placeholder="Customer Support Executive" required /></div>
+                </div>
+                <label for="job-category">Job Category</label>
+                <select id="job-category" name="category" data-role-category data-role-skill-target="job-skill-suggestions" data-role-skill-input="job-skills" required></select>
+                <div class="form-row">
+                  <div><label for="job-location">Job Location</label><input id="job-location" name="job_location" type="text" placeholder="Dhaka, Bangladesh" required /></div>
+                  <div><label for="job-type">Job Type</label><select id="job-type" name="job_type" required><option value="">Select type</option><option>Remote</option><option>Hybrid</option><option>On-site</option></select></div>
+                </div>
+                <div class="form-row">
+                  <div><label for="job-level">Job Level</label><select id="job-level" name="job_level" required><option value="">Select level</option><option>Entry Level</option><option>Mid Level</option><option>Top-Level</option></select></div>
+                  <div><label for="employment-type">Employment Type</label><select id="employment-type" name="employment_type" required><option value="">Select employment type</option><option>Full Time</option><option>Part Time</option><option>Contractual</option><option>Intern</option></select></div>
+                </div>
+                <label for="job-description">Description</label>
+                <textarea id="job-description" name="description" rows="5" placeholder="Describe the role, responsibilities, and working context." required></textarea>
+                <label for="job-requirements">Requirements</label>
+                <textarea id="job-requirements" name="requirements" rows="4" placeholder="Education, experience, communication requirements, tools, or certifications."></textarea>
+                <label for="job-skills">Required Skills</label>
+                <input id="job-skills" name="required_skills" type="text" placeholder="Communication, CRM, Excel" required />
+                <div class="skill-chip-grid role-skill-suggestions" id="job-skill-suggestions" data-role-skill-suggestions></div>
+                <div class="form-row">
+                  <div><label for="salary-min">Min Salary</label><input id="salary-min" name="salary_min" type="number" min="0" placeholder="25000" /></div>
+                  <div><label for="salary-max">Max Salary</label><input id="salary-max" name="salary_max" type="number" min="0" placeholder="40000" /></div>
+                </div>
+                <label class="present-check salary-toggle"><input name="salary_hidden" type="checkbox" /> Hide salary from public job post</label>
+                <label for="job-benefits">Other Benefits</label>
+                <textarea id="job-benefits" name="benefits" rows="3" placeholder="Festival bonus, lunch, transport, health insurance, performance bonus."></textarea>
+                <label for="job-last-date">Last Date to Apply</label>
+                <input id="job-last-date" name="last_date" type="date" required />
+                <button class="btn primary" type="submit">Post Job</button>
+                <p class="form-feedback" aria-live="polite"></p>
+              </form>
+            </section>
+          </section>
+
+          <section class="portal-panel" data-employer-panel="my-jobs">
+            <div class="section-heading"><p class="eyebrow">Published Jobs</p><h2>Manage Your Job Posts</h2><p>Edit jobs, archive inactive roles, and reactivate archived opportunities.</p></div>
+            <div class="published-job-tabs" role="tablist" aria-label="Published job status filters">
+              <button class="is-active" type="button" data-job-status-tab="active">Active Jobs</button>
+              <button type="button" data-job-status-tab="inactive">Archived Jobs</button>
+            </div>
+            <div class="candidate-job-grid" data-employer-jobs data-current-job-status="active"></div>
+            <p class="admin-empty-state" data-employer-jobs-empty hidden>No jobs posted yet.</p>
+          </section>
+
+          <section class="portal-panel" data-employer-panel="matched-candidates">
+            <div class="section-heading"><p class="eyebrow">Matched Candidates</p><h2>Candidate Matches by Job</h2><p>Each published job is matched against all candidates and ranked by score.</p></div>
+            <div class="platform-filter-bar recruiter-filter-bar">
+              <select data-recruiter-job-select aria-label="Select job for candidate matching"><option value="">Select a job</option></select>
+              <input type="search" placeholder="Search candidates" data-employer-candidate-search />
+              <select data-candidate-role-filter><option value="all">All categories</option></select>
+            </div>
+            <div class="job-match-groups" data-candidate-list></div>
+            <p class="admin-empty-state" data-candidate-empty hidden>No candidates found.</p>
+          </section>
+
+          <section class="portal-panel" data-employer-panel="applied-candidates">
+            <div class="section-heading"><p class="eyebrow">Applications</p><h2>Candidate Applications</h2></div>
+            <div class="candidate-job-grid" data-employer-applications></div>
+            <p class="admin-empty-state" data-employer-applications-empty hidden>No applications yet.</p>
+          </section>
+
+          <section class="portal-panel" data-employer-panel="shortlisted">
+            <div class="section-heading"><p class="eyebrow">Shortlisted</p><h2>Unlocked Candidate Details</h2><p>Salary and full contact details are visible only after shortlisting.</p></div>
+            <div class="candidate-job-grid" data-shortlisted-candidates></div>
+            <p class="admin-empty-state" data-shortlisted-empty hidden>No shortlisted candidates yet.</p>
+          </section>
+
+          <section class="portal-panel" data-employer-panel="profile">
+            <div class="platform-panel">
+              <div class="panel-heading-row">
+                <div>
+                  <p class="eyebrow">Employer Profile</p>
+                  <h2>Company Details</h2>
+                  <p>Complete your company profile so jobs and candidate applications show the right employer information.</p>
+                </div>
+                <button class="btn secondary" type="button" data-edit-employer-profile>Edit Profile</button>
+              </div>
+              <div class="profile-detail-grid" data-employer-profile></div>
+              <p class="admin-empty-state" data-employer-profile-empty hidden>No profile data found. Please complete your profile.</p>
+
+              <form class="form-modern employer-profile-form" data-platform-form="employer-profile" hidden novalidate>
+                <div class="form-row">
+                  <div><label for="profile-company-name">Company Name</label><input id="profile-company-name" name="company_name" type="text" required /></div>
+                  <div><label for="profile-contact-person">Contact Person</label><input id="profile-contact-person" name="contact_person" type="text" required /></div>
+                </div>
+                <div class="form-row">
+                  <div><label for="profile-email">Email</label><input id="profile-email" name="email" type="email" readonly /></div>
+                  <div><label for="profile-phone">Phone Number</label><input id="profile-phone" name="phone" type="tel" required /></div>
+                </div>
+                <div class="form-row">
+                  <div><label for="profile-location">Company Location</label><input id="profile-location" name="location" type="text" /></div>
+                  <div><label for="profile-industry">Industry Type</label><input id="profile-industry" name="industry" type="text" placeholder="IT, BPO, Retail, Manufacturing" /></div>
+                </div>
+                <label for="profile-company-size">Company Size</label>
+                <select id="profile-company-size" name="company_size">
+                  <option value="">Select company size</option>
+                  <option value="1-10">1-10 employees</option>
+                  <option value="11-50">11-50 employees</option>
+                  <option value="51-200">51-200 employees</option>
+                  <option value="201-500">201-500 employees</option>
+                  <option value="500+">500+ employees</option>
+                </select>
+                <label for="profile-about">About Company</label>
+                <textarea id="profile-about" name="about" rows="5" placeholder="Briefly describe your company, culture, and hiring needs."></textarea>
+                <div class="hero-actions">
+                  <button class="btn primary" type="submit">Save Profile</button>
+                  <button class="btn secondary" type="button" data-cancel-employer-profile>Edit Later</button>
+                </div>
+                <p class="form-feedback" aria-live="polite"></p>
+              </form>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="report-modal" id="employer-candidate-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="modal-candidate-name">
+    <div class="report-modal-backdrop" data-employer-modal-close></div>
+    <div class="report-modal-content employer-candidate-modal-content">
+      <button class="report-close-btn" type="button" aria-label="Close candidate profile" data-employer-modal-close>&times;</button>
+      <div data-employer-candidate-modal></div>
+    </div>
+  </div>
+
+  <div class="report-modal" id="job-edit-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="job-edit-title">
+    <div class="report-modal-backdrop" data-job-edit-close></div>
+    <div class="report-modal-content employer-candidate-modal-content">
+      <button class="report-close-btn" type="button" aria-label="Close job editor" data-job-edit-close>&times;</button>
+      <div class="panel-heading-row">
+        <div>
+          <p class="eyebrow">Edit Published Job</p>
+          <h2 id="job-edit-title">Update Job Details</h2>
+        </div>
+      </div>
+      <form class="form-modern employer-profile-form" data-platform-form="job-edit" novalidate>
+        <input type="hidden" name="job_id" />
+        <div class="form-row">
+          <div><label for="edit-job-title">Designation / Job Title</label><input id="edit-job-title" name="job_title" type="text" required /></div>
+          <div><label for="edit-job-location">Job Location</label><input id="edit-job-location" name="job_location" type="text" required /></div>
+        </div>
+        <div class="form-row">
+          <div><label for="edit-job-type">Job Type</label><select id="edit-job-type" name="job_type" required><option>Remote</option><option>Hybrid</option><option>On-site</option></select></div>
+          <div><label for="edit-job-last-date">Last Date to Apply</label><input id="edit-job-last-date" name="last_date" type="date" required /></div>
+        </div>
+        <div class="form-row">
+          <div><label for="edit-job-level">Job Level</label><select id="edit-job-level" name="job_level" required><option>Entry Level</option><option>Mid Level</option><option>Top-Level</option></select></div>
+          <div><label for="edit-employment-type">Employment Type</label><select id="edit-employment-type" name="employment_type" required><option>Full Time</option><option>Part Time</option><option>Contractual</option><option>Intern</option></select></div>
+        </div>
+        <label for="edit-job-description">Description</label>
+        <textarea id="edit-job-description" name="description" rows="5" required></textarea>
+        <label for="edit-job-requirements">Requirements</label>
+        <textarea id="edit-job-requirements" name="requirements" rows="4"></textarea>
+        <label for="edit-job-skills">Required Skills</label>
+        <input id="edit-job-skills" name="required_skills" type="text" required />
+        <div class="skill-chip-grid role-skill-suggestions" id="edit-job-skill-suggestions" data-role-skill-suggestions></div>
+        <div class="form-row">
+          <div><label for="edit-salary-min">Min Salary</label><input id="edit-salary-min" name="salary_min" type="number" min="0" /></div>
+          <div><label for="edit-salary-max">Max Salary</label><input id="edit-salary-max" name="salary_max" type="number" min="0" /></div>
+        </div>
+        <label class="present-check salary-toggle"><input name="salary_hidden" type="checkbox" /> Hide salary from public job post</label>
+        <label for="edit-job-benefits">Other Benefits</label>
+        <textarea id="edit-job-benefits" name="benefits" rows="3"></textarea>
+        <button class="btn primary" type="submit">Save Job Changes</button>
+        <p class="form-feedback" aria-live="polite"></p>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
+  <script src="script.js?v=platform-1"></script>
+  <script src="platform.js?v=platform-1"></script>
+</body>
+</html>
+
+

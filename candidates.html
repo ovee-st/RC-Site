@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Apply for jobs and join the MX VENTURE LAB talent network in Bangladesh." />
+  <title>Candidates | MX VENTURE LAB</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=platform-1" />
+</head>
+<body data-page="candidates">
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a class="brand" href="index.html" aria-label="MX VENTURE LAB home">
+        <img class="brand-logo" src="MX.png" alt="MX VENTURE LAB logo" />
+        <span class="brand-text">MX VENTURE LAB</span>
+      </a>
+      <button class="nav-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="primary-nav">Menu</button>
+      <nav id="primary-nav" class="site-nav" aria-label="Primary navigation"></nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="page-hero">
+      <div class="container">
+        <p class="eyebrow">For Candidates</p>
+        <h1>Take the Next Step in Your Career</h1>
+        <p class="lead">Submit your profile and we will match you with relevant corporate opportunities.</p>
+        <div class="hero-actions">
+          <a class="btn primary" href="auth.html">Sign In</a>
+          <a class="btn secondary" href="candidate-dashboard.html">Candidate Portal</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section portal-entry-section">
+      <div class="container portal-entry-card">
+        <div>
+          <p class="eyebrow">Candidate Portal</p>
+          <h2>Already signed in?</h2>
+          <p>Open your candidate dashboard to update your profile, review matched roles, and manage your talent data.</p>
+        </div>
+        <a class="btn primary" href="candidate-dashboard.html">Open Candidate Portal</a>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container two-col">
+        <div>
+          <h2>Why Join Our Talent Pool</h2>
+          <ul class="check-list">
+            <li>Access to verified employers and quality roles</li>
+            <li>Guidance on interview and communication skills</li>
+            <li>Fair evaluation with transparent process</li>
+            <li>Support for long-term career growth</li>
+          </ul>
+        </div>
+        <div class="form-card" id="employee-data">
+          <h2>Employee Data Collection</h2>
+          <p class="form-intro">Submit your details, skills, experience, and resume directly through the MX VENTURE LAB site.</p>
+          <form class="form-modern js-supabase-form" data-supabase-form="candidate" novalidate>
+            <label for="candidate-full-name">Full Name</label>
+            <input id="candidate-full-name" name="full_name" type="text" autocomplete="name" minlength="2" required />
+
+            <label for="candidate-phone">Phone Number</label>
+            <input id="candidate-phone" name="phone_number" type="tel" autocomplete="tel" pattern="^\+?[0-9\s\-]{8,15}$" required />
+
+            <label for="candidate-email">Email</label>
+            <input id="candidate-email" name="email" type="email" autocomplete="email" required />
+
+            <label for="candidate-location">Location</label>
+            <input id="candidate-location" name="location" type="text" autocomplete="address-level2" minlength="2" required />
+
+            <label for="candidate-category">Job Category</label>
+            <select id="candidate-category" name="category" data-role-category required></select>
+
+            <label for="candidate-education">Education</label>
+            <input id="candidate-education" name="education" type="text" minlength="2" required />
+
+            <label for="candidate-skills">Skills</label>
+            <textarea id="candidate-skills" name="skills" rows="3" minlength="3" required></textarea>
+
+            <label for="candidate-experience">Experience</label>
+            <input id="candidate-experience" name="experience" type="text" minlength="1" required />
+
+            <label for="candidate-resume">Resume (Maximum 10mb)</label>
+            <input id="candidate-resume" name="resume" type="file" accept=".pdf,.doc,.docx" />
+
+            <button class="btn primary" type="submit">Submit Candidate Data</button>
+            <p class="form-feedback" aria-live="polite"></p>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-muted cv-builder-section" id="cv-builder">
+      <div class="container">
+        <div class="section-heading">
+          <p class="eyebrow">CV Builder</p>
+          <h2>Create a Regular CV and ATS CV</h2>
+          <p>Fill your details once, preview both versions, and download clean PDF files directly from your browser.</p>
+        </div>
+
+        <div class="cv-builder-grid">
+          <div class="form-card cv-form-card">
+            <h2>Candidate CV Details</h2>
+            <p class="form-intro">Use concise, professional wording. Separate skills with commas for the cleanest output.</p>
+            <form class="form-modern cv-builder-form" id="cvBuilderForm" novalidate>
+              <label for="cvFullName">Full Name</label>
+              <input id="cvFullName" name="fullName" type="text" autocomplete="name" minlength="2" required />
+
+              <div class="form-row">
+                <div>
+                  <label for="cvEmail">Email</label>
+                  <input id="cvEmail" name="email" type="email" autocomplete="email" required />
+                </div>
+                <div>
+                  <label for="cvPhone">Phone</label>
+                  <input id="cvPhone" name="phone" type="tel" autocomplete="tel" pattern="^\+?[0-9\s\-]{8,15}$" required />
+                </div>
+              </div>
+
+              <label for="cvLocation">Location</label>
+              <input id="cvLocation" name="location" type="text" autocomplete="address-level2" minlength="2" required />
+
+              <label for="cvSummary">Summary</label>
+              <textarea id="cvSummary" name="summary" rows="4" minlength="20" placeholder="Write a short professional summary..." required></textarea>
+
+              <label for="cvSkills">Skills</label>
+              <textarea id="cvSkills" name="skills" rows="3" minlength="3" placeholder="Customer Support, MS Excel, Communication" required></textarea>
+
+              <label for="cvExperience">Experience</label>
+              <textarea id="cvExperience" name="experience" rows="5" minlength="10" placeholder="Company, role, duration, responsibilities, achievements" required></textarea>
+
+              <label for="cvEducation">Education</label>
+              <textarea id="cvEducation" name="education" rows="3" minlength="3" placeholder="Degree, institution, year" required></textarea>
+
+              <label for="cvProjects">Projects</label>
+              <textarea id="cvProjects" name="projects" rows="4" minlength="3" placeholder="Project name, tools used, result or impact" required></textarea>
+
+              <button class="btn primary" type="submit">Generate CV</button>
+              <p class="form-feedback" id="cvBuilderFeedback" aria-live="polite"></p>
+            </form>
+          </div>
+
+          <div class="cv-preview-panel" id="cvPreviewPanel" hidden>
+            <div class="cv-preview-top">
+              <div>
+                <p class="eyebrow">Preview Ready</p>
+                <h3>Your CV files are generated</h3>
+                <p>Review the previews below, then download the version you need.</p>
+              </div>
+              <div class="cv-download-actions">
+                <button class="btn primary" type="button" onclick="downloadDesignedCV()">Download Designed CV</button>
+                <button class="btn secondary" type="button" onclick="downloadATSCV()">Download ATS CV</button>
+              </div>
+            </div>
+
+            <div class="cv-preview-stack">
+              <article class="regular-cv cv-document" id="regularCV">
+                <header class="regular-cv-header">
+                  <div>
+                    <p class="cv-label">Modern CV</p>
+                    <h2 id="regName">Candidate Name</h2>
+                  </div>
+                  <p id="regContact">Email | Phone | Location</p>
+                </header>
+
+                <section>
+                  <h3>Summary</h3>
+                  <p id="regSummary"></p>
+                </section>
+
+                <section>
+                  <h3>Skills</h3>
+                  <div class="cv-skill-list" id="regSkills"></div>
+                </section>
+
+                <section>
+                  <h3>Experience</h3>
+                  <p id="regExperience"></p>
+                </section>
+
+                <section>
+                  <h3>Education</h3>
+                  <p id="regEducation"></p>
+                </section>
+
+                <section>
+                  <h3>Projects</h3>
+                  <p id="regProjects"></p>
+                </section>
+              </article>
+
+              <article class="ats-cv cv-document" id="atsCV">
+                <header>
+                  <h2 id="atsName">Candidate Name</h2>
+                  <p id="atsContact">Email | Phone | Location</p>
+                </header>
+
+                <section>
+                  <h3>SUMMARY</h3>
+                  <p id="atsSummary"></p>
+                </section>
+
+                <section>
+                  <h3>SKILLS</h3>
+                  <p id="atsSkills"></p>
+                </section>
+
+                <section>
+                  <h3>EXPERIENCE</h3>
+                  <p id="atsExperience"></p>
+                </section>
+
+                <section>
+                  <h3>EDUCATION</h3>
+                  <p id="atsEducation"></p>
+                </section>
+
+                <section>
+                  <h3>PROJECTS</h3>
+                  <p id="atsProjects"></p>
+                </section>
+              </article>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-muted">
+      <div class="container">
+        <div class="section-heading">
+          <p class="eyebrow">Candidate Evaluation</p>
+          <h2>Sample Evaluation Dashboard</h2>
+        </div>
+        <article class="candidate-eval-card">
+          <div class="candidate-eval-top">
+            <div>
+              <h3 class="candidate-name">Rafiul Islam</h3>
+              <p class="candidate-skills"><strong>Skills:</strong> Customer Support, CRM, MS Excel, Communication</p>
+            </div>
+            <span class="status-pill status-qualified">Shortlisted</span>
+          </div>
+
+          <div class="score-grid">
+            <div class="score-item">
+              <p class="score-label">Communication</p>
+              <p class="score-value">8<span>/10</span></p>
+            </div>
+            <div class="score-item">
+              <p class="score-label">Confidence</p>
+              <p class="score-value">7<span>/10</span></p>
+            </div>
+            <div class="score-item">
+              <p class="score-label">Excel</p>
+              <p class="score-value">9<span>/10</span></p>
+            </div>
+          </div>
+
+          <button class="btn btn-primary report-trigger" type="button" data-report-open aria-controls="candidate-report-modal">
+            View Report
+          </button>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <div class="report-modal" id="candidate-report-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="report-title">
+    <div class="report-modal-backdrop" data-report-close></div>
+    <div class="report-modal-content">
+      <button class="report-close-btn" type="button" aria-label="Close report" data-report-close>&times;</button>
+      <p class="eyebrow">Candidate Report</p>
+      <h2 id="report-title">Rafiul Islam - Evaluation Summary</h2>
+
+      <div class="report-block">
+        <h3>Candidate Summary</h3>
+        <p>
+          Rafiul has 2+ years of frontline customer service experience in telecom and
+          e-commerce support environments. He demonstrates strong issue resolution
+          skills and clear communication in both Bangla and English.
+        </p>
+      </div>
+
+      <div class="report-block">
+        <h3>Scores</h3>
+        <ul class="report-score-list">
+          <li><span>Communication</span><strong>8/10</strong></li>
+          <li><span>Confidence</span><strong>7/10</strong></li>
+          <li><span>Excel</span><strong>9/10</strong></li>
+        </ul>
+      </div>
+
+      <div class="report-block">
+        <h3>Trainer Feedback</h3>
+        <p>
+          Candidate shows professional tone, active listening, and good data-handling
+          ability. With additional mock-call practice, he can improve confidence for
+          high-pressure customer conversations.
+        </p>
+      </div>
+
+      <div class="report-block report-recommendation">
+        <h3>Recommendation</h3>
+        <p>Suitable for Customer Support</p>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div>
+        <h3>MX VENTURE LAB</h3>
+        <p>Modern recruitment solutions for corporate hiring in Bangladesh.</p>
+      </div>
+      <div>
+        <h4>Pages</h4>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="jobs.html">Jobs</a></li>
+          <li><a href="employers.html">Employers</a></li>
+          <li><a href="candidates.html">Candidates</a></li>
+          <li><a href="contact.html">Contact</a></li>
+          <li><a href="services.html">Services</a></li>
+          <li><a href="dashboard.html">Dashboard</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <ul>
+          <li>Dhaka, Bangladesh</li>
+          <li>hello@mxventurelab.com</li>
+          <li>+880 1700-000000</li>
+        </ul>
+      </div>
+    </div>
+    <div class="container footer-bottom">
+      <p>&copy; 2026 MX VENTURE LAB. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
+  <script src="script.js?v=platform-1"></script>
+  <script src="platform.js?v=platform-1"></script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+

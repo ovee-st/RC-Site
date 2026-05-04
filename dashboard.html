@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Admin dashboard for candidate evaluation and filtering." />
+  <title>Dashboard | MX VENTURE LAB</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=platform-1" />
+</head>
+<body data-page="dashboard">
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a class="brand" href="index.html" aria-label="MX VENTURE LAB home">
+        <img class="brand-logo" src="MX.png" alt="MX VENTURE LAB logo" />
+        <span class="brand-text">MX VENTURE LAB</span>
+      </a>
+      <button class="nav-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="primary-nav">Menu</button>
+      <nav id="primary-nav" class="site-nav" aria-label="Primary navigation"></nav>
+    </div>
+  </header>
+
+  <main class="admin-main">
+    <section class="page-hero admin-hero">
+      <div class="container">
+        <p class="eyebrow">Admin Panel</p>
+        <h1>Candidate Dashboard</h1>
+        <p class="lead">Track candidate evaluations, filter by profile fit, and review score breakdowns quickly.</p>
+      </div>
+    </section>
+
+    <section class="section admin-section">
+      <div class="container">
+        <div class="admin-panel">
+          <div class="filter-bar">
+            <div class="filter-group">
+              <label for="skill-filter">Skill</label>
+              <select id="skill-filter" data-filter="skill">
+                <option value="all">All Skills</option>
+                <option value="Customer Support">Customer Support</option>
+                <option value="Sales">Sales</option>
+                <option value="Excel">Excel</option>
+                <option value="Communication">Communication</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label for="status-filter">Status</label>
+              <select id="status-filter" data-filter="status">
+                <option value="all">All Statuses</option>
+                <option value="Shortlisted">Shortlisted</option>
+                <option value="Under Review">Under Review</option>
+                <option value="Interviewed">Interviewed</option>
+                <option value="Rejected">Rejected</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table class="candidate-table">
+              <thead>
+                <tr>
+                  <th>Candidate</th>
+                  <th>Skills</th>
+                  <th>Status</th>
+                  <th>Communication</th>
+                  <th>Confidence</th>
+                  <th>Excel</th>
+                </tr>
+              </thead>
+              <tbody id="candidate-table-body">
+                <tr data-skill="Customer Support" data-status="Shortlisted">
+                  <td><strong>Rafiul Islam</strong></td>
+                  <td>Customer Support, Communication</td>
+                  <td><span class="status-pill status-qualified">Shortlisted</span></td>
+                  <td>8/10</td>
+                  <td>7/10</td>
+                  <td>9/10</td>
+                </tr>
+                <tr data-skill="Sales" data-status="Under Review">
+                  <td><strong>Nusrat Jahan</strong></td>
+                  <td>Sales, Communication</td>
+                  <td><span class="status-pill status-review">Under Review</span></td>
+                  <td>7/10</td>
+                  <td>8/10</td>
+                  <td>6/10</td>
+                </tr>
+                <tr data-skill="Excel" data-status="Interviewed">
+                  <td><strong>Hasan Mahmud</strong></td>
+                  <td>Excel, Reporting</td>
+                  <td><span class="status-pill status-interviewed">Interviewed</span></td>
+                  <td>6/10</td>
+                  <td>7/10</td>
+                  <td>9/10</td>
+                </tr>
+                <tr data-skill="Communication" data-status="Rejected">
+                  <td><strong>Farzana Akter</strong></td>
+                  <td>Communication, Front Desk</td>
+                  <td><span class="status-pill status-rejected">Rejected</span></td>
+                  <td>6/10</td>
+                  <td>5/10</td>
+                  <td>5/10</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="admin-empty-state" id="admin-empty-state" hidden>No candidates match the selected filters.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div>
+        <h3>MX VENTURE LAB</h3>
+        <p>Modern recruitment solutions for corporate hiring in Bangladesh.</p>
+      </div>
+      <div>
+        <h4>Pages</h4>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="jobs.html">Jobs</a></li>
+          <li><a href="employers.html">Employers</a></li>
+          <li><a href="candidates.html">Candidates</a></li>
+          <li><a href="contact.html">Contact</a></li>
+          <li><a href="services.html">Services</a></li>
+          <li><a href="dashboard.html">Dashboard</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <ul>
+          <li>Dhaka, Bangladesh</li>
+          <li>hello@mxventurelab.com</li>
+          <li>+880 1700-000000</li>
+        </ul>
+      </div>
+    </div>
+    <div class="container footer-bottom">
+      <p>&copy; 2026 MX VENTURE LAB. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="script.js?v=platform-1"></script>
+  <script src="platform.js?v=platform-1"></script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+

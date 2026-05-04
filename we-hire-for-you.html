@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="MX VENTURE LAB hiring service for employers who want sourced, screened, job-ready candidates." />
+  <title>We Hire for You | MX VENTURE LAB</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=platform-1" />
+</head>
+<body data-page="hire">
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a class="brand" href="index.html" aria-label="MX VENTURE LAB home">
+        <img class="brand-logo" src="MX.png" alt="MX VENTURE LAB logo" />
+        <span class="brand-text">MX VENTURE LAB</span>
+      </a>
+      <button class="nav-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="primary-nav">Menu</button>
+      <nav id="primary-nav" class="site-nav" aria-label="Primary navigation"></nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hire-hero">
+      <div class="container hire-hero-grid">
+        <div>
+          <p class="eyebrow">Managed Hiring Service</p>
+          <h1>Hire Talent Without the Hassle</h1>
+          <p class="lead">We source, screen, and deliver job-ready candidates for your business.</p>
+          <div class="hero-actions">
+            <a class="btn primary" href="#hiring-request">Request Hiring</a>
+            <a class="btn secondary" href="#how-it-works">See Process</a>
+          </div>
+        </div>
+        <aside class="hire-hero-card">
+          <span>Dedicated Sourcing</span>
+          <strong>Shortlisted candidates delivered to your team</strong>
+          <p>Best for companies that want hiring outcomes without managing sourcing, screening, and early evaluation in-house.</p>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section" id="how-it-works">
+      <div class="container">
+        <div class="section-heading">
+          <p class="eyebrow">How It Works</p>
+          <h2>From requirement to shortlist</h2>
+        </div>
+        <div class="hire-steps-grid">
+          <article><span>01</span><h3>Submit requirement</h3><p>Share role, location, budget, timeline, and hiring volume.</p></article>
+          <article><span>02</span><h3>We source candidates</h3><p>Our team finds candidates across blue-collar, white-collar, and promoter roles.</p></article>
+          <article><span>03</span><h3>We evaluate & shortlist</h3><p>We screen for fit, communication, skills, and readiness.</p></article>
+          <article><span>04</span><h3>You hire</h3><p>You interview final profiles and select the best candidates.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-muted">
+      <div class="container">
+        <div class="section-heading">
+          <p class="eyebrow">Hiring Categories</p>
+          <h2>Roles we can source for you</h2>
+        </div>
+        <div class="hire-category-grid">
+          <article class="category-card">
+            <div class="card-image blue-collar" aria-hidden="true"><span>Blue Collar</span></div>
+            <div class="card-content">
+              <span class="hire-icon">BC</span>
+              <h3>Blue Collar</h3>
+              <ul><li>Office Assistant</li><li>Floor Supervisor</li><li>Security Supervisor</li><li>Warehouse Support</li></ul>
+            </div>
+          </article>
+          <article class="category-card">
+            <div class="card-image white-collar" aria-hidden="true"><span>White Collar</span></div>
+            <div class="card-content">
+              <span class="hire-icon">WC</span>
+              <h3>White Collar</h3>
+              <ul><li>Admin Officer</li><li>Customer Support Executive</li><li>Data Entry Operator</li><li>HR Assistant</li></ul>
+            </div>
+          </article>
+          <article class="category-card">
+            <div class="card-image promoter" aria-hidden="true"><span>Promoters</span></div>
+            <div class="card-content">
+              <span class="hire-icon">BP</span>
+              <h3>Business Promoters</h3>
+              <ul><li>Brand Promoter</li><li>Sales Promoter</li><li>Field Activation Executive</li><li>Retail Promoter</li></ul>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="section-heading">
+          <p class="eyebrow">Pricing</p>
+          <h2>Choose the support level you need</h2>
+        </div>
+        <div class="hire-pricing-grid">
+          <article><h3>Starter</h3><p>For urgent small-volume hiring.</p><strong>Shortlist support</strong><span>1-2 roles</span></article>
+          <article class="is-featured"><h3>Growth</h3><p>For monthly hiring pipelines.</p><strong>Managed sourcing</strong><span>3-5 roles</span></article>
+          <article><h3>Enterprise</h3><p>For ongoing multi-role recruitment.</p><strong>Custom hiring desk</strong><span>Bulk hiring</span></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-muted" id="hiring-request">
+      <div class="container two-col">
+        <div>
+          <p class="eyebrow">Request Hiring</p>
+          <h2>Tell us what you need</h2>
+          <p class="lead">Submit your hiring requirement and our team will contact you with the next steps.</p>
+        </div>
+        <form class="form-card form-modern hire-wizard js-supabase-form" data-hiring-wizard data-supabase-form="hiring-request" novalidate>
+          <div class="wizard-progress" aria-label="Hiring request progress">
+            <div class="wizard-progress-bar"><span data-wizard-progress></span></div>
+            <p><strong data-wizard-step-current>1</strong> of 4</p>
+          </div>
+
+          <fieldset class="wizard-step is-active" data-wizard-step="1">
+            <legend>What type of hiring do you need?</legend>
+            <p class="field-hint">Choose the category that best matches your current requirement.</p>
+            <div class="hire-choice-grid">
+              <label class="hire-choice-card">
+                <input type="radio" name="hiring_type" value="Blue Collar" required />
+                <span>Blue Collar</span>
+                <small>Operations, support, field roles</small>
+              </label>
+              <label class="hire-choice-card">
+                <input type="radio" name="hiring_type" value="White Collar" required />
+                <span>White Collar</span>
+                <small>Admin, corporate, technical roles</small>
+              </label>
+              <label class="hire-choice-card">
+                <input type="radio" name="hiring_type" value="Business Promoters" required />
+                <span>Business Promoters</span>
+                <small>Sales, activation, brand promoters</small>
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset class="wizard-step" data-wizard-step="2" hidden>
+            <legend>Tell us about the roles</legend>
+            <label for="hire-roles">Job Roles</label>
+            <input id="hire-roles" name="roles" type="text" placeholder="Office Assistant, Customer Support Executive" required />
+
+            <div class="form-row">
+              <div>
+                <label for="hire-count">Number of Employees</label>
+                <select id="hire-count" name="quantity" required>
+                  <option value="">Select quantity</option>
+                  <option value="1-2">1-2 employees</option>
+                  <option value="3-5">3-5 employees</option>
+                  <option value="6-10">6-10 employees</option>
+                  <option value="11-25">11-25 employees</option>
+                  <option value="25+">25+ employees</option>
+                </select>
+              </div>
+              <div>
+                <label for="hire-location">Job Location</label>
+                <input id="hire-location" name="location" type="text" placeholder="Dhaka, Chattogram, Remote" required />
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset class="wizard-step" data-wizard-step="3" hidden>
+            <legend>Budget and timeline</legend>
+            <div class="form-row">
+              <div>
+                <label for="hire-budget">Budget Range</label>
+                <select id="hire-budget" name="budget" required>
+                  <option value="">Select budget</option>
+                  <option>Below BDT 20,000</option>
+                  <option>BDT 20,000 - 35,000</option>
+                  <option>BDT 35,000 - 60,000</option>
+                  <option>BDT 60,000 - 100,000</option>
+                  <option>BDT 100,000+</option>
+                  <option>To be discussed</option>
+                </select>
+              </div>
+              <div>
+                <label for="hire-timeline">Hiring Timeline</label>
+                <select id="hire-timeline" name="timeline" required>
+                  <option value="">Select timeline</option>
+                  <option>Urgent</option>
+                  <option>Within 1 week</option>
+                  <option>Within 1 month</option>
+                  <option>Ongoing hiring</option>
+                </select>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset class="wizard-step" data-wizard-step="4" hidden>
+            <legend>Where should we contact you?</legend>
+            <label for="hire-company">Company Name</label>
+            <input id="hire-company" name="company_name" type="text" required />
+
+            <label for="hire-contact">Contact Person</label>
+            <input id="hire-contact" name="contact_person" type="text" required />
+
+            <div class="form-row">
+              <div>
+                <label for="hire-email">Email</label>
+                <input id="hire-email" name="email" type="email" required />
+              </div>
+              <div>
+                <label for="hire-phone">Phone</label>
+                <input id="hire-phone" name="phone" type="tel" required />
+              </div>
+            </div>
+          </fieldset>
+
+          <div class="wizard-actions">
+            <button class="btn secondary" type="button" data-wizard-back hidden>Back</button>
+            <a class="btn ghost" href="https://wa.me/8801700000000" target="_blank" rel="noreferrer">Talk to us instantly</a>
+            <button class="btn primary" type="button" data-wizard-next>Next</button>
+            <button class="btn primary" type="submit" data-wizard-submit hidden>Submit Request</button>
+          </div>
+          <p class="form-feedback" aria-live="polite"></p>
+          <div class="wizard-success" data-wizard-success hidden>
+            <span>Request Submitted Successfully</span>
+            <p>We will contact you within 24 hours.</p>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div><h3>MX VENTURE LAB</h3><p>Modern recruitment solutions for corporate hiring in Bangladesh.</p></div>
+      <div><h4>Pages</h4><ul><li><a href="index.html">Home</a></li><li><a href="jobs.html">Jobs</a></li><li><a href="we-hire-for-you.html">We Hire for You</a></li><li><a href="employers.html">Employers</a></li><li><a href="candidates.html">Candidates</a></li></ul></div>
+      <div><h4>Contact</h4><ul><li>Dhaka, Bangladesh</li><li>hello@mxventurelab.com</li><li>+880 1700-000000</li></ul></div>
+    </div>
+    <div class="container footer-bottom"><p>&copy; 2026 MX VENTURE LAB. All rights reserved.</p></div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="script.js?v=platform-1"></script>
+  <script src="platform.js?v=platform-1"></script>
+</body>
+</html>
+

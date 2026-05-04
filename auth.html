@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Login or create an MX VENTURE LAB recruitment platform account." />
+  <title>Login | MX VENTURE LAB</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=platform-1" />
+</head>
+<body data-page="auth">
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a class="brand" href="index.html" aria-label="MX VENTURE LAB home">
+        <img class="brand-logo" src="MX.png" alt="MX VENTURE LAB logo" />
+        <span class="brand-text">MX VENTURE LAB</span>
+      </a>
+      <button class="nav-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="primary-nav">Menu</button>
+      <nav id="primary-nav" class="site-nav" aria-label="Primary navigation"></nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="platform-auth-section">
+      <div class="container platform-auth-grid">
+        <div class="platform-auth-copy">
+          <p class="eyebrow">Recruitment Platform</p>
+          <h1>One Account for Talent Matching</h1>
+          <p class="lead">Candidates can manage profiles and employers can browse matched talent from the same Supabase-powered platform.</p>
+          <div class="platform-mini-grid">
+            <div><strong>Candidate</strong><span>Profile, matches, applications</span></div>
+            <div><strong>Employer</strong><span>Hiring needs, candidate listing</span></div>
+            <div><strong>Matching</strong><span>Skill and role-fit scoring</span></div>
+          </div>
+        </div>
+
+        <div class="auth-card">
+          <div class="auth-tabs" role="tablist" aria-label="Authentication options">
+            <button class="is-active" type="button" data-auth-tab="login">Login</button>
+            <button type="button" data-auth-tab="signup">Signup</button>
+          </div>
+
+          <form class="form-modern auth-form" data-auth-panel="login" data-auth-form="login" novalidate>
+            <h2>Welcome back</h2>
+            <div class="login-role-options" role="radiogroup" aria-label="Choose login type">
+              <button class="is-active" type="button" data-login-role-option="candidate">Candidate Login</button>
+              <button type="button" data-login-role-option="employer">Employer Login</button>
+            </div>
+            <input type="hidden" name="login_role" value="candidate" data-login-role-value />
+            <label for="login-email">Email</label>
+            <input id="login-email" name="email" type="email" autocomplete="email" required />
+            <label for="login-password">Password</label>
+            <input id="login-password" name="password" type="password" autocomplete="current-password" minlength="6" required />
+            <button class="auth-text-button" type="button" data-auth-tab="reset">Forgot password?</button>
+            <button class="btn primary" type="submit">Login</button>
+            <p class="form-feedback" aria-live="polite"></p>
+          </form>
+
+          <form class="form-modern auth-form" data-auth-panel="signup" data-auth-form="signup" hidden novalidate>
+            <h2>Create account</h2>
+            <label for="signup-name">Full Name</label>
+            <input id="signup-name" name="full_name" type="text" autocomplete="name" minlength="2" required />
+            <label for="signup-email">Email</label>
+            <input id="signup-email" name="email" type="email" autocomplete="email" required />
+            <label for="signup-password">Password</label>
+            <input id="signup-password" name="password" type="password" autocomplete="new-password" minlength="6" required />
+            <label for="signup-role">Account Type</label>
+            <select id="signup-role" name="role" required>
+              <option value="candidate">Candidate</option>
+              <option value="employer">Employer</option>
+            </select>
+            <button class="btn secondary" type="submit">Create Account</button>
+            <p class="form-feedback" aria-live="polite"></p>
+          </form>
+
+          <form class="form-modern auth-form" data-auth-panel="reset" data-auth-form="reset" hidden novalidate>
+            <h2>Reset password</h2>
+            <p class="form-intro">Enter the email used for your candidate or employer account. We will send a secure password reset link.</p>
+            <label for="reset-email">Account Email</label>
+            <input id="reset-email" name="email" type="email" autocomplete="email" required />
+            <button class="btn primary" type="submit">Send Reset Link</button>
+            <button class="auth-text-button" type="button" data-auth-tab="login">Back to login</button>
+            <p class="form-feedback" aria-live="polite"></p>
+          </form>
+
+          <form class="form-modern auth-form" data-auth-panel="update-password" data-auth-form="update-password" hidden novalidate>
+            <h2>Create new password</h2>
+            <p class="form-intro">Enter a new password for your MX VENTURE LAB account.</p>
+            <label for="new-password">New Password</label>
+            <input id="new-password" name="password" type="password" autocomplete="new-password" minlength="6" required />
+            <label for="confirm-new-password">Confirm Password</label>
+            <input id="confirm-new-password" name="confirm_password" type="password" autocomplete="new-password" minlength="6" required />
+            <button class="btn primary" type="submit">Update Password</button>
+            <p class="form-feedback" aria-live="polite"></p>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="script.js?v=platform-1"></script>
+  <script src="platform.js?v=platform-1"></script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
