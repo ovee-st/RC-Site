@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Candidate portal dashboard for MX VENTURE LAB profile, jobs, applications, and resume builder." />
+  <title>Candidate Portal | MX VENTURE LAB</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=platform-1" />
+</head>
+<body data-page="candidate-dashboard" data-dashboard-role="candidate">
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a class="brand" href="index.html" aria-label="MX VENTURE LAB home">
+        <img class="brand-logo" src="MX.png" alt="MX VENTURE LAB logo" />
+        <span class="brand-text">MX VENTURE LAB</span>
+      </a>
+      <button class="nav-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="primary-nav">Menu</button>
+      <nav id="primary-nav" class="site-nav" aria-label="Primary navigation"></nav>
+    </div>
+  </header>
+
+  <main class="candidate-portal-main">
+    <section class="page-hero platform-dashboard-hero">
+      <div class="container dashboard-hero-row">
+        <div>
+          <p class="eyebrow">Candidate Portal</p>
+          <h1>Your Career Command Center</h1>
+          <p class="lead">Manage your profile, discover matched jobs, track applications, and generate professional CVs.</p>
+        </div>
+        <button class="btn secondary" type="button" data-auth-logout>Logout</button>
+      </div>
+    </section>
+
+    <section class="section candidate-portal-section">
+      <div class="container candidate-portal-layout">
+        <aside class="candidate-sidebar platform-panel">
+          <div class="candidate-sidebar-profile">
+            <div class="profile-photo-preview small-avatar" data-sidebar-photo><span>MX</span></div>
+            <div>
+              <h2 data-account-name>Loading...</h2>
+              <p data-account-email></p>
+            </div>
+          </div>
+          <nav class="candidate-side-nav" aria-label="Candidate portal navigation">
+            <button class="nav-item is-active active" type="button" data-view="profile" data-portal-tab="profile">Profile</button>
+            <button class="nav-item" type="button" data-view="jobs" data-portal-tab="available-jobs">Available Jobs</button>
+            <button class="nav-item" type="button" data-view="applied" data-portal-tab="applied-jobs">Applied Jobs</button>
+            <button class="nav-item" type="button" data-view="resume" data-portal-tab="resume-builder">Resume Builder</button>
+            <button class="nav-item" type="button" data-view="logout">Logout</button>
+          </nav>
+        </aside>
+
+        <div class="candidate-portal-content">
+          <section id="profileView" class="portal-panel is-active profile-container" data-portal-panel="profile">
+            <div class="profile-summary-card profile-header card platform-panel">
+              <div class="profile-summary-top">
+                <div class="profile-photo-preview" data-photo-preview><span>MX</span></div>
+                <div>
+                  <h2 data-profile-name>Complete your profile</h2>
+                  <p data-profile-headline>Role, category, and career level will appear here.</p>
+                </div>
+                <button class="btn secondary" type="button" data-scroll-edit-profile>Edit Profile</button>
+              </div>
+            </div>
+            <div class="profile-detail-grid" data-profile-summary></div>
+
+            <section class="linkedin-profile-builder platform-panel" id="edit-profile">
+              <div class="panel-heading-row">
+                <div>
+                  <h2>Candidate Profile Builder</h2>
+                </div>
+                <span class="platform-score" data-profile-score>0% complete</span>
+              </div>
+
+              <form class="form-modern profile-builder-form" data-platform-form="candidate-profile" novalidate>
+                <section class="profile-builder-card profile-identity-card">
+                  <div class="profile-section-title">
+                    <span class="profile-section-icon">01</span>
+                    <div><h3>Profile Identity</h3><p>Upload a professional photo and add your core contact details.</p></div>
+                  </div>
+                  <div class="profile-photo-row">
+                    <div class="profile-photo-preview" data-photo-preview><span>MX</span></div>
+                    <div>
+                      <label for="profile-photo">Profile Photo</label>
+                      <input id="profile-photo" name="photo" type="file" accept="image/png,image/jpeg,image/webp" />
+                      <p class="field-hint">JPG, PNG, or WebP. The photo is stored in Supabase Storage.</p>
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <div><label for="dash-candidate-name">Full Name</label><input id="dash-candidate-name" name="full_name" type="text" required /></div>
+                    <div><label for="dash-candidate-phone">Phone</label><input id="dash-candidate-phone" name="phone_number" type="tel" required /></div>
+                  </div>
+                  <label for="dash-candidate-location">Location</label>
+                  <input id="dash-candidate-location" name="location" type="text" required />
+                </section>
+
+                <section class="profile-builder-card" data-profile-edit-section="skills">
+                  <div class="profile-section-title">
+                    <span class="profile-section-icon">02</span>
+                    <div><h3>Career Focus</h3><p>Select career level, categories, related skills, and your target role.</p></div>
+                  </div>
+                  <div class="form-row">
+                    <div>
+                      <label for="career-level">Career Level</label>
+                      <select id="career-level" name="career_level" required>
+                        <option value="Fresher">Fresher</option>
+                        <option value="Entry Level">Entry Level</option>
+                        <option value="Mid Level">Mid Level</option>
+                        <option value="Senior Level">Senior Level</option>
+                      </select>
+                    </div>
+                    <div><label for="dash-candidate-category">Job Category</label><select id="dash-candidate-category" name="profile_category" data-role-category required></select></div>
+                  </div>
+                  <div><label>Skills</label><div class="skill-chip-grid" id="candidate-skill-suggestions" data-profile-skills data-role-skill-suggestions></div></div>
+                  <label for="other-skills">Other Skills</label>
+                  <input id="other-skills" name="other_skills" type="text" placeholder="Add extra skills separated by commas" />
+                </section>
+
+                <section class="profile-builder-card" data-profile-edit-section="about">
+                  <div class="profile-section-title"><span class="profile-section-icon">03</span><div><h3>About Me</h3><p>Write a short professional summary employers can quickly scan.</p></div></div>
+                  <label for="candidate-about">Professional Summary</label>
+                  <textarea id="candidate-about" name="about" rows="5" minlength="20" required></textarea>
+                </section>
+
+                <section class="profile-builder-card" data-profile-edit-section="education">
+                  <div class="profile-section-title"><span class="profile-section-icon">04</span><div><h3>Education</h3><p>Add degrees, institutions, and completion years.</p></div></div>
+                  <div class="dynamic-list" data-dynamic-list="education"></div>
+                  <button class="btn secondary compact-btn" type="button" data-add-entry="education">+ Add Education</button>
+                </section>
+
+                <section class="profile-builder-card" data-profile-edit-section="experience">
+                  <div class="profile-section-title"><span class="profile-section-icon">05</span><div><h3>Experience</h3><p>Build a LinkedIn-style timeline of your work history.</p></div></div>
+                  <div class="dynamic-list timeline-list" data-dynamic-list="experience"></div>
+                  <button class="btn secondary compact-btn" type="button" data-add-entry="experience">+ Add Experience</button>
+                </section>
+
+                <section class="profile-builder-card" data-profile-edit-section="certifications">
+                  <div class="profile-section-title"><span class="profile-section-icon">06</span><div><h3>Certifications</h3><p>Add professional certificates and issuing organizations.</p></div></div>
+                  <div class="dynamic-list" data-dynamic-list="certifications"></div>
+                  <button class="btn secondary compact-btn" type="button" data-add-entry="certifications">+ Add Certification</button>
+                </section>
+
+                <section class="profile-builder-card salary-card">
+                  <div class="profile-section-title"><span class="profile-section-icon">07</span><div><h3>Salary Information</h3><p>Private by default. Only shortlisted employers should see this.</p></div></div>
+                  <div class="form-row">
+                    <div><label for="current-salary">Current Salary</label><input id="current-salary" name="current_salary" type="number" min="0" placeholder="BDT" /></div>
+                    <div><label for="expected-salary">Expected Salary</label><input id="expected-salary" name="expected_salary" type="number" min="0" placeholder="BDT" /></div>
+                  </div>
+                </section>
+
+                <button class="btn primary" type="submit">Save Complete Profile</button>
+                <p class="form-feedback" aria-live="polite"></p>
+              </form>
+            </section>
+          </section>
+
+          <section id="jobsView" class="portal-panel" data-portal-panel="available-jobs">
+            <div class="section-heading"><p class="eyebrow">Available Jobs</p><h2>Matched Opportunities</h2><p>Jobs are matched from employer requirements using your categories and skills.</p></div>
+            <div class="candidate-job-grid" data-available-jobs></div>
+            <p class="admin-empty-state" data-available-jobs-empty hidden>No matched jobs found yet.</p>
+          </section>
+
+          <section id="appliedView" class="portal-panel" data-portal-panel="applied-jobs">
+            <div class="section-heading"><p class="eyebrow">Applied Jobs</p><h2>Your Applications</h2><p>Track the roles you have applied for through MX.</p></div>
+            <div class="candidate-job-grid" data-applied-jobs></div>
+            <p class="admin-empty-state" data-applied-jobs-empty hidden>You have not applied to any jobs yet.</p>
+          </section>
+
+          <section id="resumeView" class="portal-panel" data-portal-panel="resume-builder">
+            <div class="section-heading"><p class="eyebrow">Resume Builder</p><h2>Generate CV From Your Profile</h2><p>Create an ATS CV and a modern designed CV using your saved candidate profile.</p></div>
+            <div class="platform-panel resume-builder-panel">
+              <div class="hero-actions">
+                <button class="btn primary" type="button" data-generate-profile-cv>Generate Preview</button>
+                <button class="btn secondary" type="button" onclick="downloadATSCV()">Download ATS CV</button>
+                <button class="btn secondary" type="button" onclick="downloadDesignedCV()">Download Designed CV</button>
+              </div>
+              <p class="form-feedback" data-resume-feedback aria-live="polite"></p>
+              <div class="cv-preview-stack" data-dashboard-cv-preview hidden>
+                <article class="regular-cv designed-cv cv-document" id="regularCV">
+                  <header class="regular-cv-header"><div><p class="cv-label">Designed CV</p><h2 id="regName">Candidate Name</h2></div><p id="regContact">Email | Phone | Location</p></header>
+                  <section><h3>Summary</h3><p id="regSummary"></p></section>
+                  <section><h3>Skills</h3><div class="cv-skill-list" id="regSkills"></div></section>
+                  <section><h3>Experience</h3><p id="regExperience"></p></section>
+                  <section><h3>Education</h3><p id="regEducation"></p></section>
+                  <section><h3>Projects</h3><p id="regProjects"></p></section>
+                </article>
+                <article class="ats-cv cv-document" id="atsCV">
+                  <header><h2 id="atsName">Candidate Name</h2><p id="atsContact">Email | Phone | Location</p></header>
+                  <section><h3>SUMMARY</h3><p id="atsSummary"></p></section>
+                  <section><h3>SKILLS</h3><p id="atsSkills"></p></section>
+                  <section><h3>EXPERIENCE</h3><p id="atsExperience"></p></section>
+                  <section><h3>EDUCATION</h3><p id="atsEducation"></p></section>
+                  <section><h3>PROJECTS</h3><p id="atsProjects"></p></section>
+                </article>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
+  <script src="script.js?v=platform-1"></script>
+  <script src="platform.js?v=platform-1"></script>
+</body>
+</html>
+
+
