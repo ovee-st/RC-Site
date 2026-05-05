@@ -38,7 +38,7 @@ export default function LandingPage() {
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <LinkButton href="/login">Get Started <ArrowRight className="ml-2 h-4 w-4" /></LinkButton>
-              <LinkButton href={isEmployer ? "/employer#candidates" : "/jobs"} variant="secondary">
+              <LinkButton href={isEmployer ? "/employer/candidates" : "/jobs"} variant="secondary">
                 {isEmployer ? "Find Candidates" : "Explore Jobs"}
               </LinkButton>
             </div>

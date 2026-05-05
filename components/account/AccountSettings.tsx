@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AtSign, KeyRound, Lock, Save, UserRound } from "lucide-react";
+import { AtSign, KeyRound, Lock, Phone, Save, UserRound } from "lucide-react";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Input from "@/components/ui/Input";
@@ -15,19 +15,19 @@ type AccountSettingsProps = {
   title?: string;
 };
 
-function updateStoredProfileEmail(profileStorageKey: string | undefined, email: string) {
+function updateStoredProfileIdentity(profileStorageKey: string | undefined, updates: { email?: string; phone?: string }) {
   if (!profileStorageKey || typeof window === "undefined") return;
 
   try {
     const storedProfile = window.localStorage.getItem(profileStorageKey);
     const parsedProfile = storedProfile ? JSON.parse(storedProfile) : {};
-    window.localStorage.setItem(profileStorageKey, JSON.stringify({ ...parsedProfile, email }));
+    window.localStorage.setItem(profileStorageKey, JSON.stringify({ ...parsedProfile, ...updates }));
   } catch {
     // Profile storage sync is best-effort.
   }
 }
 
-function updateStoredAuth(email: string, username: string) {
+function updateStoredAuth(email: string, username: string, phone: string) {
   if (typeof window === "undefined") return;
 
   try {
@@ -37,10 +37,12 @@ function updateStoredAuth(email: string, username: string) {
     window.localStorage.setItem(MOCK_USER_KEY, JSON.stringify({
       ...currentMock,
       email,
+      phone,
       username,
       user_metadata: {
         ...currentMock.user_metadata,
-        username
+        username,
+        phone
       }
     }));
     window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
@@ -53,6 +55,7 @@ export default function AccountSettings({ profileStorageKey, title = "Account Se
   const { user } = useAuth();
   const username = useMemo(() => getStableUsername(user), [user]);
   const [email, setEmail] = useState(user?.email || "");
+  const [phone, setPhone] = useState((user as any)?.user_metadata?.phone || (user as any)?.phone || "");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -60,7 +63,8 @@ export default function AccountSettings({ profileStorageKey, title = "Account Se
 
   useEffect(() => {
     setEmail(user?.email || "");
-  }, [user?.email]);
+    setPhone((user as any)?.user_metadata?.phone || (user as any)?.phone || "");
+  }, [user?.email, (user as any)?.phone, (user as any)?.user_metadata?.phone]);
 
   const saveAccount = async () => {
     setMessage("");
@@ -86,8 +90,8 @@ export default function AccountSettings({ profileStorageKey, title = "Account Se
 
     if (isSupabaseConfigured) {
       try {
-        const updates: { email?: string; password?: string; data?: { username: string } } = {
-          data: { username }
+        const updates: { email?: string; password?: string; data?: { username: string; phone: string } } = {
+          data: { username, phone }
         };
 
         if (email !== user?.email) updates.email = email;
@@ -102,8 +106,8 @@ export default function AccountSettings({ profileStorageKey, title = "Account Se
       }
     }
 
-    updateStoredAuth(email, username);
-    updateStoredProfileEmail(profileStorageKey, email);
+    updateStoredAuth(email, username, phone);
+    updateStoredProfileIdentity(profileStorageKey, { email, phone });
     setNewPassword("");
     setConfirmPassword("");
     setSaving(false);
@@ -115,9 +119,9 @@ export default function AccountSettings({ profileStorageKey, title = "Account Se
     <Card className="depth-primary p-5">
       <div className="mb-5 flex flex-col justify-between gap-3 md:flex-row md:items-start">
         <div>
-          <Badge variant="primary" className="type-label text-primary">Account Identity</Badge>
+          <Badge variant="primary" className="type-label text-primary">Security</Badge>
           <h3 className="type-h3 mt-3 font-black">{title}</h3>
-          <p className="type-body mt-1">Username is permanent. Email and password can be updated anytime.</p>
+          <p className="type-body mt-1">Username is permanent. Phone, email, and password can be updated anytime.</p>
         </div>
         <Badge variant="neutral" className="w-fit gap-1.5">
           <Lock className="h-3.5 w-3.5" />
@@ -140,6 +144,14 @@ export default function AccountSettings({ profileStorageKey, title = "Account Se
             Email Address
           </span>
           <Input value={email} onChange={(event) => setEmail(event.target.value)} type="email" placeholder="name@example.com" />
+        </label>
+
+        <label className="grid gap-2">
+          <span className="type-label inline-flex items-center gap-1.5">
+            <Phone className="h-3.5 w-3.5" />
+            Phone Number
+          </span>
+          <Input value={phone} onChange={(event) => setPhone(event.target.value)} type="tel" placeholder="Phone number" />
         </label>
 
         <label className="grid gap-2">

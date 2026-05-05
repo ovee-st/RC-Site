@@ -1,4 +1,4 @@
-﻿export type UserRole = "guest" | "candidate" | "employer";
+export type UserRole = "guest" | "candidate" | "employer" | "admin";
 
 export type Job = {
   id: string;
@@ -33,6 +33,7 @@ export type Candidate = {
   skills: string[];
   profile: string;
   embedding?: number[];
+  linkedin_url?: string;
 };
 
 export type MatchResult = {

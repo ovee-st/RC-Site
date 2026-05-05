@@ -21,6 +21,9 @@ type EmployerProfileState = {
   industry: string;
   company_size: string;
   about: string;
+  linkedin_url: string;
+  website_url: string;
+  facebook_url: string;
 };
 
 const PROFILE_KEY = "mx_employer_profile";
@@ -37,7 +40,10 @@ const defaultProfile: EmployerProfileState = {
   location: "Dhaka, Bangladesh",
   industry: "Recruitment & Operations",
   company_size: "11-50 employees",
-  about: "A growing employer using MX Venture Lab to source, evaluate, and hire matched candidates faster."
+  about: "A growing employer using MX Venture Lab to source, evaluate, and hire matched candidates faster.",
+  linkedin_url: "",
+  website_url: "",
+  facebook_url: ""
 };
 
 function TextArea({ className, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
@@ -89,7 +95,7 @@ export default function EmployerProfile() {
 
       const { data } = await supabase
         .from("employers")
-        .select("company_name, contact_person, email, photo_url, banner_url, phone, location, industry, company_size, about")
+        .select("company_name, contact_person, email, photo_url, banner_url, phone, location, industry, company_size, about, linkedin_url, website_url, facebook_url")
         .eq("user_id", user.id)
         .maybeSingle();
 
@@ -276,6 +282,9 @@ export default function EmployerProfile() {
             <Input value={draft.contact_person} onChange={(event) => updateDraft("contact_person", event.target.value)} placeholder="Contact Person" />
             <Input value={draft.email} readOnly placeholder="Email" className="opacity-80" />
             <Input value={draft.phone} onChange={(event) => updateDraft("phone", event.target.value)} placeholder="Phone Number" />
+            <Input value={draft.linkedin_url} onChange={(event) => updateDraft("linkedin_url", event.target.value)} placeholder="LinkedIn Address" />
+            <Input value={draft.website_url} onChange={(event) => updateDraft("website_url", event.target.value)} placeholder="Company Website" />
+            <Input value={draft.facebook_url} onChange={(event) => updateDraft("facebook_url", event.target.value)} placeholder="Facebook Page Link" />
             <Input value={draft.location} onChange={(event) => updateDraft("location", event.target.value)} placeholder="Company Location" />
             <Input value={draft.industry} onChange={(event) => updateDraft("industry", event.target.value)} placeholder="Industry Type" />
             <select
@@ -313,7 +322,10 @@ export default function EmployerProfile() {
             ["Phone", profile.phone || "Not added"],
             ["Location", profile.location],
             ["Company Size", profile.company_size],
-            ["Industry", profile.industry]
+            ["Industry", profile.industry],
+            ["LinkedIn", profile.linkedin_url || "Not added"],
+            ["Website", profile.website_url || "Not added"],
+            ["Facebook", profile.facebook_url || "Not added"]
           ].map(([label, value]) => (
             <div key={label} className="rounded-xl border border-border bg-bg p-4 dark:border-white/10 dark:bg-white/5">
               <p className="type-label">{label}</p>

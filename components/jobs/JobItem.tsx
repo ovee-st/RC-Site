@@ -12,6 +12,12 @@ import PriorityIndicator from "@/components/ui/PriorityIndicator";
 import { cn } from "@/lib/cn";
 import { useAuth } from "@/hooks/useAuth";
 
+function isExpired(deadline?: string) {
+  if (!deadline) return false;
+  const deadlineDate = new Date(`${deadline}T23:59:59`);
+  return Number.isFinite(deadlineDate.getTime()) && deadlineDate < new Date();
+}
+
 function salaryLabel(job: Job) {
   if (job.hideSalary) return "Salary hidden";
   return `BDT ${job.salaryMin / 1000}k-${job.salaryMax / 1000}k`;
@@ -35,7 +41,7 @@ export default function JobItem({ job, matchScore }: { job: Job; matchScore: num
   const highMatch = matchScore >= 85;
   const staleJob = matchScore < 45;
   const isEmployer = role === "employer";
-  const archived = job.status === "archived";
+  const archived = job.status === "archived" || isExpired(job.deadline);
   const hired = job.status === "hired";
 
   const saveEdit = () => {

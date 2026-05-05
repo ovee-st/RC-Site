@@ -1,3 +1,5 @@
+"use client";
+
 import RecruiterMatches from "@/components/dashboard/RecruiterMatches";
 import RecommendedActions from "@/components/dashboard/RecommendedActions";
 import EmployerProfile from "@/components/dashboard/EmployerProfile";
@@ -8,15 +10,41 @@ import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import PageContainer from "@/components/layout/PageContainer";
 import { StaggerContainer } from "@/components/motion/MotionSystem";
-
-const stats = [
-  { label: "Active Jobs", value: 3, note: "Live roles", gradient: "from-blue-500/12 via-blue-500/5 to-transparent" },
-  { label: "Top Matches", value: 12, note: "Above 80% fit", gradient: "from-emerald-500/14 via-emerald-500/5 to-transparent" },
-  { label: "Applications", value: 8, note: "This week", gradient: "from-cyan-500/12 via-cyan-500/5 to-transparent" },
-  { label: "Hired", value: 2, note: "Closed roles", gradient: "from-violet-500/12 via-violet-500/5 to-transparent" }
-];
+import { useJobStore } from "@/store/useJobStore";
+import { useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
+import { mapSupabaseJob } from "@/lib/mapSupabaseJob";
 
 export default function EmployerDashboard() {
+  const { jobs, setJobs } = useJobStore();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !user?.id) return;
+    supabase
+      .from("jobs")
+      .select("*")
+      .eq("employer_id", user.id)
+      .order("created_at", { ascending: false })
+      .then(({ data, error }) => {
+        if (!error && data) setJobs(data.map(mapSupabaseJob));
+      });
+  }, [user?.id, setJobs]);
+  const isExpired = (deadline?: string) => {
+    if (!deadline) return false;
+    const date = new Date(`${deadline}T23:59:59`);
+    return Number.isFinite(date.getTime()) && date < new Date();
+  };
+  const activeJobs = jobs.filter((job) => (job.status || "active") === "active" && !isExpired(job.deadline));
+  const archivedJobs = jobs.filter((job) => job.status === "archived" || isExpired(job.deadline));
+  const hiredJobs = jobs.filter((job) => job.status === "hired");
+  const stats = [
+    { label: "Active Jobs", value: activeJobs.length, note: "Live roles", gradient: "from-blue-500/12 via-blue-500/5 to-transparent" },
+    { label: "Archived Jobs", value: archivedJobs.length, note: "Closed or expired", gradient: "from-slate-500/14 via-slate-500/5 to-transparent" },
+    { label: "Applications", value: 8, note: "This week", gradient: "from-cyan-500/12 via-cyan-500/5 to-transparent" },
+    { label: "Hired", value: hiredJobs.length, note: "Closed roles", gradient: "from-violet-500/12 via-violet-500/5 to-transparent" }
+  ];
   return (
     <PageContainer>
       <div className="mb-6 flex flex-col justify-between gap-6 md:flex-row md:items-end">

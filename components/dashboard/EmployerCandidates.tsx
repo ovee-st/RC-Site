@@ -32,6 +32,7 @@ type SavedCandidateProfile = {
 type RegisteredCandidate = Candidate & {
   avatar?: string;
   location?: string;
+  linkedin_url?: string;
 };
 
 type CandidateRow = {
@@ -50,6 +51,7 @@ type CandidateRow = {
   photo_url?: string;
   avatar?: string;
   location?: string;
+  linkedin_url?: string;
 };
 
 function getInitials(name?: string | null) {
@@ -89,6 +91,7 @@ function loadRegisteredCandidates(): RegisteredCandidate[] {
       experience: "Mid Level",
       skills: parsed.skills?.length ? parsed.skills : ["Admin", "Excel", "Coordination"],
       profile: parsed.about || "Registered candidate profile from MX Venture Lab.",
+      linkedin_url: (parsed as any).linkedin_url || "",
       avatar: parsed.avatar || undefined,
       location: parsed.location || "Dhaka"
     };
@@ -119,6 +122,7 @@ function mapCandidateRow(row: CandidateRow): RegisteredCandidate {
     skills: skills.length ? skills : ["Admin", "Excel", "Communication"],
     profile: row.about || row.profile || "Registered candidate profile from MX Venture Lab.",
     avatar: row.photo_url || row.avatar,
+    linkedin_url: row.linkedin_url || "",
     location: row.location || "Bangladesh"
   };
 }
@@ -142,7 +146,7 @@ export default function EmployerCandidates() {
       try {
         const { data, error } = await supabase
           .from("candidates")
-          .select("id, user_id, full_name, name, title, career_level, category, categories, skills, skills_array, about, photo_url, avatar, location");
+          .select("id, user_id, full_name, name, title, career_level, category, categories, skills, skills_array, about, photo_url, avatar, location, linkedin_url");
 
         if (error || !data?.length) {
           setCandidates(localCandidates);

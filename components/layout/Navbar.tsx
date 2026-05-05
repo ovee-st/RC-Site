@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogOut, Menu, UserRound, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LinkButton } from "@/components/ui/Button";
 import GlobalSearch from "@/components/search/GlobalSearch";
@@ -25,8 +25,14 @@ const navItemsByRole = {
   employer: [
     { label: "Home", href: "/" },
     { label: "Jobs", href: "/jobs" },
-    { label: "Candidates", href: "/employer/candidates" },
+    { label: "Find Candidates", href: "/employer/candidates" },
     { label: "We Hire for You", href: "/#pricing" }
+  ],
+  admin: [
+    { label: "Home", href: "/" },
+    { label: "Jobs", href: "/jobs" },
+    { label: "Admin", href: "/admin" },
+    { label: "Find Candidates", href: "/employer/candidates" }
   ]
 };
 
@@ -63,12 +69,13 @@ export default function Navbar() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [profileAvatar, setProfileAvatar] = useState<string | null>(null);
+  const profileMenuRef = useRef<HTMLDivElement | null>(null);
   const { user, role, loading } = useAuth();
-  const dashboardHref = role === "employer" ? "/employer" : "/candidate";
+  const dashboardHref = role === "admin" ? "/admin" : role === "employer" ? "/employer" : "/candidate";
   const displayName = user?.user_metadata?.name || user?.user_metadata?.full_name || user?.name || "MX User";
   const avatarSrc = profileAvatar || user?.avatar || user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null;
   const initials = getInitials(displayName);
-  const resolvedRole = user ? (role === "employer" ? "employer" : "candidate") : "guest";
+  const resolvedRole = user ? (role === "admin" ? "admin" : role === "employer" ? "employer" : "candidate") : "guest";
   const navItems = navItemsByRole[resolvedRole];
 
   const avatar = avatarSrc ? (
@@ -119,6 +126,19 @@ export default function Navbar() {
     };
   }, [role]);
 
+
+  useEffect(() => {
+    if (!profileOpen) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!profileMenuRef.current?.contains(event.target as Node)) {
+        setProfileOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [profileOpen]);
   const handleLogout = async () => {
     if (isSupabaseConfigured) {
       await supabase.auth.signOut();
@@ -202,7 +222,7 @@ export default function Navbar() {
             <LinkButton href="/login" className="whitespace-nowrap rounded-full px-5 py-2">Login</LinkButton>
           ) : null}
           {!loading && user ? (
-            <div className="relative">
+            <div className="relative" ref={profileMenuRef}>
               <button
                 type="button"
                 className="flex cursor-pointer items-center gap-2 rounded-full px-2 py-1.5 transition hover:bg-blue-50 dark:hover:bg-white/5"

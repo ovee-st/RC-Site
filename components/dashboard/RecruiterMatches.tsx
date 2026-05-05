@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Check, Mail, Sparkles } from "lucide-react";
-import { demoCandidates, demoJobs } from "@/lib/demoData";
+import { demoCandidates } from "@/lib/demoData";
 import { matchCandidateToJob } from "@/lib/ai/matching";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
@@ -14,6 +14,7 @@ import { StaggerContainer } from "@/components/motion/MotionSystem";
 import CandidateInsightHover from "@/components/insights/CandidateInsightHover";
 import { cn } from "@/lib/cn";
 import { FilePenLine } from "lucide-react";
+import { useJobStore } from "@/store/useJobStore";
 
 type CandidateAction = {
   shortlisted?: boolean;
@@ -39,9 +40,15 @@ function recommendationFor(score: number, candidateTitle: string) {
 }
 
 export default function RecruiterMatches() {
-  const [selectedJobId, setSelectedJobId] = useState(demoJobs[0].id);
+  const { jobs } = useJobStore();
+  const activeJobs = useMemo(() => jobs.filter((job) => (job.status || "active") === "active"), [jobs]);
+  const [selectedJobId, setSelectedJobId] = useState("");
   const [actions, setActions] = useState<Record<string, CandidateAction>>({});
-  const selectedJob = demoJobs.find((job) => job.id === selectedJobId) || demoJobs[0];
+  const selectedJob = activeJobs.find((job) => job.id === selectedJobId) || activeJobs[0];
+  useEffect(() => {
+    if (!selectedJobId && activeJobs[0]?.id) setSelectedJobId(activeJobs[0].id);
+  }, [activeJobs, selectedJobId]);
+
   const matches = useMemo(
     () => demoCandidates
       .map((candidate) => ({
@@ -51,6 +58,16 @@ export default function RecruiterMatches() {
       .sort((a, b) => b.match.score - a.match.score),
     [selectedJob]
   );
+
+  if (!selectedJob) {
+    return (
+      <Card className="depth-primary">
+        <Badge variant="primary" className="type-label text-primary">AI Matching</Badge>
+        <h2 className="type-h2 mt-3">Top matched candidates</h2>
+        <EmptyState icon={<FilePenLine size={22} />} title="No active jobs yet" message="Post an active job to calculate candidate matches for your hiring command center." actionLabel="Post a job" actionHref="/jobs" />
+      </Card>
+    );
+  }
 
   const updateAction = (candidateId: string, action: keyof CandidateAction) => {
     setActions((current) => ({
@@ -71,7 +88,7 @@ export default function RecruiterMatches() {
           <p className="type-body mt-2 max-w-2xl">Select a job and instantly see candidates ranked by skill fit, semantic profile fit, category, and experience level.</p>
         </div>
         <Select value={selectedJobId} onChange={(event) => setSelectedJobId(event.target.value)} className="md:max-w-sm">
-          {demoJobs.map((job) => <option key={job.id} value={job.id}>{job.title}</option>)}
+          {activeJobs.map((job) => <option key={job.id} value={job.id}>{job.title}</option>)}
         </Select>
       </div>
 

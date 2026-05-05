@@ -507,3 +507,95 @@ on storage.objects
 for select
 to anon, authenticated
 using (bucket_id = 'cvs');
+
+-- 2026 platform profile/admin extensions
+alter table public.profiles add column if not exists username text;
+alter table public.profiles add column if not exists phone text;
+create unique index if not exists profiles_username_unique
+on public.profiles(username)
+where username is not null;
+
+alter table public.candidates add column if not exists linkedin_url text;
+alter table public.candidates add column if not exists email text;
+alter table public.candidates add column if not exists phone text;
+
+alter table public.employers add column if not exists photo_url text;
+alter table public.employers add column if not exists banner_url text;
+alter table public.employers add column if not exists linkedin_url text;
+alter table public.employers add column if not exists website_url text;
+alter table public.employers add column if not exists facebook_url text;
+
+alter table public.jobs add column if not exists experience_years text;
+alter table public.jobs add column if not exists work_type text;
+alter table public.jobs add column if not exists hide_salary boolean not null default false;
+alter table public.jobs add column if not exists banner_url text;
+
+create table if not exists public.site_visits (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  path text,
+  visitor_key text
+);
+
+alter table public.site_visits enable row level security;
+
+drop policy if exists "Anyone can create site visit" on public.site_visits;
+create policy "Anyone can create site visit"
+on public.site_visits
+for insert
+to anon, authenticated
+with check (true);
+
+drop policy if exists "Admins can read site visits" on public.site_visits;
+create policy "Admins can read site visits"
+on public.site_visits
+for select
+to authenticated
+using (
+  exists (
+    select 1 from public.profiles
+    where profiles.id = auth.uid()
+    and profiles.role = 'admin'
+  )
+);
+
+-- Admin users can manage profile, candidate, employer, job, and application records.
+drop policy if exists "Admins can manage all profiles" on public.profiles;
+create policy "Admins can manage all profiles"
+on public.profiles
+for all
+to authenticated
+using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'))
+with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'));
+
+drop policy if exists "Admins can manage all candidates" on public.candidates;
+create policy "Admins can manage all candidates"
+on public.candidates
+for all
+to authenticated
+using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'))
+with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'));
+
+drop policy if exists "Admins can manage all employers" on public.employers;
+create policy "Admins can manage all employers"
+on public.employers
+for all
+to authenticated
+using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'))
+with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'));
+
+drop policy if exists "Admins can manage all jobs" on public.jobs;
+create policy "Admins can manage all jobs"
+on public.jobs
+for all
+to authenticated
+using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'))
+with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'));
+
+drop policy if exists "Admins can manage all applications" on public.applications;
+create policy "Admins can manage all applications"
+on public.applications
+for all
+to authenticated
+using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'))
+with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'));

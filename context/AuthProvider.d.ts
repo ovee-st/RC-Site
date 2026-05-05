@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-export type AuthRole = "candidate" | "employer" | null;
+export type AuthRole = "candidate" | "employer" | "admin" | null;
 
 export type AuthUser = {
   id: string;
@@ -11,10 +11,12 @@ export type AuthUser = {
     avatar_url?: string;
     picture?: string;
     role?: string;
+    phone?: string;
   };
   name: string;
   username?: string | null;
   avatar?: string | null;
+  phone?: string | null;
 };
 
 export const AuthContext: import("react").Context<{

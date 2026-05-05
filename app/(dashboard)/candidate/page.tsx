@@ -25,6 +25,7 @@ type CandidateProfileState = {
   title: string;
   location: string;
   avatar: string | null;
+  linkedin_url: string;
   about: string;
   skills: string[];
   experience: {
@@ -106,6 +107,7 @@ function getDefaultProfile(user: ReturnType<typeof useAuth>["user"]): CandidateP
     title: candidate.title,
     location: "Dhaka",
     avatar,
+    linkedin_url: "",
     about:
       "I am an Assistant Manager - Administration with 7+ years of experience supporting fast-growing organizations through efficient workplace, facilities, and operational management. Currently at Pathao, I work across site acquisition, vendor management, security operations, and renovation projects, ensuring smooth day-to-day operations in a dynamic, high-growth environment.",
     skills: candidate.skills.concat(["Photoshop", "Autocad 2d", "Sketchup 3d"]),
@@ -256,8 +258,27 @@ export default function CandidateDashboard() {
     setEditing(null);
   };
 
-  const saveEditor = () => {
+  const saveEditor = async () => {
     persistProfile(draft);
+    if (user?.id && isSupabaseConfigured) {
+      try {
+        await supabase.from("candidates").upsert({
+        user_id: user.id,
+        name: draft.name,
+        photo_url: draft.avatar,
+        title: draft.title,
+        location: draft.location,
+        linkedin_url: draft.linkedin_url,
+        about: draft.about,
+        skills_array: draft.skills,
+        education_json: draft.education,
+        experience_json: draft.experience,
+        certifications: draft.certifications,
+        current_salary: Number(String(draft.salary.current).replace(/[^0-9.]/g, "")) || null,
+        expected_salary: Number(String(draft.salary.expected).replace(/[^0-9.]/g, "")) || null
+        }, { onConflict: "user_id" });
+      } catch {}
+    }
     setEditing(null);
     setActiveTab("profile");
     router.replace("/candidate?view=profile");
@@ -299,7 +320,7 @@ export default function CandidateDashboard() {
               <ProfileAvatar src={profile.avatar} name={profile.name} className="h-12 w-12 text-sm" />
               <div className="min-w-0">
                 <h2 className="truncate text-sm font-black text-text-main dark:text-white">{profile.name}</h2>
-                <p className="truncate text-xs text-text-muted">{user?.email || "candidate.admin@mxventurelab.com"}</p>
+                <p className="truncate text-xs text-text-muted">{user?.email || ""}</p>
               </div>
             </div>
 
@@ -335,6 +356,7 @@ export default function CandidateDashboard() {
                     <div>
                       <h2 className="type-h3 font-black">{profile.name}</h2>
                       <p className="type-body">{profile.title} | {candidate.experience} | {profile.location}</p>
+                      {profile.linkedin_url ? <a href={profile.linkedin_url} target="_blank" rel="noreferrer" className="mt-1 inline-block text-xs font-bold text-primary hover:underline">LinkedIn Profile</a> : null}
                     </div>
                   </div>
                   <Button type="button" variant="success" onClick={() => openEditor("profile")} className="w-fit rounded-lg px-4 py-2">
@@ -518,6 +540,7 @@ export default function CandidateDashboard() {
                   <Input value={draft.name} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} placeholder="Full name" />
                   <Input value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} placeholder="Professional title" />
                   <Input value={draft.location} onChange={(event) => setDraft((current) => ({ ...current, location: event.target.value }))} placeholder="Location" />
+                  <Input value={draft.linkedin_url} onChange={(event) => setDraft((current) => ({ ...current, linkedin_url: event.target.value }))} placeholder="LinkedIn Profile Link" />
                 </div>
               ) : null}
 

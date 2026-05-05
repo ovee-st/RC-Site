@@ -47,7 +47,7 @@ async function loadProfile(authUser) {
 
   const { data } = await supabase
     .from("profiles")
-    .select("role, full_name, name, avatar_url, photo_url")
+    .select("role, full_name, name, username, avatar_url, photo_url")
     .eq("id", authUser.id)
     .maybeSingle();
 
@@ -66,7 +66,7 @@ function getMockUser() {
 }
 
 function normalizeRole(value) {
-  return value === "employer" || value === "candidate" ? value : null;
+  return value === "employer" || value === "candidate" || value === "admin" ? value : null;
 }
 
 function applyUserDefaults(user) {
