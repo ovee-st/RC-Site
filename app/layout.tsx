@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
 import AppLayout from "@/components/layout/AppLayout";
 import { AuthProvider } from "@/context/AuthProvider";
-
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
   title: "MX VENTURE LAB | AI Hiring Platform",
@@ -30,7 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </head>
-      <body className={inter.variable}>
+      <body>
         <AuthProvider>
           <Providers>
             <AppLayout>{children}</AppLayout>
