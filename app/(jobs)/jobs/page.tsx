@@ -6,38 +6,50 @@ import JobList from "@/components/jobs/JobList";
 import JobPreview from "@/components/jobs/JobPreview";
 import { useJobStore } from "@/store/useJobStore";
 import { useAuth } from "@/hooks/useAuth";
-import Card from "@/components/ui/Card";
+import { X } from "lucide-react";
 
 export default function JobsPage() {
-  const { selectedJob } = useJobStore();
+  const { selectedJob, setSelectedJob } = useJobStore();
   const { user, role } = useAuth();
   const showPostJob = Boolean(user) && role === "employer";
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-transparent">
-      <div className="mx-auto grid w-full max-w-[1200px] grid-cols-1 gap-6 px-6 py-8 lg:grid-cols-[300px_minmax(0,0.95fr)_minmax(360px,1.15fr)]">
-        <aside className="lg:sticky lg:top-24 lg:h-fit">
+      <div className="mx-auto grid w-full max-w-[1400px] grid-cols-1 gap-6 px-6 py-8 xl:grid-cols-[300px_minmax(390px,0.82fr)_minmax(0,1.18fr)]">
+        <aside className="xl:sticky xl:top-24 xl:h-fit">
           <FiltersPanel />
         </aside>
 
-        <section className="min-w-0 lg:order-3">
+        <section className="min-w-0">
           <JobList headerAction={showPostJob ? <EmployerPostJob label="Post a Job" /> : null} />
         </section>
 
-        <section className="min-w-0 lg:order-2">
-          <div className="lg:sticky lg:top-24">
-            {selectedJob ? (
-              <JobPreview />
-            ) : (
-              <Card className="p-6 shadow-soft">
-                <p className="type-label text-primary">Job Details</p>
-                <h2 className="type-h2 mt-3">Select a job to preview details</h2>
-                <p className="type-body mt-2">Click any job from the list to open its full description, requirements, skills, deadline, and application action here.</p>
-              </Card>
-            )}
-          </div>
+        <section className="hidden min-w-0 xl:block">
+          <JobPreview />
         </section>
       </div>
+
+      {selectedJob ? (
+        <div className="fixed inset-0 z-[80] bg-slate-950/35 backdrop-blur-sm xl:hidden">
+          <button
+            type="button"
+            aria-label="Close job details"
+            className="absolute inset-0 cursor-default"
+            onClick={() => setSelectedJob(null)}
+          />
+          <div className="absolute right-0 top-0 h-full w-full overflow-y-auto bg-bg p-4 shadow-elevated dark:bg-slate-950 sm:max-w-2xl sm:p-6">
+            <button
+              type="button"
+              onClick={() => setSelectedJob(null)}
+              className="sticky top-0 z-10 ml-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full border border-border bg-surface text-text-muted shadow-soft transition hover:border-primary/25 hover:text-primary dark:border-white/10 dark:bg-slate-900"
+              aria-label="Close details"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <JobPreview />
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

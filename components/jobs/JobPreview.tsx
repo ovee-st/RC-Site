@@ -7,8 +7,10 @@ import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import PriorityIndicator from "@/components/ui/PriorityIndicator";
 import EmptyState from "@/components/ui/EmptyState";
-import { Bookmark, CalendarDays, Check, MousePointerClick, Send } from "lucide-react";
+import { Bookmark, CalendarDays, Check, MousePointerClick, Send, Sparkles } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { demoCandidates } from "@/lib/demoData";
+import { matchCandidateToJob } from "@/lib/ai/matching";
 
 export default function JobPreview() {
   const { selectedJob } = useJobStore();
@@ -63,10 +65,11 @@ export default function JobPreview() {
   const applied = Boolean(appliedJobs[selectedJob.id]);
   const postedDate = selectedJob.createdAt ? new Date(selectedJob.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "Recently posted";
   const deadline = selectedJob.deadline ? new Date(selectedJob.deadline).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "Not specified";
+  const match = matchCandidateToJob(demoCandidates[0], selectedJob);
 
   return (
-    <aside className="sticky top-20 h-fit">
-      <Card className="depth-primary overflow-hidden rounded-lg p-0">
+    <aside className="sticky top-24 h-[calc(100vh-7rem)] overflow-y-auto">
+      <Card className="depth-primary overflow-hidden rounded-2xl p-0">
         {bannerUrl ? (
           <div className="aspect-[4/1] overflow-hidden border-b border-border dark:border-white/10">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -74,23 +77,65 @@ export default function JobPreview() {
           </div>
         ) : null}
 
-        <div className="border-b border-border bg-gradient-to-br from-primary/14 via-primary/5 to-transparent p-6 dark:border-white/10">
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="primary">{selectedJob.category}</Badge>
-            {highPriority ? <PriorityIndicator variant="top" pulse /> : null}
-            {needsReview ? <PriorityIndicator variant="review" pulse /> : null}
+        <div className="border-b border-border bg-gradient-to-br from-primary/10 via-primary/4 to-transparent p-7 dark:border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-primary/15 to-success/15 text-xs font-black text-primary ring-1 ring-primary/15 dark:from-primary/25 dark:to-success/20">
+              {selectedJob.company.slice(0, 2).toUpperCase()}
+            </div>
+            <div>
+              <p className="text-sm font-black text-text-main dark:text-white">{selectedJob.company}</p>
+              <p className="text-xs font-semibold text-text-muted dark:text-slate-400">Posted {postedDate}</p>
+            </div>
           </div>
-          <h1 className="type-h1 mt-3 leading-tight">{selectedJob.title}</h1>
-          <p className="type-body mt-2">{selectedJob.company} - {selectedJob.location}</p>
-          <div className="mt-3 flex flex-wrap gap-3">
+
+          <h1 className="mt-6 text-3xl font-black leading-tight tracking-tight text-text-main dark:text-white">{selectedJob.title}</h1>
+          <p className="mt-3 text-base font-medium text-text-muted dark:text-slate-300">{selectedJob.location}</p>
+          <div className="mt-4 flex flex-wrap gap-3">
             <Badge>{selectedJob.experience}</Badge>
             <Badge>{selectedJob.jobType}</Badge>
             {selectedJob.workType ? <Badge>{selectedJob.workType}</Badge> : null}
             {selectedJob.hideSalary ? <Badge>Salary hidden</Badge> : <Badge>BDT {selectedJob.salaryMin / 1000}k-{selectedJob.salaryMax / 1000}k</Badge>}
           </div>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Badge variant="primary">{selectedJob.category}</Badge>
+            {highPriority ? <PriorityIndicator variant="top" pulse /> : null}
+            {needsReview ? <PriorityIndicator variant="review" pulse /> : null}
+          </div>
         </div>
 
         <div className="p-6">
+          {role === "employer" ? null : (
+            <section className="mb-6">
+              <h2 className="text-2xl font-black tracking-tight text-text-main dark:text-white">How your profile and resume fit this job</h2>
+              <div className="mt-4 rounded-2xl border border-border bg-bg p-5 dark:border-white/10 dark:bg-white/5">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <span className="type-label">AI Match Score</span>
+                    <p className="mt-1 text-sm font-semibold text-text-muted dark:text-slate-300">
+                      Skills {match.breakdown.skills}% · Experience {match.breakdown.experience}% · Semantic {match.breakdown.semantic}%
+                    </p>
+                  </div>
+                  <Badge variant={match.score >= 80 ? "match-score" : "primary"} className="text-sm">{match.score}% match</Badge>
+                </div>
+                <div className="mt-4 h-2 overflow-hidden rounded-full bg-border dark:bg-white/10">
+                  <div className="h-full rounded-full bg-success" style={{ width: `${match.score}%` }} />
+                </div>
+              </div>
+              <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                {["Show match details", "Tailor my resume", "Help me stand out"].map((label) => (
+                  <button
+                    key={label}
+                    type="button"
+                    className="flex items-center justify-center gap-2 rounded-xl border border-border bg-surface px-3 py-3 text-sm font-bold text-text-main transition hover:border-primary/30 hover:text-primary dark:border-white/10 dark:bg-slate-900 dark:text-white"
+                  >
+                    <Sparkles className="h-4 w-4 text-amber-500" />
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
           <Card className="bg-bg shadow-none dark:bg-white/5">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>

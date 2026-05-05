@@ -67,47 +67,53 @@ export default function JobItem({ job, matchScore }: { job: Job; matchScore: num
         }}
         role="button"
         tabIndex={0}
-        variant={active ? "highlighted" : "interactive"}
+        variant="default"
         className={cn(
-          "group w-full p-4 text-left outline-none hover:border-primary/40 hover:shadow-hover focus:ring-4 focus:ring-primary/10 dark:hover:bg-slate-900",
-          highMatch && !isEmployer && "shadow-[0_0_32px_rgba(34,197,94,0.10)] hover:border-success/40",
-          active && "border-primary bg-primary/5 ring-4 ring-primary/10 dark:bg-primary/10",
+          "group rounded-none border-0 border-l-4 border-l-transparent bg-transparent p-4 text-left shadow-none outline-none transition hover:-translate-y-0 hover:bg-primary/5 hover:shadow-none focus:ring-4 focus:ring-primary/10 dark:hover:bg-slate-800/60",
+          highMatch && !isEmployer && "hover:bg-success/5",
+          active && "border-l-primary bg-primary/8 ring-0 dark:bg-primary/12",
           archived && "opacity-70",
-          hired && "border-success/30 bg-success/5 dark:bg-success/10"
+          hired && "bg-success/5 dark:bg-success/10"
         )}
       >
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex min-w-0 flex-1 items-start gap-3">
-            <div className="grid h-12 w-12 flex-shrink-0 place-items-center rounded-full bg-gradient-to-br from-primary/15 to-success/15 text-sm font-bold text-primary ring-1 ring-primary/15 transition group-hover:scale-105">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div className="flex min-w-0 flex-1 items-start gap-4">
+            <div className="grid h-14 w-14 flex-shrink-0 place-items-center rounded-xl bg-gradient-to-br from-primary/15 to-success/15 text-sm font-black text-primary ring-1 ring-primary/15 transition group-hover:scale-105 dark:from-primary/25 dark:to-success/20">
               {job.company.slice(0, 2).toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="type-h3 truncate font-bold">{job.title}</h3>
+              <div className="flex items-start gap-2">
+                <h3 className="line-clamp-2 text-base font-black leading-6 text-primary transition group-hover:text-primary-hover dark:text-blue-300 dark:group-hover:text-blue-200">{job.title}</h3>
                 {archived ? <Badge variant="neutral">Archived</Badge> : null}
                 {hired ? <Badge variant="success">Hired</Badge> : null}
                 {!isEmployer && highMatch ? <PriorityIndicator variant="top" pulse /> : null}
                 {!isEmployer && staleJob ? <PriorityIndicator variant="stale" /> : null}
               </div>
-              <p className="type-body mt-1 truncate">{job.company} - {job.location}</p>
-              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs font-semibold text-text-muted dark:text-slate-300">
+              <p className="mt-1 truncate text-sm font-medium text-text-main dark:text-slate-100">{job.company}</p>
+              <p className="mt-0.5 truncate text-sm text-text-muted dark:text-slate-300">{job.location}</p>
+              <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold text-text-muted dark:text-slate-300">
                 <span>{job.experience}</span>
-                {job.experienceYears ? <span>{job.experienceYears} yrs exp</span> : null}
-                <span>{job.jobType}</span>
+                {job.experienceYears ? <><span>·</span><span>{job.experienceYears} yrs exp</span></> : null}
+                <span>·</span><span>{job.jobType}</span>
                 {job.workType ? <span>{job.workType}</span> : null}
-                <span>{salaryLabel(job)}</span>
+                <span>·</span><span>{salaryLabel(job)}</span>
               </div>
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-2 flex flex-wrap gap-2">
                 {job.skills.slice(0, 4).map((skill) => (
-                  <span key={skill} className="rounded-full border border-border bg-bg px-3 py-1 text-xs font-bold text-text-muted dark:border-slate-600/70 dark:bg-slate-800/90 dark:text-slate-100">
+                  <span key={skill} className="rounded-full border border-border bg-bg px-2.5 py-1 text-[11px] font-bold text-text-muted dark:border-slate-600/70 dark:bg-slate-800/90 dark:text-slate-100">
                     {skill}
                   </span>
                 ))}
               </div>
+              {!isEmployer ? (
+                <p className="mt-2 text-xs font-semibold text-text-muted dark:text-slate-400">
+                  Viewed · AI ranked · Easy Apply
+                </p>
+              ) : null}
             </div>
           </div>
 
-          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 md:flex-col md:items-end">
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 md:min-w-[112px] md:flex-col md:items-end">
             {isEmployer ? (
               <>
                 <Badge variant={hired ? "success" : archived ? "neutral" : "primary"}>{hired ? "Hired" : archived ? "Archived" : "Active"}</Badge>
@@ -161,7 +167,7 @@ export default function JobItem({ job, matchScore }: { job: Job; matchScore: num
               <>
                 <Badge
                   variant={highMatch ? "match-score" : staleJob ? "neutral" : "primary"}
-                  className={cn(highMatch && "animate-pulse bg-success/10 text-success shadow-[0_0_26px_rgba(34,197,94,0.18)]")}
+                  className={cn("whitespace-nowrap", highMatch && "animate-pulse bg-success/10 text-success shadow-[0_0_26px_rgba(34,197,94,0.18)]")}
                 >
                   {matchScore}% match
                 </Badge>

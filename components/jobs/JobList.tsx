@@ -10,6 +10,7 @@ import EmptyState from "@/components/ui/EmptyState";
 import { StaggerContainer } from "@/components/motion/MotionSystem";
 import { SlidersHorizontal } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import Card from "@/components/ui/Card";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { mapSupabaseJob } from "@/lib/mapSupabaseJob";
 
@@ -35,6 +36,7 @@ export default function JobList({ headerAction }: { headerAction?: ReactNode }) 
 
     loadJobs().catch(() => null);
   }, [role, user?.id, setJobs]);
+
   const rankedJobs = useMemo(() => jobs
     .filter((job) => {
       const effectiveStatus = isExpired(job.deadline) ? "archived" : (job.status || "active");
@@ -65,26 +67,34 @@ export default function JobList({ headerAction }: { headerAction?: ReactNode }) 
   }, [rankedJobs, selectedJob, setSelectedJob]);
 
   return (
-    <section className="space-y-4">
-      <div className="flex items-end justify-between gap-6">
-        <div>
-          <p className="type-label text-primary">Open roles</p>
-          <h2 className="type-h2 mt-1">{openCount} open jobs</h2>
+    <Card className="overflow-hidden p-0">
+      <div className="border-b border-border bg-surface/80 p-5 backdrop-blur dark:border-white/10 dark:bg-slate-900/80">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h2 className="text-2xl font-semibold tracking-tight text-text-main dark:text-white">Top job picks for you</h2>
+            <p className="mt-1 text-sm leading-6 text-text-muted dark:text-slate-300">
+              Based on your profile, preferences, filters, and AI relevance signals.
+            </p>
+            <p className="mt-1 text-sm font-semibold text-text-muted dark:text-slate-400">{openCount} open jobs</p>
+          </div>
+          {headerAction ? <div className="shrink-0">{headerAction}</div> : null}
         </div>
-        {headerAction ? <div className="shrink-0">{headerAction}</div> : null}
       </div>
-      <StaggerContainer className="space-y-3">
+
+      <StaggerContainer className="max-h-none divide-y divide-border overflow-visible dark:divide-white/10 xl:max-h-[calc(100vh-10rem)] xl:overflow-y-auto">
         {rankedJobs.map((job) => <JobItem key={job.id} job={job} matchScore={job.matchScore} />)}
         {!rankedJobs.length ? (
-          <EmptyState
-            icon={<SlidersHorizontal size={22} />}
-            title="No jobs found"
-            message="Try removing filters, expanding your salary range, or searching with a broader skill keyword."
-            actionLabel="Clear filters"
-            onAction={clearFilters}
-          />
+          <div className="p-5">
+            <EmptyState
+              icon={<SlidersHorizontal size={22} />}
+              title="No jobs found"
+              message="Try removing filters, expanding your salary range, or searching with a broader skill keyword."
+              actionLabel="Clear filters"
+              onAction={clearFilters}
+            />
+          </div>
         ) : null}
       </StaggerContainer>
-    </section>
+    </Card>
   );
 }
