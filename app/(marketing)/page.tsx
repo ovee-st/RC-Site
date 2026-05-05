@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowRight, Brain, CheckCircle2, KanbanSquare, Sparkles, Users } from "lucide-react";
+import { useEffect } from "react";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import { LinkButton } from "@/components/ui/Button";
@@ -9,6 +10,12 @@ import Container from "@/components/layout/Container";
 import Section from "@/components/layout/Section";
 import { StaggerContainer } from "@/components/motion/MotionSystem";
 import { useAuth } from "@/hooks/useAuth";
+import RecommendedActions from "@/components/dashboard/RecommendedActions";
+import RecruiterMatches from "@/components/dashboard/RecruiterMatches";
+import PipelineBoard from "@/components/pipeline/PipelineBoard";
+import { useJobStore } from "@/store/useJobStore";
+import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
+import { mapSupabaseJob } from "@/lib/mapSupabaseJob";
 
 const features = [
   { icon: Brain, title: "AI Matching Engine", text: "Find the right candidate without manual filtering." },
@@ -19,9 +26,58 @@ const features = [
 const steps = ["Submit role", "AI ranks candidates", "Review top 5-10", "Interview and hire"];
 const pricing = ["Starter", "Growth", "Enterprise"];
 
+function EmployerHome() {
+  const { setJobs } = useJobStore();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !user?.id) return;
+
+    supabase
+      .from("jobs")
+      .select("*")
+      .eq("employer_id", user.id)
+      .order("created_at", { ascending: false })
+      .then(({ data, error }) => {
+        if (!error && data) setJobs(data.map(mapSupabaseJob));
+      });
+  }, [user?.id, setJobs]);
+
+  return (
+    <main>
+      <PageContainer>
+        <div className="mb-6">
+          <Badge variant="primary" className="type-label text-primary">Recruiter Dashboard</Badge>
+          <h1 className="type-h1 mt-3">Hiring Command Center</h1>
+        </div>
+
+        <section>
+          <RecommendedActions />
+        </section>
+
+        <div id="matches" className="mt-6">
+          <RecruiterMatches />
+        </div>
+
+        <section id="pipeline" className="mt-6">
+          <Card className="depth-primary">
+            <div className="mb-6">
+              <Badge variant="primary" className="type-label text-primary">ATS Pipeline</Badge>
+              <h2 className="type-h2 mt-3">Hiring progress</h2>
+            </div>
+            <PipelineBoard />
+          </Card>
+        </section>
+      </PageContainer>
+    </main>
+  );
+}
+
 export default function LandingPage() {
   const { user, role } = useAuth();
   const isEmployer = Boolean(user) && role === "employer";
+
+  if (isEmployer) return <EmployerHome />;
 
   return (
     <main className="overflow-hidden">
