@@ -12,6 +12,8 @@ import type { Candidate } from "@/types";
 import { cn } from "@/lib/cn";
 import { useJobStore } from "@/store/useJobStore";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
+import { useAuth } from "@/hooks/useAuth";
+import { mapSupabaseJob } from "@/lib/mapSupabaseJob";
 
 const CANDIDATE_PROFILE_KEY = "mx_candidate_profile";
 
@@ -131,9 +133,26 @@ export default function EmployerCandidates() {
   const [query, setQuery] = useState("");
   const [candidates, setCandidates] = useState(() => loadRegisteredCandidates());
   const [actions, setActions] = useState<Record<string, CandidateAction>>({});
-  const { jobs } = useJobStore();
-  const activeJobs = useMemo(() => jobs.filter((job) => !job.status || job.status === "active"), [jobs]);
+  const { jobs, setJobs } = useJobStore();
+  const { user } = useAuth();
+  const activeJobs = useMemo(() => jobs.filter((job) => {
+    const expired = job.deadline ? new Date(`${job.deadline}T23:59:59`) < new Date() : false;
+    return (!job.status || job.status === "active") && !expired;
+  }), [jobs]);
 
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !user?.id) return;
+
+    supabase
+      .from("jobs")
+      .select("*")
+      .eq("employer_id", user.id)
+      .order("created_at", { ascending: false })
+      .then(({ data, error }) => {
+        if (!error && data) setJobs(data.map(mapSupabaseJob));
+      });
+  }, [user?.id, setJobs]);
   useEffect(() => {
     const refreshCandidates = async () => {
       const localCandidates = loadRegisteredCandidates();
@@ -240,11 +259,8 @@ export default function EmployerCandidates() {
           return (
             <Card
               key={candidate.id}
-              variant={index === 0 ? "highlighted" : "interactive"}
-              className={cn(
-                "grid gap-4 p-4 md:grid-cols-[1fr_auto]",
-                index === 0 && "bg-primary/5 ring-4 ring-primary/10"
-              )}
+              variant="interactive"
+              className="grid gap-4 p-4 transition hover:border-primary hover:bg-primary/5 hover:ring-4 hover:ring-primary/10 dark:hover:bg-primary/10 md:grid-cols-[1fr_auto]"
             >
               <div className="flex min-w-0 items-start gap-3">
                 <CandidateAvatar src={avatar} name={candidate.name} />

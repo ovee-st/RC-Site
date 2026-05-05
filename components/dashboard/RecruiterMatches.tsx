@@ -130,10 +130,9 @@ export default function RecruiterMatches() {
               recommendation={recommendationFor(match.score, candidate.title)}
             >
               <Card
-                variant={index === 0 ? "highlighted" : "interactive"}
+                variant="interactive"
                 className={cn(
-                  "grid min-h-[132px] gap-4 bg-white/72 p-4 dark:bg-white/5 lg:grid-cols-[1.1fr_0.95fr_210px]",
-                  index === 0 && "border-primary bg-primary/5 ring-4 ring-primary/10 dark:bg-primary/10"
+                  "grid min-h-[132px] gap-4 bg-white/72 p-4 transition hover:border-primary hover:bg-primary/5 hover:ring-4 hover:ring-primary/10 dark:bg-white/5 dark:hover:bg-primary/10 lg:grid-cols-[1.1fr_0.95fr_210px]"
                 )}
               >
               <div className="flex items-start gap-3">
