@@ -60,10 +60,11 @@ export const useJobStore = create<JobStore>((set) => ({
   jobs: loadJobs(),
   selectedJob: null,
   filters: initialFilters,
-  setJobs: (jobs) => {
+  setJobs: (jobs) => set((state) => {
     persistJobs(jobs);
-    set({ jobs, selectedJob: jobs[0] || null });
-  },
+    const selectedJob = state.selectedJob && jobs.some((job) => job.id === state.selectedJob?.id) ? state.selectedJob : null;
+    return { jobs, selectedJob };
+  }),
   addJob: (job) => set((state) => {
     const jobs = [job, ...state.jobs];
     persistJobs(jobs);

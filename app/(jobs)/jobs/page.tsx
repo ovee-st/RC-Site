@@ -15,19 +15,27 @@ export default function JobsPage() {
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-transparent">
-      <div className="mx-auto grid w-full max-w-[1400px] grid-cols-1 gap-6 px-6 py-8 xl:grid-cols-[300px_minmax(390px,0.82fr)_minmax(0,1.18fr)]">
-        <aside className="xl:sticky xl:top-24 xl:h-fit">
-          <FiltersPanel />
-        </aside>
+      {selectedJob ? (
+        <div className="mx-auto grid w-full max-w-[1400px] grid-cols-1 gap-0 px-6 py-8 xl:grid-cols-[minmax(390px,0.82fr)_minmax(0,1.18fr)]">
+          <section className="min-w-0 xl:border-r xl:border-border xl:dark:border-white/10">
+            <JobList headerAction={showPostJob ? <EmployerPostJob label="Post a Job" /> : null} />
+          </section>
 
-        <section className="min-w-0">
-          <JobList headerAction={showPostJob ? <EmployerPostJob label="Post a Job" /> : null} />
-        </section>
+          <section className="hidden min-w-0 xl:block">
+            <JobPreview />
+          </section>
+        </div>
+      ) : (
+        <div className="mx-auto grid w-full max-w-[1200px] grid-cols-1 gap-6 px-6 py-8 xl:grid-cols-[300px_minmax(0,1fr)]">
+          <aside className="xl:sticky xl:top-24 xl:h-fit">
+            <FiltersPanel />
+          </aside>
 
-        <section className="hidden min-w-0 xl:block">
-          <JobPreview />
-        </section>
-      </div>
+          <section className="min-w-0">
+            <JobList headerAction={showPostJob ? <EmployerPostJob label="Post a Job" /> : null} />
+          </section>
+        </div>
+      )}
 
       {selectedJob ? (
         <div className="fixed inset-0 z-[80] bg-slate-950/35 backdrop-blur-sm xl:hidden">

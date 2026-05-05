@@ -7,13 +7,13 @@ import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import PriorityIndicator from "@/components/ui/PriorityIndicator";
 import EmptyState from "@/components/ui/EmptyState";
-import { Bookmark, CalendarDays, Check, MousePointerClick, Send, Sparkles } from "lucide-react";
+import { Bookmark, CalendarDays, Check, MousePointerClick, Send, Sparkles, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { demoCandidates } from "@/lib/demoData";
 import { matchCandidateToJob } from "@/lib/ai/matching";
 
 export default function JobPreview() {
-  const { selectedJob } = useJobStore();
+  const { selectedJob, setSelectedJob } = useJobStore();
   const { role } = useAuth();
   const [savedJobs, setSavedJobs] = useState<Record<string, boolean>>({});
   const [appliedJobs, setAppliedJobs] = useState<Record<string, boolean>>({});
@@ -77,9 +77,18 @@ export default function JobPreview() {
           </div>
         ) : null}
 
-        <div className="border-b border-border bg-gradient-to-br from-primary/10 via-primary/4 to-transparent p-7 dark:border-white/10">
-          <div className="flex items-center gap-3">
-            <div className="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-primary/15 to-success/15 text-xs font-black text-primary ring-1 ring-primary/15 dark:from-primary/25 dark:to-success/20">
+        <div className="relative border-b border-border bg-gradient-to-br from-primary/10 via-primary/4 to-transparent p-7 dark:border-white/10">
+          <button
+            type="button"
+            onClick={() => setSelectedJob(null)}
+            className="absolute right-5 top-5 hidden h-10 w-10 items-center justify-center rounded-full text-text-muted transition hover:bg-primary/5 hover:text-primary xl:flex"
+            aria-label="Close job details"
+          >
+            <X className="h-5 w-5" />
+          </button>
+
+          <div className="flex items-center gap-3 pr-12">
+            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-primary/15 to-success/15 text-xs font-black text-primary ring-1 ring-primary/15 dark:from-primary/25 dark:to-success/20">
               {selectedJob.company.slice(0, 2).toUpperCase()}
             </div>
             <div>
