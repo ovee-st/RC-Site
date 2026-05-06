@@ -27,7 +27,7 @@ const defaultJob = {
   salaryMax: "50000",
   hideSalary: false,
   deadline: "",
-  skills: "Admin, Excel, Coordination",
+  skills: "",
   description: "",
   requirements: ""
 };
