@@ -15,21 +15,21 @@ export default function StatsCards({ profile, applications }: { profile: Candida
   ];
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       {stats.map((stat, index) => {
         const Icon = stat.icon;
         return (
           <motion.div key={stat.label} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.06 }}>
-            <Card className="group overflow-hidden p-5">
+            <Card className="group min-h-[150px] overflow-hidden p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className={`grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br ${stat.tone} text-white shadow-soft`}>
-                  <Icon className="h-5 w-5" />
+                  <Icon className="h-4 w-4" />
                 </div>
                 <ArrowUpRight className="h-4 w-4 text-text-muted transition group-hover:text-primary" />
               </div>
-              <p className="mt-5 text-sm font-bold text-text-muted dark:text-slate-300">{stat.label}</p>
-              <p className="mt-1 text-3xl font-black tracking-tight text-text-main dark:text-white">{stat.value}</p>
-              <div className="mt-4 h-2 overflow-hidden rounded-full bg-border dark:bg-white/10">
+              <p className="mt-4 text-xs font-bold text-text-muted dark:text-slate-300">{stat.label}</p>
+              <p className="mt-1 text-2xl font-black tracking-tight text-text-main dark:text-white">{stat.value}</p>
+              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-border dark:bg-white/10">
                 <motion.div initial={{ width: 0 }} animate={{ width: `${stat.bar}%` }} transition={{ duration: 0.7, ease: "easeOut" }} className={`h-full rounded-full bg-gradient-to-r ${stat.tone}`} />
               </div>
             </Card>

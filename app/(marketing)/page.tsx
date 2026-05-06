@@ -107,16 +107,16 @@ function CandidateHomeDashboard({ profile }: { profile: CandidateProfile }) {
   ];
 
   return (
-    <main className="min-h-[calc(100vh-4rem)] bg-bg py-10 dark:bg-slate-950">
+    <main className="min-h-[calc(100vh-4rem)] bg-bg py-6 dark:bg-slate-950">
       <Container>
-        <div className="mb-6 border-b border-border pb-6 dark:border-white/10">
+        <div className="mb-4 border-b border-border pb-4 dark:border-white/10">
           <Badge variant="primary" className="type-label text-primary">Candidate Portal</Badge>
-          <h1 className="type-h1 mt-3">Your Career Command Center</h1>
-          <p className="type-body mt-3 max-w-xl">Manage your profile, discover matched jobs, track applications, and generate professional CVs.</p>
+          <h1 className="mt-2 text-3xl font-black tracking-tight text-text-main dark:text-white">Your Career Command Center</h1>
+          <p className="type-body mt-2 max-w-xl">Manage your profile, discover matched jobs, track applications, and generate professional CVs.</p>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
-          <Card className="h-fit p-4 shadow-soft lg:sticky lg:top-24">
+        <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
+          <Card className="h-fit p-4 shadow-soft lg:sticky lg:top-20">
             <div className="flex items-center gap-3">
               <div className="grid h-12 w-12 overflow-hidden rounded-full bg-gradient-to-br from-primary via-cyan-500 to-success text-sm font-black text-white ring-2 ring-gray-200">
                 {profile.avatarUrl ? (
@@ -153,22 +153,22 @@ function CandidateHomeDashboard({ profile }: { profile: CandidateProfile }) {
             </div>
           </Card>
 
-          <div className="min-w-0 space-y-6">
+          <div className="min-w-0 space-y-4">
             <StatsCards profile={profile} applications={candidateHomeApplications} />
 
-            <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+            <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
               <Card className="overflow-hidden p-0 shadow-soft">
-                <div className="bg-gradient-to-br from-primary via-blue-500 to-success p-7 text-white">
+                <div className="bg-gradient-to-br from-primary via-blue-500 to-success p-5 text-white">
                   <p className="text-xs font-black uppercase tracking-[0.24em] text-white/70">Candidate Home</p>
-                  <h2 className="mt-3 text-3xl font-black tracking-tight">Your AI hiring command center is ready.</h2>
-                  <p className="mt-2 max-w-2xl text-sm leading-6 text-white/80">Track profile strength, applications, interviews, resume health, and AI job recommendations from one place.</p>
-                  <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                  <h2 className="mt-2 text-2xl font-black tracking-tight">Your AI hiring command center is ready.</h2>
+                  <p className="mt-2 max-w-2xl text-xs leading-5 text-white/80">Track profile strength, applications, interviews, resume health, and AI job recommendations from one place.</p>
+                  <div className="mt-4 grid gap-2 sm:grid-cols-3">
                     {[
                       { label: "Improve profile", href: "/candidate?view=profile" },
                       { label: "Download CV", href: "/candidate?tab=resume" },
                       { label: "Review matches", href: "/candidate?tab=jobs" }
                     ].map((action) => (
-                      <LinkButton key={action.label} href={action.href} variant="secondary" className="rounded-2xl bg-white/15 px-4 py-3 text-sm font-black text-white backdrop-blur hover:bg-white/25">
+                      <LinkButton key={action.label} href={action.href} variant="secondary" className="rounded-xl bg-white/15 px-3 py-2 text-xs font-black text-white backdrop-blur hover:bg-white/25">
                         {action.label}
                       </LinkButton>
                     ))}
@@ -176,9 +176,9 @@ function CandidateHomeDashboard({ profile }: { profile: CandidateProfile }) {
                 </div>
               </Card>
 
-              <Card className="p-6 shadow-soft">
+              <Card className="h-full p-4 shadow-soft">
                 <Badge variant="primary">Recent activity</Badge>
-                <div className="mt-5 space-y-4">
+                <div className="mt-4 max-h-52 space-y-3 overflow-y-auto pr-1">
                   {[
                     "Profile viewed by MX Partner Employer",
                     "AI resume scan improved ATS score by 6%",
@@ -186,25 +186,25 @@ function CandidateHomeDashboard({ profile }: { profile: CandidateProfile }) {
                     "New recommended job found with 94% match"
                   ].map((item, index) => (
                     <div key={item} className="flex gap-3">
-                      <span className="mt-1 grid h-7 w-7 place-items-center rounded-full bg-primary/10 text-xs font-black text-primary">{index + 1}</span>
-                      <p className="text-sm font-semibold leading-6 text-text-muted dark:text-slate-300">{item}</p>
+                      <span className="mt-0.5 grid h-6 w-6 place-items-center rounded-full bg-primary/10 text-xs font-black text-primary">{index + 1}</span>
+                      <p className="text-xs font-semibold leading-5 text-text-muted dark:text-slate-300">{item}</p>
                     </div>
                   ))}
                 </div>
               </Card>
             </div>
 
-            <div className="grid gap-6 xl:grid-cols-2">
+            <div className="grid gap-4 xl:grid-cols-2">
               <AIInsights />
               <JobRecommendations jobs={candidateHomeJobs} />
             </div>
 
-            <div className="grid gap-6 xl:grid-cols-2">
+            <div className="grid gap-4 xl:grid-cols-2">
               <AssessmentSection assessments={candidateHomeAssessments} />
               <InterviewSection interviews={candidateHomeInterviews} />
             </div>
 
-            <div className="grid gap-6 xl:grid-cols-2">
+            <div className="grid gap-4 xl:grid-cols-2">
               <NotificationsPanel notifications={candidateHomeNotifications} />
               <AnalyticsPanel analytics={candidateHomeAnalytics} />
             </div>
