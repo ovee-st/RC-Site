@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { BriefcaseBusiness, Plus, Save, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { Job } from "@/types";
-import Card from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Badge from "@/components/ui/Badge";
@@ -76,9 +76,25 @@ export default function EmployerPostJob({ label = "Post New Job" }: { label?: st
   const { user } = useAuth();
   const { addJob } = useJobStore();
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [form, setForm] = useState(defaultJob);
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
 
   const updateForm = (key: keyof typeof defaultJob, value: string | boolean) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -207,11 +223,12 @@ export default function EmployerPostJob({ label = "Post New Job" }: { label?: st
         {label}
       </Button>
 
-      {open ? (
-        <div className="fixed inset-0 z-[90] grid place-items-center bg-slate-950/35 p-4 backdrop-blur-sm">
+      {mounted && open ? createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-md">
           <button type="button" className="absolute inset-0 cursor-default" aria-label="Close post job form" onClick={() => setOpen(false)} />
-          <Card className="relative max-h-[92vh] w-full max-w-3xl overflow-y-auto p-6 shadow-elevated">
-            <div className="mb-6 flex items-start justify-between gap-4">
+          <div className="relative z-10 flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-[2rem] border border-border bg-surface shadow-elevated dark:border-white/10 dark:bg-slate-950">
+            <div className="shrink-0 border-b border-border/70 px-6 py-5 dark:border-white/10">
+              <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-4">
                 <div className="grid h-12 w-12 place-items-center rounded-2xl bg-primary/10 text-primary">
                   <BriefcaseBusiness className="h-6 w-6" />
@@ -225,8 +242,10 @@ export default function EmployerPostJob({ label = "Post New Job" }: { label?: st
               <button type="button" onClick={() => setOpen(false)} className="rounded-full p-2 text-text-muted transition hover:bg-primary/5 hover:text-primary">
                 <X className="h-5 w-5" />
               </button>
+              </div>
             </div>
 
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
             <div className="grid gap-4 md:grid-cols-2">
               <Input value={form.company} onChange={(event) => updateForm("company", event.target.value)} placeholder="Company Name" />
               <Input value={form.title} onChange={(event) => updateForm("title", event.target.value)} placeholder="Designation / Job Title" />
@@ -287,16 +306,20 @@ export default function EmployerPostJob({ label = "Post New Job" }: { label?: st
               <TextArea className="md:col-span-2" value={form.description} onChange={(event) => updateForm("description", event.target.value)} placeholder="Job description" />
               <TextArea className="md:col-span-2" value={form.requirements} onChange={(event) => updateForm("requirements", event.target.value)} placeholder="Requirements" />
             </div>
+            </div>
 
-            <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+            <div className="shrink-0 border-t border-border/70 bg-surface/95 px-6 py-4 backdrop-blur dark:border-white/10 dark:bg-slate-950/95">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               {message ? <p className="text-sm font-semibold text-primary">{message}</p> : <span />}
               <Button type="button" onClick={submitJob} disabled={saving}>
                 <Save className="h-4 w-4" />
                 {saving ? "Publishing..." : "Post Job"}
               </Button>
             </div>
-          </Card>
-        </div>
+            </div>
+          </div>
+        </div>,
+        document.body
       ) : null}
     </>
   );
