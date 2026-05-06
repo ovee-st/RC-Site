@@ -2,7 +2,7 @@
 
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { BriefcaseBusiness, Camera, FileText, Home, Pencil, Save, Sparkles, UserRound, X } from "lucide-react";
+import { Camera, FileText, Pencil, Save, Sparkles, UserRound, X } from "lucide-react";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import EmptyState from "@/components/ui/EmptyState";
@@ -92,10 +92,7 @@ const applications = [
 ];
 
 const navItems: Array<{ id: CandidateTab; label: string; icon: typeof UserRound }> = [
-  { id: "home", label: "Home", icon: Home },
   { id: "profile", label: "Profile", icon: UserRound },
-  { id: "jobs", label: "Available Jobs", icon: BriefcaseBusiness },
-  { id: "applied", label: "Applied Jobs", icon: Sparkles },
   { id: "resume", label: "Resume Builder", icon: FileText }
 ];
 

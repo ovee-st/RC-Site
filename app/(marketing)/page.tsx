@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Brain, BriefcaseBusiness, CheckCircle2, FileText, Home, KanbanSquare, Sparkles, UserRound, Users } from "lucide-react";
+import { ArrowRight, Brain, CheckCircle2, FileText, KanbanSquare, Sparkles, UserRound, Users } from "lucide-react";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import { LinkButton } from "@/components/ui/Button";
@@ -9,7 +9,6 @@ import Container from "@/components/layout/Container";
 import Section from "@/components/layout/Section";
 import { StaggerContainer } from "@/components/motion/MotionSystem";
 import { useAuth } from "@/hooks/useAuth";
-import { cn } from "@/lib/cn";
 import StatsCards from "@/components/dashboard/StatsCards";
 import AIInsights from "@/components/dashboard/AIInsights";
 import ApplicationPipeline from "@/components/dashboard/ApplicationPipeline";
@@ -99,10 +98,7 @@ const candidateHomeJobs: JobRecommendation[] = [
 
 function CandidateHomeDashboard({ profile }: { profile: CandidateProfile }) {
   const navItems = [
-    { label: "Home", href: "/", icon: Home, active: true },
     { label: "Profile", href: "/candidate?view=profile", icon: UserRound },
-    { label: "Available Jobs", href: "/candidate?tab=jobs", icon: BriefcaseBusiness },
-    { label: "Applied Jobs", href: "/candidate?tab=applied", icon: Sparkles },
     { label: "Resume Builder", href: "/candidate?tab=resume", icon: FileText }
   ];
 
@@ -140,10 +136,7 @@ function CandidateHomeDashboard({ profile }: { profile: CandidateProfile }) {
                     key={item.label}
                     href={item.href}
                     variant="ghost"
-                    className={cn(
-                      "justify-start rounded-lg px-3 py-2 text-xs text-text-muted shadow-none",
-                      item.active && "border border-primary bg-primary/10 text-primary shadow-soft"
-                    )}
+                    className="justify-start rounded-lg px-3 py-2 text-xs text-text-muted shadow-none"
                   >
                     <Icon className="h-3.5 w-3.5" />
                     {item.label}
