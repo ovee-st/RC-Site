@@ -150,7 +150,7 @@ function CandidateHomeDashboard({ profile }: { profile: CandidateProfile }) {
 
             <div className="grid gap-4 xl:grid-cols-2">
               <AIInsights />
-              <JobRecommendations jobs={candidateHomeJobs} />
+              <JobRecommendations jobs={candidateHomeJobs} candidateProfile={profile} />
             </div>
 
             <div className="grid gap-4 xl:grid-cols-2">
