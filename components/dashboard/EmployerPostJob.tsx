@@ -145,11 +145,10 @@ export default function EmployerPostJob({ label = "Post New Job" }: { label?: st
     };
 
     setSaving(true);
-    addJob(job);
 
     if (user?.id && isSupabaseConfigured) {
       try {
-        await supabase
+        const { data, error } = await supabase
           .from("jobs")
           .insert({
             employer_id: user.id,
@@ -157,26 +156,39 @@ export default function EmployerPostJob({ label = "Post New Job" }: { label?: st
             job_title: job.title,
             job_location: job.location,
             category: job.category,
+            job_level: job.experience,
             experience_level: job.experience,
-            job_type: job.jobType,
+            job_type: job.workType,
+            employment_type: job.jobType,
             salary_min: job.salaryMin,
             salary_max: job.salaryMax,
+            salary_range: job.hideSalary ? "Hidden" : `${job.salaryMin}-${job.salaryMax}`,
+            salary_hidden: job.hideSalary,
             required_skills: job.skills.join(", "),
             required_skills_array: job.skills,
             description: job.description,
             requirements: job.requirements,
-            experience_years: job.experienceYears,
-            work_type: job.workType,
-            salary_hidden: job.hideSalary,
-            hide_salary: job.hideSalary,
             last_date: job.deadline,
-            banner_url: job.bannerUrl,
             status: "active"
           })
-          .throwOnError();
-      } catch {
-        setMessage("Job saved locally. Supabase jobs table may need the latest columns.");
+          .select("id, created_at")
+          .single();
+
+        if (error) throw error;
+
+        addJob({
+          ...job,
+          id: data?.id || job.id,
+          createdAt: data?.created_at || job.createdAt
+        });
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : "Supabase rejected the job post.";
+        setSaving(false);
+        setMessage(`Could not publish job: ${reason}`);
+        return;
       }
+    } else {
+      addJob(job);
     }
 
     setSaving(false);
