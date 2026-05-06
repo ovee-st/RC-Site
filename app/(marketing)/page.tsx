@@ -1,7 +1,6 @@
 "use client";
 
-import { ArrowRight, Brain, CheckCircle2, KanbanSquare, Sparkles, Users } from "lucide-react";
-import { useEffect } from "react";
+import { ArrowRight, Brain, BriefcaseBusiness, CheckCircle2, FileText, Home, KanbanSquare, Sparkles, UserRound, Users } from "lucide-react";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import { LinkButton } from "@/components/ui/Button";
@@ -10,12 +9,18 @@ import Container from "@/components/layout/Container";
 import Section from "@/components/layout/Section";
 import { StaggerContainer } from "@/components/motion/MotionSystem";
 import { useAuth } from "@/hooks/useAuth";
-import RecommendedActions from "@/components/dashboard/RecommendedActions";
-import RecruiterMatches from "@/components/dashboard/RecruiterMatches";
-import PipelineBoard from "@/components/pipeline/PipelineBoard";
-import { useJobStore } from "@/store/useJobStore";
-import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
-import { mapSupabaseJob } from "@/lib/mapSupabaseJob";
+import { cn } from "@/lib/cn";
+import StatsCards from "@/components/dashboard/StatsCards";
+import AIInsights from "@/components/dashboard/AIInsights";
+import ApplicationPipeline from "@/components/dashboard/ApplicationPipeline";
+import AssessmentSection from "@/components/dashboard/AssessmentSection";
+import InterviewSection from "@/components/dashboard/InterviewSection";
+import NotificationsPanel from "@/components/dashboard/NotificationsPanel";
+import AnalyticsPanel from "@/components/dashboard/AnalyticsPanel";
+import JobRecommendations from "@/components/dashboard/JobRecommendations";
+import ResumeSection from "@/components/dashboard/ResumeSection";
+import type { CandidateAnalytics, CandidateDocument, CandidateNotification, CandidateProfile, InterviewEvent, SkillAssessment } from "@/types/candidate";
+import type { CandidateApplication, JobRecommendation } from "@/types/application";
 
 const features = [
   { icon: Brain, title: "AI Matching Engine", text: "Find the right candidate without manual filtering." },
@@ -26,49 +31,189 @@ const features = [
 const steps = ["Submit role", "AI ranks candidates", "Review top 5-10", "Interview and hire"];
 const pricing = ["Starter", "Growth", "Enterprise"];
 
-function EmployerHome() {
-  const { setJobs } = useJobStore();
-  const { user } = useAuth();
+const candidateHomeProfile: CandidateProfile = {
+  id: "candidate-home",
+  name: "Md Jahid Anwar",
+  title: "Administrative Human Resources",
+  email: "",
+  phone: "+880 1700 000000",
+  location: "Dhaka, Bangladesh",
+  experienceLevel: "Mid Level",
+  yearsExperience: 7,
+  bio: "Operations and HR administration professional with experience in vendor coordination, documentation, facilities support, and structured reporting for fast-moving teams.",
+  skills: ["Admin", "Excel", "Coordination", "Documentation", "Vendor Management", "HR Operations"],
+  socials: {
+    linkedin: "https://linkedin.com/in/md-jahid-anwar",
+    github: "",
+    portfolio: ""
+  },
+  profileCompletion: 88,
+  aiMatchScore: 94,
+  resumeScore: 84
+};
 
-  useEffect(() => {
-    if (!isSupabaseConfigured || !user?.id) return;
+const candidateHomeApplications: CandidateApplication[] = [
+  { id: "home-app-1", candidateId: "candidate-home", jobId: "job-1", company: "MX Partner Employer", role: "Admin & Operations Manager", location: "Dhaka", status: "Shortlisted", matchScore: 94, recruiterNotes: "Strong admin operations fit. Invite for first round.", createdAt: "2026-04-28", updatedAt: "2026-05-05" },
+  { id: "home-app-2", candidateId: "candidate-home", jobId: "job-2", company: "Remote Support BD", role: "Customer Support Executive", location: "Uttara", status: "Under Review", matchScore: 78, recruiterNotes: "Needs CRM proof.", createdAt: "2026-04-30", updatedAt: "2026-05-03" },
+  { id: "home-app-3", candidateId: "candidate-home", jobId: "job-3", company: "Venture SaaS Lab", role: "Operations Coordinator", location: "Remote", status: "Interview", matchScore: 87, recruiterNotes: "Interview scheduled with operations lead.", createdAt: "2026-05-01", updatedAt: "2026-05-06" }
+];
 
-    supabase
-      .from("jobs")
-      .select("*")
-      .eq("employer_id", user.id)
-      .order("created_at", { ascending: false })
-      .then(({ data, error }) => {
-        if (!error && data) setJobs(data.map(mapSupabaseJob));
-      });
-  }, [user?.id, setJobs]);
+const candidateHomeDocuments: CandidateDocument[] = [
+  { id: "home-doc-1", name: "ATS-CV.pdf", type: "Resume", url: "#", uploadedAt: "2026-05-02", score: 84 },
+  { id: "home-doc-2", name: "HR-Operations-Certificate.pdf", type: "Certification", url: "#", uploadedAt: "2026-04-22", score: 91 }
+];
+
+const candidateHomeAssessments: SkillAssessment[] = [
+  { id: "home-assess-1", title: "Admin Operations MCQ", category: "Operations", score: 88, level: "Advanced", status: "Completed", summary: "Strong documentation, coordination, and workflow control." },
+  { id: "home-assess-2", title: "Excel Reporting Challenge", category: "Data", score: 82, level: "Upper Intermediate", status: "Completed", summary: "Good spreadsheet structure and reporting discipline." },
+  { id: "home-assess-3", title: "Communication Scenario Test", category: "Communication", score: 76, level: "Recommended", status: "Recommended", summary: "Recommended to improve recruiter-facing communication signals." }
+];
+
+const candidateHomeInterviews: InterviewEvent[] = [
+  { id: "home-int-1", company: "MX Partner Employer", role: "Admin & Operations Manager", scheduledAt: "2026-05-09T11:00:00+06:00", meetingUrl: "https://meet.google.com/demo", checklist: ["Review job responsibilities", "Prepare vendor coordination example", "Bring latest ATS CV"], feedback: "Strong operations fit." }
+];
+
+const candidateHomeNotifications: CandidateNotification[] = [
+  { id: "home-n-1", type: "interview", title: "Interview scheduled", message: "MX Partner Employer scheduled an interview for Admin & Operations Manager.", createdAt: "2026-05-06T09:10:00+06:00", isRead: false },
+  { id: "home-n-2", type: "ai", title: "Resume suggestion", message: "Add quantified outcomes to your latest operations role to improve ATS strength.", createdAt: "2026-05-05T18:20:00+06:00", isRead: false },
+  { id: "home-n-3", type: "application", title: "Application shortlisted", message: "Your profile moved to Shortlisted for Admin & Operations Manager.", createdAt: "2026-05-04T13:00:00+06:00", isRead: true }
+];
+
+const candidateHomeAnalytics: CandidateAnalytics = {
+  applicationSuccessRate: 64,
+  interviewsCompleted: 5,
+  recruiterResponseRate: 78,
+  profileViews: 143,
+  skillTrends: [
+    { skill: "Admin", value: 92 },
+    { skill: "Excel", value: 86 },
+    { skill: "Coordination", value: 89 },
+    { skill: "Communication", value: 74 }
+  ]
+};
+
+const candidateHomeJobs: JobRecommendation[] = [
+  { id: "home-rec-1", title: "Admin & Operations Manager", company: "MX Partner Employer", location: "Dhaka", workType: "On-site", matchScore: 94, salaryRange: "BDT 30k-50k", matchedSkills: ["Admin", "Excel", "Coordination"], missingSkills: ["ERP"], why: "Your operations and documentation background strongly matches this role." },
+  { id: "home-rec-2", title: "HR & Admin Executive", company: "Growth Textile Ltd", location: "Savar", workType: "Hybrid", matchScore: 86, salaryRange: "BDT 25k-40k", matchedSkills: ["HR Operations", "Documentation"], missingSkills: ["Payroll"], why: "Strong HR administration overlap with manageable missing payroll exposure." }
+];
+
+function CandidateHomeDashboard({ profile }: { profile: CandidateProfile }) {
+  const navItems = [
+    { label: "Home", href: "/", icon: Home, active: true },
+    { label: "Profile", href: "/candidate?view=profile", icon: UserRound },
+    { label: "Available Jobs", href: "/candidate?tab=jobs", icon: BriefcaseBusiness },
+    { label: "Applied Jobs", href: "/candidate?tab=applied", icon: Sparkles },
+    { label: "Resume Builder", href: "/candidate?tab=resume", icon: FileText }
+  ];
 
   return (
-    <main>
-      <PageContainer>
-        <div className="mb-6">
-          <Badge variant="primary" className="type-label text-primary">Recruiter Dashboard</Badge>
-          <h1 className="type-h1 mt-3">Hiring Command Center</h1>
+    <main className="min-h-[calc(100vh-4rem)] bg-bg py-10 dark:bg-slate-950">
+      <Container>
+        <div className="mb-6 border-b border-border pb-6 dark:border-white/10">
+          <Badge variant="primary" className="type-label text-primary">Candidate Portal</Badge>
+          <h1 className="type-h1 mt-3">Your Career Command Center</h1>
+          <p className="type-body mt-3 max-w-xl">Manage your profile, discover matched jobs, track applications, and generate professional CVs.</p>
         </div>
 
-        <section>
-          <RecommendedActions />
-        </section>
-
-        <div id="matches" className="mt-6">
-          <RecruiterMatches />
-        </div>
-
-        <section id="pipeline" className="mt-6">
-          <Card className="depth-primary">
-            <div className="mb-6">
-              <Badge variant="primary" className="type-label text-primary">ATS Pipeline</Badge>
-              <h2 className="type-h2 mt-3">Hiring progress</h2>
+        <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
+          <Card className="h-fit p-4 shadow-soft lg:sticky lg:top-24">
+            <div className="flex items-center gap-3">
+              <div className="grid h-12 w-12 overflow-hidden rounded-full bg-gradient-to-br from-primary via-cyan-500 to-success text-sm font-black text-white ring-2 ring-gray-200">
+                {profile.avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={profile.avatarUrl} alt={profile.name} className="h-full w-full rounded-full object-cover" />
+                ) : (
+                  <span className="m-auto">{profile.name.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase()}</span>
+                )}
+              </div>
+              <div className="min-w-0">
+                <h2 className="truncate text-sm font-black text-text-main dark:text-white">{profile.name}</h2>
+                <p className="truncate text-xs text-text-muted">{profile.email || "candidate profile"}</p>
+              </div>
             </div>
-            <PipelineBoard />
+
+            <div className="mt-5 grid gap-1">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <LinkButton
+                    key={item.label}
+                    href={item.href}
+                    variant="ghost"
+                    className={cn(
+                      "justify-start rounded-lg px-3 py-2 text-xs text-text-muted shadow-none",
+                      item.active && "border border-primary bg-primary/10 text-primary shadow-soft"
+                    )}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    {item.label}
+                  </LinkButton>
+                );
+              })}
+            </div>
           </Card>
-        </section>
-      </PageContainer>
+
+          <div className="min-w-0 space-y-6">
+            <StatsCards profile={profile} applications={candidateHomeApplications} />
+
+            <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+              <Card className="overflow-hidden p-0 shadow-soft">
+                <div className="bg-gradient-to-br from-primary via-blue-500 to-success p-7 text-white">
+                  <p className="text-xs font-black uppercase tracking-[0.24em] text-white/70">Candidate Home</p>
+                  <h2 className="mt-3 text-3xl font-black tracking-tight">Your AI hiring command center is ready.</h2>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-white/80">Track profile strength, applications, interviews, resume health, and AI job recommendations from one place.</p>
+                  <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                    {[
+                      { label: "Improve profile", href: "/candidate?view=profile" },
+                      { label: "Download CV", href: "/candidate?tab=resume" },
+                      { label: "Review matches", href: "/candidate?tab=jobs" }
+                    ].map((action) => (
+                      <LinkButton key={action.label} href={action.href} variant="secondary" className="rounded-2xl bg-white/15 px-4 py-3 text-sm font-black text-white backdrop-blur hover:bg-white/25">
+                        {action.label}
+                      </LinkButton>
+                    ))}
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="p-6 shadow-soft">
+                <Badge variant="primary">Recent activity</Badge>
+                <div className="mt-5 space-y-4">
+                  {[
+                    "Profile viewed by MX Partner Employer",
+                    "AI resume scan improved ATS score by 6%",
+                    "Interview scheduled for Admin & Operations Manager",
+                    "New recommended job found with 94% match"
+                  ].map((item, index) => (
+                    <div key={item} className="flex gap-3">
+                      <span className="mt-1 grid h-7 w-7 place-items-center rounded-full bg-primary/10 text-xs font-black text-primary">{index + 1}</span>
+                      <p className="text-sm font-semibold leading-6 text-text-muted dark:text-slate-300">{item}</p>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </div>
+
+            <div className="grid gap-6 xl:grid-cols-2">
+              <AIInsights />
+              <JobRecommendations jobs={candidateHomeJobs} />
+            </div>
+
+            <div className="grid gap-6 xl:grid-cols-2">
+              <AssessmentSection assessments={candidateHomeAssessments} />
+              <InterviewSection interviews={candidateHomeInterviews} />
+            </div>
+
+            <div className="grid gap-6 xl:grid-cols-2">
+              <NotificationsPanel notifications={candidateHomeNotifications} />
+              <AnalyticsPanel analytics={candidateHomeAnalytics} />
+            </div>
+
+            <ResumeSection profile={profile} documents={candidateHomeDocuments} />
+            <ApplicationPipeline applications={candidateHomeApplications} />
+          </div>
+        </div>
+      </Container>
     </main>
   );
 }
@@ -76,8 +221,19 @@ function EmployerHome() {
 export default function LandingPage() {
   const { user, role } = useAuth();
   const isEmployer = Boolean(user) && role === "employer";
+  const isCandidate = Boolean(user) && role !== "employer";
 
-  if (isEmployer) return <EmployerHome />;
+  if (isCandidate) {
+    const candidateProfile = {
+      ...candidateHomeProfile,
+      userId: user?.id,
+      name: user?.user_metadata?.name || user?.user_metadata?.full_name || user?.name || candidateHomeProfile.name,
+      email: user?.email || "",
+      avatarUrl: user?.avatar || user?.user_metadata?.avatar_url || user?.user_metadata?.picture || candidateHomeProfile.avatarUrl
+    };
+
+    return <CandidateHomeDashboard profile={candidateProfile} />;
+  }
 
   return (
     <main className="overflow-hidden">
@@ -94,7 +250,7 @@ export default function LandingPage() {
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <LinkButton href="/login">Get Started <ArrowRight className="ml-2 h-4 w-4" /></LinkButton>
-              <LinkButton href={isEmployer ? "/employer/candidates" : "/jobs"} variant="secondary">
+              <LinkButton href={isEmployer ? "/employer#candidates" : "/jobs"} variant="secondary">
                 {isEmployer ? "Find Candidates" : "Explore Jobs"}
               </LinkButton>
             </div>
