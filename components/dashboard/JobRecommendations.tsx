@@ -62,6 +62,7 @@ function buildJobRecommendations(candidate: Candidate, fallbackJobs: JobRecommen
         why
       };
     })
+    .filter((job) => job.matchScore > 70)
     .sort((a, b) => b.matchScore - a.matchScore);
 
   return matchedJobs.length ? matchedJobs : fallbackJobs;
@@ -96,6 +97,11 @@ export default function JobRecommendations({ jobs, candidateProfile }: { jobs: J
         </Button>
       </div>
       <div className={cn("mt-4 grid gap-3 overflow-y-auto pr-1", expanded ? "max-h-[720px]" : "max-h-[320px]")}>
+        {!visibleJobs.length ? (
+          <div className="rounded-2xl border border-dashed border-border bg-bg p-4 text-sm font-semibold text-text-muted dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+            No 70%+ job matches yet. Add more skills or update your profile summary to improve AI matching.
+          </div>
+        ) : null}
         {visibleJobs.map((job) => (
           <div key={job.id} className="rounded-2xl border border-border bg-bg p-3 transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-hover dark:border-white/10 dark:bg-white/5">
             <div className="flex items-start justify-between gap-3">
