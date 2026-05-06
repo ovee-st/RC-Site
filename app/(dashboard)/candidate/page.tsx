@@ -2,7 +2,7 @@
 
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { BriefcaseBusiness, Camera, FileText, Pencil, Save, Sparkles, UserRound, X } from "lucide-react";
+import { BriefcaseBusiness, Camera, FileText, Home, Pencil, Save, Sparkles, UserRound, X } from "lucide-react";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import EmptyState from "@/components/ui/EmptyState";
@@ -16,8 +16,19 @@ import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/cn";
 import AccountSettings from "@/components/account/AccountSettings";
 import SkillPicker from "@/components/skills/SkillPicker";
+import StatsCards from "@/components/dashboard/StatsCards";
+import AIInsights from "@/components/dashboard/AIInsights";
+import ApplicationPipeline from "@/components/dashboard/ApplicationPipeline";
+import ResumeSection from "@/components/dashboard/ResumeSection";
+import AssessmentSection from "@/components/dashboard/AssessmentSection";
+import InterviewSection from "@/components/dashboard/InterviewSection";
+import NotificationsPanel from "@/components/dashboard/NotificationsPanel";
+import AnalyticsPanel from "@/components/dashboard/AnalyticsPanel";
+import JobRecommendations from "@/components/dashboard/JobRecommendations";
+import type { CandidateAnalytics, CandidateDocument, CandidateNotification, CandidateProfile, InterviewEvent, SkillAssessment } from "@/types/candidate";
+import type { CandidateApplication, JobRecommendation } from "@/types/application";
 
-type CandidateTab = "profile" | "jobs" | "applied" | "resume";
+type CandidateTab = "home" | "profile" | "jobs" | "applied" | "resume";
 type EditableSection = "profile" | "about" | "skills" | "experience" | "education" | "certifications" | "salary" | null;
 
 type CandidateProfileState = {
@@ -25,7 +36,6 @@ type CandidateProfileState = {
   title: string;
   location: string;
   avatar: string | null;
-  linkedin_url: string;
   about: string;
   skills: string[];
   experience: {
@@ -82,10 +92,100 @@ const applications = [
 ];
 
 const navItems: Array<{ id: CandidateTab; label: string; icon: typeof UserRound }> = [
+  { id: "home", label: "Home", icon: Home },
   { id: "profile", label: "Profile", icon: UserRound },
   { id: "jobs", label: "Available Jobs", icon: BriefcaseBusiness },
   { id: "applied", label: "Applied Jobs", icon: Sparkles },
   { id: "resume", label: "Resume Builder", icon: FileText }
+];
+
+const dashboardApplications: CandidateApplication[] = [
+  {
+    id: "dash-app-1",
+    candidateId: "candidate-demo",
+    jobId: "job-1",
+    company: "MX Partner Employer",
+    role: "Admin & Operations Manager",
+    location: "Dhaka",
+    status: "Shortlisted",
+    matchScore: 94,
+    recruiterNotes: "Strong admin operations fit. Invite for first round.",
+    createdAt: "2026-04-28",
+    updatedAt: "2026-05-05"
+  },
+  {
+    id: "dash-app-2",
+    candidateId: "candidate-demo",
+    jobId: "job-2",
+    company: "Remote Support BD",
+    role: "Customer Support Executive",
+    location: "Uttara",
+    status: "Under Review",
+    matchScore: 78,
+    recruiterNotes: "Needs CRM proof.",
+    createdAt: "2026-04-30",
+    updatedAt: "2026-05-03"
+  },
+  {
+    id: "dash-app-3",
+    candidateId: "candidate-demo",
+    jobId: "job-3",
+    company: "Venture SaaS Lab",
+    role: "Operations Coordinator",
+    location: "Remote",
+    status: "Interview",
+    matchScore: 87,
+    recruiterNotes: "Interview scheduled with operations lead.",
+    createdAt: "2026-05-01",
+    updatedAt: "2026-05-06"
+  }
+];
+
+const dashboardDocuments: CandidateDocument[] = [
+  { id: "doc-1", name: "ATS-CV.pdf", type: "Resume", url: "#", uploadedAt: "2026-05-02", score: 84 },
+  { id: "doc-2", name: "HR-Operations-Certificate.pdf", type: "Certification", url: "#", uploadedAt: "2026-04-22", score: 91 }
+];
+
+const dashboardAssessments: SkillAssessment[] = [
+  { id: "assess-1", title: "Admin Operations MCQ", category: "Operations", score: 88, level: "Advanced", status: "Completed", summary: "Strong documentation, coordination, and workflow control." },
+  { id: "assess-2", title: "Excel Reporting Challenge", category: "Data", score: 82, level: "Upper Intermediate", status: "Completed", summary: "Good spreadsheet structure and reporting discipline." },
+  { id: "assess-3", title: "Communication Scenario Test", category: "Communication", score: 76, level: "Recommended", status: "Recommended", summary: "Recommended to improve recruiter-facing communication signals." }
+];
+
+const dashboardInterviews: InterviewEvent[] = [
+  {
+    id: "int-1",
+    company: "MX Partner Employer",
+    role: "Admin & Operations Manager",
+    scheduledAt: "2026-05-09T11:00:00+06:00",
+    meetingUrl: "https://meet.google.com/demo",
+    checklist: ["Review job responsibilities", "Prepare vendor coordination example", "Bring latest ATS CV"],
+    feedback: "Strong operations fit."
+  }
+];
+
+const dashboardNotifications: CandidateNotification[] = [
+  { id: "n-1", type: "interview", title: "Interview scheduled", message: "MX Partner Employer scheduled an interview for Admin & Operations Manager.", createdAt: "2026-05-06T09:10:00+06:00", isRead: false },
+  { id: "n-2", type: "ai", title: "Resume suggestion", message: "Add quantified outcomes to your latest operations role to improve ATS strength.", createdAt: "2026-05-05T18:20:00+06:00", isRead: false },
+  { id: "n-3", type: "application", title: "Application shortlisted", message: "Your profile moved to Shortlisted for Admin & Operations Manager.", createdAt: "2026-05-04T13:00:00+06:00", isRead: true }
+];
+
+const dashboardAnalytics: CandidateAnalytics = {
+  applicationSuccessRate: 64,
+  interviewsCompleted: 5,
+  recruiterResponseRate: 78,
+  profileViews: 143,
+  skillTrends: [
+    { skill: "Admin", value: 92 },
+    { skill: "Excel", value: 86 },
+    { skill: "Coordination", value: 89 },
+    { skill: "Communication", value: 74 }
+  ]
+};
+
+const dashboardRecommendedJobs: JobRecommendation[] = [
+  { id: "rec-1", title: "Admin & Operations Manager", company: "MX Partner Employer", location: "Dhaka", workType: "On-site", matchScore: 94, salaryRange: "BDT 30k-50k", matchedSkills: ["Admin", "Excel", "Coordination"], missingSkills: ["ERP"], why: "Your operations and documentation background strongly matches this role." },
+  { id: "rec-2", title: "HR & Admin Executive", company: "Growth Textile Ltd", location: "Savar", workType: "Hybrid", matchScore: 86, salaryRange: "BDT 25k-40k", matchedSkills: ["HR Operations", "Documentation"], missingSkills: ["Payroll"], why: "Strong HR administration overlap with manageable missing payroll exposure." }
 ];
 
 function getInitials(name?: string | null) {
@@ -107,7 +207,6 @@ function getDefaultProfile(user: ReturnType<typeof useAuth>["user"]): CandidateP
     title: candidate.title,
     location: "Dhaka",
     avatar,
-    linkedin_url: "",
     about:
       "I am an Assistant Manager - Administration with 7+ years of experience supporting fast-growing organizations through efficient workplace, facilities, and operational management. Currently at Pathao, I work across site acquisition, vendor management, security operations, and renovation projects, ensuring smooth day-to-day operations in a dynamic, high-growth environment.",
     skills: candidate.skills.concat(["Photoshop", "Autocad 2d", "Sketchup 3d"]),
@@ -208,8 +307,8 @@ export default function CandidateDashboard() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
-  const initialTab = (searchParams.get("tab") as CandidateTab | null) || (searchParams.get("view") === "profile" ? "profile" : "profile");
-  const [activeTab, setActiveTab] = useState<CandidateTab>(navItems.some((item) => item.id === initialTab) ? initialTab : "profile");
+  const initialTab = (searchParams.get("tab") as CandidateTab | null) || (searchParams.get("view") === "profile" ? "profile" : "home");
+  const [activeTab, setActiveTab] = useState<CandidateTab>(navItems.some((item) => item.id === initialTab) ? initialTab : "home");
   const [profile, setProfile] = useState<CandidateProfileState>(() => loadSavedProfile(user));
   const [editing, setEditing] = useState<EditableSection>(null);
   const [draft, setDraft] = useState<CandidateProfileState>(() => loadSavedProfile(user));
@@ -218,6 +317,28 @@ export default function CandidateDashboard() {
     () => demoJobs.map((job) => ({ job, match: matchCandidateToJob(candidate, job) })).sort((a, b) => b.match.score - a.match.score),
     [candidate]
   );
+  const dashboardProfile: CandidateProfile = useMemo(() => ({
+    id: "candidate-demo",
+    userId: user?.id,
+    name: profile.name,
+    title: profile.title,
+    email: user?.email || "",
+    phone: "+880 1700 000000",
+    location: profile.location,
+    avatarUrl: profile.avatar || undefined,
+    experienceLevel: candidate.experience,
+    yearsExperience: 7,
+    bio: profile.about,
+    skills: profile.skills,
+    socials: {
+      linkedin: "https://linkedin.com/in/md-jahid-anwar",
+      github: "",
+      portfolio: ""
+    },
+    profileCompletion: 88,
+    aiMatchScore: matchedJobs[0]?.match.score || 0,
+    resumeScore: 84
+  }), [candidate.experience, matchedJobs, profile, user?.email, user?.id]);
 
   useEffect(() => {
     const nextProfile = loadSavedProfile(user);
@@ -258,27 +379,8 @@ export default function CandidateDashboard() {
     setEditing(null);
   };
 
-  const saveEditor = async () => {
+  const saveEditor = () => {
     persistProfile(draft);
-    if (user?.id && isSupabaseConfigured) {
-      try {
-        await supabase.from("candidates").upsert({
-        user_id: user.id,
-        name: draft.name,
-        photo_url: draft.avatar,
-        title: draft.title,
-        location: draft.location,
-        linkedin_url: draft.linkedin_url,
-        about: draft.about,
-        skills_array: draft.skills,
-        education_json: draft.education,
-        experience_json: draft.experience,
-        certifications: draft.certifications,
-        current_salary: Number(String(draft.salary.current).replace(/[^0-9.]/g, "")) || null,
-        expected_salary: Number(String(draft.salary.expected).replace(/[^0-9.]/g, "")) || null
-        }, { onConflict: "user_id" });
-      } catch {}
-    }
     setEditing(null);
     setActiveTab("profile");
     router.replace("/candidate?view=profile");
@@ -320,7 +422,7 @@ export default function CandidateDashboard() {
               <ProfileAvatar src={profile.avatar} name={profile.name} className="h-12 w-12 text-sm" />
               <div className="min-w-0">
                 <h2 className="truncate text-sm font-black text-text-main dark:text-white">{profile.name}</h2>
-                <p className="truncate text-xs text-text-muted">{user?.email || ""}</p>
+                <p className="truncate text-xs text-text-muted">{user?.email || "candidate.admin@mxventurelab.com"}</p>
               </div>
             </div>
 
@@ -348,6 +450,71 @@ export default function CandidateDashboard() {
           </Card>
 
           <main className="min-w-0">
+            {activeTab === "home" ? (
+              <div className="space-y-6">
+                <StatsCards profile={dashboardProfile} applications={dashboardApplications} />
+
+                <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+                  <Card className="overflow-hidden p-0 shadow-soft">
+                    <div className="bg-gradient-to-br from-primary via-blue-500 to-success p-7 text-white">
+                      <p className="text-xs font-black uppercase tracking-[0.24em] text-white/70">Candidate home</p>
+                      <h2 className="mt-3 text-3xl font-black tracking-tight">Your AI hiring command center is ready.</h2>
+                      <p className="mt-2 max-w-2xl text-sm leading-6 text-white/80">
+                        Track profile strength, applications, interviews, resume health, and AI job recommendations from one place.
+                      </p>
+                      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                        {["Improve profile", "Download CV", "Review matches"].map((action) => (
+                          <button
+                            key={action}
+                            type="button"
+                            onClick={() => setActiveTab(action === "Download CV" ? "resume" : action === "Review matches" ? "jobs" : "profile")}
+                            className="rounded-2xl bg-white/15 px-4 py-3 text-sm font-black backdrop-blur transition hover:bg-white/25"
+                          >
+                            {action}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </Card>
+
+                  <Card className="p-6 shadow-soft">
+                    <Badge variant="primary">Recent activity</Badge>
+                    <div className="mt-5 space-y-4">
+                      {[
+                        "Profile viewed by MX Partner Employer",
+                        "AI resume scan improved ATS score by 6%",
+                        "Interview scheduled for Admin & Operations Manager",
+                        "New recommended job found with 94% match"
+                      ].map((item, index) => (
+                        <div key={item} className="flex gap-3">
+                          <span className="mt-1 grid h-7 w-7 place-items-center rounded-full bg-primary/10 text-xs font-black text-primary">{index + 1}</span>
+                          <p className="text-sm font-semibold leading-6 text-text-muted dark:text-slate-300">{item}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                </div>
+
+                <div className="grid gap-6 xl:grid-cols-2">
+                  <AIInsights />
+                  <JobRecommendations jobs={dashboardRecommendedJobs} />
+                </div>
+
+                <div className="grid gap-6 xl:grid-cols-2">
+                  <AssessmentSection assessments={dashboardAssessments} />
+                  <InterviewSection interviews={dashboardInterviews} />
+                </div>
+
+                <div className="grid gap-6 xl:grid-cols-2">
+                  <NotificationsPanel notifications={dashboardNotifications} />
+                  <AnalyticsPanel analytics={dashboardAnalytics} />
+                </div>
+
+                <ResumeSection profile={dashboardProfile} documents={dashboardDocuments} />
+                <ApplicationPipeline applications={dashboardApplications} />
+              </div>
+            ) : null}
+
             {activeTab === "profile" ? (
               <div className="grid gap-5">
                 <Card className="flex flex-col justify-between gap-4 p-5 shadow-soft md:flex-row md:items-center">
@@ -356,7 +523,6 @@ export default function CandidateDashboard() {
                     <div>
                       <h2 className="type-h3 font-black">{profile.name}</h2>
                       <p className="type-body">{profile.title} | {candidate.experience} | {profile.location}</p>
-                      {profile.linkedin_url ? <a href={profile.linkedin_url} target="_blank" rel="noreferrer" className="mt-1 inline-block text-xs font-bold text-primary hover:underline">LinkedIn Profile</a> : null}
                     </div>
                   </div>
                   <Button type="button" variant="success" onClick={() => openEditor("profile")} className="w-fit rounded-lg px-4 py-2">
@@ -540,7 +706,6 @@ export default function CandidateDashboard() {
                   <Input value={draft.name} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} placeholder="Full name" />
                   <Input value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} placeholder="Professional title" />
                   <Input value={draft.location} onChange={(event) => setDraft((current) => ({ ...current, location: event.target.value }))} placeholder="Location" />
-                  <Input value={draft.linkedin_url} onChange={(event) => setDraft((current) => ({ ...current, linkedin_url: event.target.value }))} placeholder="LinkedIn Profile Link" />
                 </div>
               ) : null}
 
