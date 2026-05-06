@@ -18,6 +18,7 @@ import NotificationsPanel from "@/components/dashboard/NotificationsPanel";
 import AnalyticsPanel from "@/components/dashboard/AnalyticsPanel";
 import JobRecommendations from "@/components/dashboard/JobRecommendations";
 import ResumeSection from "@/components/dashboard/ResumeSection";
+import EmployerCommandCenter from "@/components/dashboard/EmployerCommandCenter";
 import type { CandidateAnalytics, CandidateDocument, CandidateNotification, CandidateProfile, InterviewEvent, SkillAssessment } from "@/types/candidate";
 import type { CandidateApplication, JobRecommendation } from "@/types/application";
 
@@ -185,6 +186,10 @@ export default function LandingPage() {
     };
 
     return <CandidateHomeDashboard profile={candidateProfile} />;
+  }
+
+  if (isEmployer) {
+    return <EmployerCommandCenter />;
   }
 
   return (
