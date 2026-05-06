@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Brain, CheckCircle2, FileText, KanbanSquare, Sparkles, UserRound, Users } from "lucide-react";
+import { ArrowRight, Brain, CheckCircle2, KanbanSquare, Sparkles, Users } from "lucide-react";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import { LinkButton } from "@/components/ui/Button";
@@ -97,11 +97,6 @@ const candidateHomeJobs: JobRecommendation[] = [
 ];
 
 function CandidateHomeDashboard({ profile }: { profile: CandidateProfile }) {
-  const navItems = [
-    { label: "Profile", href: "/candidate?view=profile", icon: UserRound },
-    { label: "Resume Builder", href: "/candidate?tab=resume", icon: FileText }
-  ];
-
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-bg py-6 dark:bg-slate-950">
       <Container>
@@ -111,42 +106,7 @@ function CandidateHomeDashboard({ profile }: { profile: CandidateProfile }) {
           <p className="type-body mt-2 max-w-xl">Manage your profile, discover matched jobs, track applications, and generate professional CVs.</p>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
-          <Card className="h-fit p-4 shadow-soft lg:sticky lg:top-20">
-            <div className="flex items-center gap-3">
-              <div className="grid h-12 w-12 overflow-hidden rounded-full bg-gradient-to-br from-primary via-cyan-500 to-success text-sm font-black text-white ring-2 ring-gray-200">
-                {profile.avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={profile.avatarUrl} alt={profile.name} className="h-full w-full rounded-full object-cover" />
-                ) : (
-                  <span className="m-auto">{profile.name.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase()}</span>
-                )}
-              </div>
-              <div className="min-w-0">
-                <h2 className="truncate text-sm font-black text-text-main dark:text-white">{profile.name}</h2>
-                <p className="truncate text-xs text-text-muted">{profile.email || "candidate profile"}</p>
-              </div>
-            </div>
-
-            <div className="mt-5 grid gap-1">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <LinkButton
-                    key={item.label}
-                    href={item.href}
-                    variant="ghost"
-                    className="justify-start rounded-lg px-3 py-2 text-xs text-text-muted shadow-none"
-                  >
-                    <Icon className="h-3.5 w-3.5" />
-                    {item.label}
-                  </LinkButton>
-                );
-              })}
-            </div>
-          </Card>
-
-          <div className="min-w-0 space-y-4">
+        <div className="min-w-0 space-y-4">
             <StatsCards profile={profile} applications={candidateHomeApplications} />
 
             <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
@@ -204,7 +164,6 @@ function CandidateHomeDashboard({ profile }: { profile: CandidateProfile }) {
 
             <ResumeSection profile={profile} documents={candidateHomeDocuments} />
             <ApplicationPipeline applications={candidateHomeApplications} />
-          </div>
         </div>
       </Container>
     </main>
