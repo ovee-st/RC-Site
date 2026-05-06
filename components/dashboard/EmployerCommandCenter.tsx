@@ -2,12 +2,15 @@
 
 import RecruiterMatches from "@/components/dashboard/RecruiterMatches";
 import RecommendedActions from "@/components/dashboard/RecommendedActions";
+import EmployerProfile from "@/components/dashboard/EmployerProfile";
 import EmployerPostJob from "@/components/dashboard/EmployerPostJob";
 import PipelineBoard from "@/components/pipeline/PipelineBoard";
+import AccountSettings from "@/components/account/AccountSettings";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import PageContainer from "@/components/layout/PageContainer";
 import { StaggerContainer } from "@/components/motion/MotionSystem";
+import { useEffect, useState } from "react";
 
 const stats = [
   { label: "Active Jobs", value: 3, note: "Live roles", gradient: "from-blue-500/12 via-blue-500/5 to-transparent" },
@@ -17,6 +20,45 @@ const stats = [
 ];
 
 export default function EmployerCommandCenter() {
+  const [activePanel, setActivePanel] = useState<"home" | "profile" | "account">("home");
+
+  useEffect(() => {
+    const syncPanelFromHash = () => {
+      const hash = window.location.hash;
+      if (hash === "#profile") {
+        setActivePanel("profile");
+        return;
+      }
+
+      if (hash === "#account-settings") {
+        setActivePanel("account");
+        return;
+      }
+
+      setActivePanel("home");
+    };
+
+    syncPanelFromHash();
+    window.addEventListener("hashchange", syncPanelFromHash);
+    return () => window.removeEventListener("hashchange", syncPanelFromHash);
+  }, []);
+
+  if (activePanel === "profile") {
+    return (
+      <PageContainer>
+        <EmployerProfile />
+      </PageContainer>
+    );
+  }
+
+  if (activePanel === "account") {
+    return (
+      <PageContainer>
+        <AccountSettings profileStorageKey="mx_employer_profile" title="Employer Account" />
+      </PageContainer>
+    );
+  }
+
   return (
     <PageContainer>
       <div className="mb-6 flex flex-col justify-between gap-6 md:flex-row md:items-end">
