@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AtSign, KeyRound, Menu, UserRound, X } from "lucide-react";
+import { AtSign, KeyRound, LogOut, Menu, UserRound, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LinkButton } from "@/components/ui/Button";
@@ -158,6 +158,14 @@ export default function Navbar() {
         <KeyRound size={15} />
         Change Password
       </Link>
+      <button
+        type="button"
+        onClick={handleLogout}
+        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-gray-600 transition hover:bg-red-50 hover:text-red-600 dark:text-slate-300 dark:hover:bg-red-500/10"
+      >
+        <LogOut size={15} />
+        Logout
+      </button>
     </div>
   );
 
