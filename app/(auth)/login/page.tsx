@@ -34,6 +34,34 @@ function getDefaultProfile(role: "candidate" | "employer", fallbackName: string)
   };
 }
 
+async function resolveUserRole(authUser: { id?: string; user_metadata?: Record<string, unknown> } | null, fallbackRole: "candidate" | "employer") {
+  const metadataRole = authUser?.user_metadata?.role;
+
+  if (metadataRole === "candidate" || metadataRole === "employer") {
+    return metadataRole;
+  }
+
+  if (!authUser?.id || !isSupabaseConfigured) {
+    return fallbackRole;
+  }
+
+  try {
+    const { data } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", authUser.id)
+      .maybeSingle();
+
+    if (data?.role === "candidate" || data?.role === "employer") {
+      return data.role;
+    }
+  } catch {
+    // If the profiles table is unavailable, keep the selected role as fallback.
+  }
+
+  return fallbackRole;
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const { setUser } = useUserStore();
@@ -93,13 +121,15 @@ export default function LoginPage() {
       return;
     }
     const user = response.data.user;
+    const resolvedRole = mode === "login" ? await resolveUserRole(user, role) : role;
     const metadata = user?.user_metadata || {};
-    const displayName = metadata.full_name || metadata.name || defaultProfile.name || email.split("@")[0];
-    const avatar = metadata.avatar_url || metadata.picture || metadata.photo_url || defaultProfile.avatar;
+    const resolvedDefaultProfile = getDefaultProfile(resolvedRole, name);
+    const displayName = metadata.full_name || metadata.name || resolvedDefaultProfile.name || email.split("@")[0];
+    const avatar = metadata.avatar_url || metadata.picture || metadata.photo_url || resolvedDefaultProfile.avatar;
     const loggedInUser = { id: user?.id || "demo-user", name: displayName, email, avatar, username: metadata.username || createStableUsername(displayName, email, user?.id || "demo-user") };
-    setUser(loggedInUser, role);
-    persistAuthFallback(loggedInUser, role);
-    router.push(role === "employer" ? "/employer" : "/candidate");
+    setUser(loggedInUser, resolvedRole);
+    persistAuthFallback(loggedInUser, resolvedRole);
+    router.push(resolvedRole === "employer" ? "/employer" : "/");
   };
 
   return (
