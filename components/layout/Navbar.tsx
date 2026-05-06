@@ -23,7 +23,7 @@ const navItemsByRole = {
     { label: "Jobs", href: "/jobs" }
   ],
   employer: [
-    { label: "Home", href: "/" },
+    { label: "Home", href: "/employer" },
     { label: "Jobs", href: "/jobs" },
     { label: "Candidates", href: "/employer/candidates" },
     { label: "We Hire for You", href: "/#pricing" }
