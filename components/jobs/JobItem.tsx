@@ -11,6 +11,7 @@ import Input from "@/components/ui/Input";
 import PriorityIndicator from "@/components/ui/PriorityIndicator";
 import { cn } from "@/lib/cn";
 import { useAuth } from "@/hooks/useAuth";
+import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 
 function isExpired(deadline?: string) {
   if (!deadline) return false;
@@ -74,6 +75,22 @@ export default function JobItem({ job, matchScore }: { job: Job; matchScore: num
       deadline: draft.deadline
     });
     setEditing(false);
+  };
+
+  const setJobStatus = async (status: Job["status"]) => {
+    updateJob(job.id, { status });
+
+    if (!isSupabaseConfigured || !isEmployer) return;
+
+    try {
+      await supabase
+        .from("jobs")
+        .update({ status })
+        .eq("id", job.id)
+        .throwOnError();
+    } catch {
+      // Keep the UI responsive; the next Supabase refresh will reconcile any failed update.
+    }
   };
 
   return (
@@ -185,7 +202,7 @@ export default function JobItem({ job, matchScore }: { job: Job; matchScore: num
                     className="gap-1.5 px-3 py-2"
                     onClick={(event) => {
                       event.stopPropagation();
-                      updateJob(job.id, { status: archived ? "active" : "archived" });
+                      setJobStatus(archived ? "active" : "archived");
                     }}
                   >
                     <Archive size={14} />
@@ -197,7 +214,7 @@ export default function JobItem({ job, matchScore }: { job: Job; matchScore: num
                     className="gap-1.5 px-3 py-2"
                     onClick={(event) => {
                       event.stopPropagation();
-                      updateJob(job.id, { status: "hired" });
+                      setJobStatus("hired");
                     }}
                   >
                     <Trophy size={14} />

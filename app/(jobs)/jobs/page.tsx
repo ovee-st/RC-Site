@@ -1,24 +1,44 @@
 "use client";
 
+import { useState } from "react";
 import FiltersPanel from "@/components/filters/FiltersPanel";
 import EmployerPostJob from "@/components/dashboard/EmployerPostJob";
 import JobList from "@/components/jobs/JobList";
 import JobPreview from "@/components/jobs/JobPreview";
 import { useJobStore } from "@/store/useJobStore";
 import { useAuth } from "@/hooks/useAuth";
-import { X } from "lucide-react";
+import { Archive, X } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 
 export default function JobsPage() {
   const { selectedJob, setSelectedJob } = useJobStore();
   const { user, role } = useAuth();
   const showPostJob = Boolean(user) && role === "employer";
+  const [showArchivedJobs, setShowArchivedJobs] = useState(false);
+  const employerHeaderAction = showPostJob ? (
+    <div className="flex flex-wrap items-center justify-end gap-3">
+      <EmployerPostJob label="Post a Job" />
+      <Button
+        type="button"
+        variant={showArchivedJobs ? "primary" : "secondary"}
+        onClick={() => {
+          setShowArchivedJobs((current) => !current);
+          setSelectedJob(null);
+        }}
+        className="gap-2"
+      >
+        <Archive className="h-4 w-4" />
+        {showArchivedJobs ? "Posted Jobs" : "Archived Jobs"}
+      </Button>
+    </div>
+  ) : null;
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-transparent">
       {selectedJob ? (
         <div className="mx-auto grid w-full max-w-[1400px] grid-cols-1 gap-0 px-6 py-8 xl:grid-cols-[minmax(390px,0.82fr)_minmax(0,1.18fr)]">
           <section className="min-w-0 xl:border-r xl:border-border xl:dark:border-white/10">
-            <JobList headerAction={showPostJob ? <EmployerPostJob label="Post a Job" /> : null} />
+            <JobList headerAction={employerHeaderAction} showArchived={showArchivedJobs} />
           </section>
 
           <section className="hidden min-w-0 xl:block">
@@ -32,7 +52,7 @@ export default function JobsPage() {
           </aside>
 
           <section className="min-w-0">
-            <JobList headerAction={showPostJob ? <EmployerPostJob label="Post a Job" /> : null} />
+            <JobList headerAction={employerHeaderAction} showArchived={showArchivedJobs} />
           </section>
         </div>
       )}

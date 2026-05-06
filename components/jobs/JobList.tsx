@@ -53,7 +53,7 @@ function isExpired(deadline?: string) {
   return Number.isFinite(deadlineDate.getTime()) && deadlineDate < new Date();
 }
 
-export default function JobList({ headerAction }: { headerAction?: ReactNode }) {
+export default function JobList({ headerAction, showArchived = false }: { headerAction?: ReactNode; showArchived?: boolean }) {
   const { jobs, filters, selectedJob, setSelectedJob, clearFilters, setJobs } = useJobStore();
   const { role, user } = useAuth();
 
@@ -73,7 +73,11 @@ export default function JobList({ headerAction }: { headerAction?: ReactNode }) 
   const rankedJobs = useMemo(() => jobs
     .filter((job) => {
       const effectiveStatus = isExpired(job.deadline) ? "archived" : (job.status || "active");
-      const visibleStatus = role === "employer" || effectiveStatus === "active";
+      const visibleStatus = role === "employer"
+        ? showArchived
+          ? effectiveStatus === "archived"
+          : effectiveStatus !== "archived"
+        : effectiveStatus === "active";
       const search = filters.search.toLowerCase();
       const matchesSearch = !search || `${job.title} ${job.company} ${job.skills.join(" ")}`.toLowerCase().includes(search);
       const matchesCategory = !filters.categories.length || filters.categories.includes(job.category);
@@ -89,9 +93,10 @@ export default function JobList({ headerAction }: { headerAction?: ReactNode }) 
       matchScore: matchCandidateToJob(demoCandidates[0], job).score
     }))
     .sort((a, b) => b.matchScore - a.matchScore),
-  [jobs, filters, role]);
+  [jobs, filters, role, showArchived]);
 
   const openCount = jobs.filter((job) => (job.status || "active") === "active" && !isExpired(job.deadline)).length;
+  const archivedCount = jobs.filter((job) => job.status === "archived" || isExpired(job.deadline)).length;
 
   useEffect(() => {
     if (selectedJob && !rankedJobs.some((job) => job.id === selectedJob.id)) {
@@ -104,11 +109,19 @@ export default function JobList({ headerAction }: { headerAction?: ReactNode }) 
       <div className="border-b border-border bg-surface/80 p-5 backdrop-blur dark:border-white/10 dark:bg-slate-900/80">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <h2 className="text-2xl font-semibold tracking-tight text-text-main dark:text-white">Top job picks for you</h2>
+            <h2 className="text-2xl font-semibold tracking-tight text-text-main dark:text-white">
+              {role === "employer" ? (showArchived ? "Archived jobs" : "Published jobs") : "Top job picks for you"}
+            </h2>
             <p className="mt-1 text-sm leading-6 text-text-muted dark:text-slate-300">
-              Based on your profile, preferences, filters, and AI relevance signals.
+              {role === "employer"
+                ? showArchived
+                  ? "Archived and expired roles are kept here and hidden from public job listings."
+                  : "Active published roles are visible on the jobs page. Archived roles stay hidden."
+                : "Based on your profile, preferences, filters, and AI relevance signals."}
             </p>
-            <p className="mt-1 text-sm font-semibold text-text-muted dark:text-slate-400">{openCount} open jobs</p>
+            <p className="mt-1 text-sm font-semibold text-text-muted dark:text-slate-400">
+              {showArchived ? `${archivedCount} archived jobs` : `${openCount} open jobs`}
+            </p>
           </div>
           {headerAction ? <div className="shrink-0">{headerAction}</div> : null}
         </div>
@@ -120,8 +133,8 @@ export default function JobList({ headerAction }: { headerAction?: ReactNode }) 
           <div className="p-5">
             <EmptyState
               icon={<SlidersHorizontal size={22} />}
-              title="No jobs found"
-              message="Try removing filters, expanding your salary range, or searching with a broader skill keyword."
+              title={showArchived ? "No archived jobs found" : "No jobs found"}
+              message={showArchived ? "Archived or expired roles will appear here after you archive them." : "Try removing filters, expanding your salary range, or searching with a broader skill keyword."}
               actionLabel="Clear filters"
               onAction={clearFilters}
             />
