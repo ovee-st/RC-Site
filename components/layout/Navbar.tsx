@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AtSign, KeyRound, LogOut, Menu, UserRound, X } from "lucide-react";
+import { LogOut, Menu, Settings, UserRound, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LinkButton } from "@/components/ui/Button";
@@ -147,16 +147,8 @@ export default function Navbar() {
         onClick={() => setProfileOpen(false)}
         className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-blue-50 hover:text-blue-600 dark:text-slate-300 dark:hover:bg-white/5"
       >
-        <AtSign size={15} />
-        Change Email
-      </Link>
-      <Link
-        href={accountHref}
-        onClick={() => setProfileOpen(false)}
-        className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-blue-50 hover:text-blue-600 dark:text-slate-300 dark:hover:bg-white/5"
-      >
-        <KeyRound size={15} />
-        Change Password
+        <Settings size={15} />
+        Account Settings
       </Link>
       <button
         type="button"

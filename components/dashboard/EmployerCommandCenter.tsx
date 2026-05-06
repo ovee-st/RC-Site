@@ -2,10 +2,8 @@
 
 import RecruiterMatches from "@/components/dashboard/RecruiterMatches";
 import RecommendedActions from "@/components/dashboard/RecommendedActions";
-import EmployerProfile from "@/components/dashboard/EmployerProfile";
 import EmployerPostJob from "@/components/dashboard/EmployerPostJob";
 import PipelineBoard from "@/components/pipeline/PipelineBoard";
-import AccountSettings from "@/components/account/AccountSettings";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import PageContainer from "@/components/layout/PageContainer";
@@ -39,12 +37,6 @@ export default function EmployerCommandCenter() {
           </Card>
         ))}
       </StaggerContainer>
-      <section className="mt-6">
-        <EmployerProfile />
-      </section>
-      <section className="mt-6">
-        <AccountSettings profileStorageKey="mx_employer_profile" title="Employer Account" />
-      </section>
       <section className="mt-6">
         <RecommendedActions />
       </section>
