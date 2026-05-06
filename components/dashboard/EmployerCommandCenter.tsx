@@ -10,19 +10,40 @@ import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import PageContainer from "@/components/layout/PageContainer";
 import { StaggerContainer } from "@/components/motion/MotionSystem";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useJobStore } from "@/store/useJobStore";
+import { demoCandidates } from "@/lib/demoData";
+import { matchCandidateToJob } from "@/lib/ai/matching";
 
 const EMPLOYER_PANEL_EVENT = "mx-employer-panel-change";
 
-const stats = [
-  { label: "Active Jobs", value: 3, note: "Live roles", gradient: "from-blue-500/12 via-blue-500/5 to-transparent" },
-  { label: "Top Matches", value: 12, note: "Above 80% fit", gradient: "from-emerald-500/14 via-emerald-500/5 to-transparent" },
-  { label: "Applications", value: 8, note: "This week", gradient: "from-cyan-500/12 via-cyan-500/5 to-transparent" },
-  { label: "Hired", value: 2, note: "Closed roles", gradient: "from-violet-500/12 via-violet-500/5 to-transparent" }
-];
+function isExpired(deadline?: string) {
+  if (!deadline) return false;
+  const deadlineDate = new Date(`${deadline}T23:59:59`);
+  return Number.isFinite(deadlineDate.getTime()) && deadlineDate < new Date();
+}
 
 export default function EmployerCommandCenter() {
   const [activePanel, setActivePanel] = useState<"home" | "profile" | "account">("home");
+  const jobs = useJobStore((state) => state.jobs);
+
+  const stats = useMemo(() => {
+    const activeJobs = jobs.filter((job) => (job.status || "active") === "active" && !isExpired(job.deadline));
+    const hiredJobs = jobs.filter((job) => job.status === "hired");
+    const topMatches = activeJobs.reduce((count, job) => {
+      return count + demoCandidates.filter((candidate) => matchCandidateToJob(candidate, job).score >= 80).length;
+    }, 0);
+    const applicationEstimate = activeJobs.reduce((count, job) => {
+      return count + demoCandidates.filter((candidate) => matchCandidateToJob(candidate, job).score >= 60).length;
+    }, 0);
+
+    return [
+      { label: "Active Jobs", value: activeJobs.length, note: "Live roles", gradient: "from-blue-500/12 via-blue-500/5 to-transparent" },
+      { label: "Top Matches", value: topMatches, note: "Above 80% fit", gradient: "from-emerald-500/14 via-emerald-500/5 to-transparent" },
+      { label: "Applications", value: applicationEstimate, note: "Qualified pool", gradient: "from-cyan-500/12 via-cyan-500/5 to-transparent" },
+      { label: "Hired", value: hiredJobs.length, note: "Closed roles", gradient: "from-violet-500/12 via-violet-500/5 to-transparent" }
+    ];
+  }, [jobs]);
 
   useEffect(() => {
     const syncPanelFromHash = (event?: Event) => {
