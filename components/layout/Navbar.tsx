@@ -70,6 +70,7 @@ export default function Navbar() {
   const accountHref = role === "employer" ? "/employer#account-settings" : "/candidate?view=profile#account-settings";
   const displayName = user?.user_metadata?.name || user?.user_metadata?.full_name || user?.name || "MX User";
   const avatarSrc = profileAvatar || user?.avatar || user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null;
+  const isLogoAvatar = Boolean(avatarSrc && /mx-logo|mx[\\/_-]?venture|MX\.png/i.test(avatarSrc));
   const initials = getInitials(displayName);
   const resolvedRole = user ? (role === "employer" ? "employer" : "candidate") : "guest";
   const navItems = navItemsByRole[resolvedRole];
@@ -79,7 +80,10 @@ export default function Navbar() {
     <img
       src={avatarSrc}
       alt={displayName}
-      className="h-8 w-8 rounded-full object-cover ring-2 ring-gray-200 transition hover:ring-blue-500"
+      className={cn(
+        "h-8 w-8 rounded-full ring-2 ring-gray-200 transition hover:ring-blue-500 dark:ring-white/20 dark:hover:ring-blue-400",
+        isLogoAvatar ? "bg-white p-1 object-contain" : "object-cover"
+      )}
       style={{ aspectRatio: "1 / 1" }}
     />
   ) : (
@@ -193,7 +197,7 @@ export default function Navbar() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-10 px-6">
         <div className="flex min-w-0 flex-1 items-center gap-8">
           <Link href="/" className="flex shrink-0 items-center gap-3">
-            <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-xl border border-gray-200 bg-white shadow-secondary dark:border-white/10 dark:bg-slate-900">
+            <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-full border border-gray-200 bg-white p-1 shadow-secondary ring-1 ring-black/5 dark:border-white/20 dark:bg-white dark:ring-white/20">
               <Image src="/mx-logo.png" alt="MX Venture Lab logo" width={36} height={36} className="h-full w-full object-contain" priority />
             </div>
             <span className="whitespace-nowrap text-sm font-black tracking-tight text-text-main dark:text-white">MX Venture Lab</span>

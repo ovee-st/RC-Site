@@ -80,6 +80,7 @@ export default function EmployerProfile() {
   const [draft, setDraft] = useState<EmployerProfileState>(() => loadLocalProfile(user?.email));
   const [editing, setEditing] = useState(false);
   const [message, setMessage] = useState("");
+  const bannerPreviewUrl = draft.banner_url || profile.banner_url;
 
   useEffect(() => {
     let active = true;
@@ -238,11 +239,7 @@ export default function EmployerProfile() {
       {editing ? (
         <div className="mt-6 grid gap-4">
           <div className="rounded-xl border border-border bg-bg p-4 dark:border-white/10 dark:bg-white/5">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-black text-text-main dark:text-white">LinkedIn-size profile banner</p>
-                <p className="type-body mt-1 text-xs">Recommended 4:1 ratio. This appears in employer profile and posted job previews.</p>
-              </div>
+            <div className="mb-3 flex justify-end">
               <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-border bg-surface px-4 py-2 text-sm font-bold text-text-main shadow-soft transition hover:border-primary/25 hover:text-primary dark:border-white/10 dark:bg-surface-dark dark:text-white">
                 <Camera className="h-4 w-4" />
                 Upload Banner
@@ -250,9 +247,9 @@ export default function EmployerProfile() {
               </label>
             </div>
             <div className="aspect-[4/1] overflow-hidden rounded-xl border border-border bg-gradient-to-br from-primary/10 via-white to-success/10 dark:border-white/10 dark:from-primary/20 dark:via-slate-900 dark:to-success/10">
-              {draft.banner_url ? (
+              {bannerPreviewUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={draft.banner_url} alt={`${draft.company_name} banner`} className="h-full w-full object-cover" />
+                <img src={bannerPreviewUrl} alt={`${draft.company_name} banner`} className="h-full w-full object-cover" />
               ) : (
                 <div className="flex h-full items-center justify-center text-sm font-bold text-text-muted dark:text-slate-300">Banner preview</div>
               )}
