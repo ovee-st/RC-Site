@@ -111,7 +111,7 @@ export default function JobRecommendations({ jobs, candidateProfile }: { jobs: J
               {job.matchedSkills.map((skill) => <Badge key={skill} variant="success">{skill}</Badge>)}
               {job.missingSkills.map((skill) => <Badge key={skill}>{skill}</Badge>)}
             </div>
-            <LinkButton href="/jobs" className="mt-3 w-full gap-2 px-3 py-2 text-xs">View job <ArrowRight className="h-3.5 w-3.5" /></LinkButton>
+            <LinkButton href={`/jobs?job=${encodeURIComponent(job.id)}`} className="mt-3 w-full gap-2 px-3 py-2 text-xs">View job <ArrowRight className="h-3.5 w-3.5" /></LinkButton>
           </div>
         ))}
       </div>

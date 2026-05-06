@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import FiltersPanel from "@/components/filters/FiltersPanel";
 import EmployerPostJob from "@/components/dashboard/EmployerPostJob";
 import JobList from "@/components/jobs/JobList";
@@ -11,7 +12,8 @@ import { Archive, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 export default function JobsPage() {
-  const { selectedJob, setSelectedJob } = useJobStore();
+  const searchParams = useSearchParams();
+  const { jobs, selectedJob, setSelectedJob } = useJobStore();
   const { user, role } = useAuth();
   const showPostJob = Boolean(user) && role === "employer";
   const [showArchivedJobs, setShowArchivedJobs] = useState(false);
@@ -32,6 +34,14 @@ export default function JobsPage() {
       </Button>
     </div>
   ) : null;
+
+  useEffect(() => {
+    const jobId = searchParams.get("job");
+    if (!jobId) return;
+
+    const job = jobs.find((item) => item.id === jobId);
+    if (job) setSelectedJob(job);
+  }, [jobs, searchParams, setSelectedJob]);
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-transparent">
