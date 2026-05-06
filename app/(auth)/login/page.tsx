@@ -103,7 +103,7 @@ export default function LoginPage() {
       setUser(fallbackUser, role);
       persistAuthFallback(fallbackUser, role);
       setLoading(false);
-      router.push(role === "employer" ? "/employer" : "/candidate");
+      router.push(role === "employer" ? "/employer" : "/");
       return;
     }
 
@@ -117,7 +117,7 @@ export default function LoginPage() {
       const fallbackUser = { id: "demo-user", name: defaultProfile.name, email, avatar: defaultProfile.avatar, username: createStableUsername(defaultProfile.name, email, "demo-user") };
       setUser(fallbackUser, role);
       persistAuthFallback(fallbackUser, role);
-      router.push(role === "employer" ? "/employer" : "/candidate");
+      router.push(role === "employer" ? "/employer" : "/");
       return;
     }
     const user = response.data.user;
