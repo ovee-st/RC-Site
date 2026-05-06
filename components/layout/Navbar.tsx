@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogOut, Menu, Settings, UserRound, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { type MouseEvent, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LinkButton } from "@/components/ui/Button";
 import GlobalSearch from "@/components/search/GlobalSearch";
@@ -31,6 +31,7 @@ const navItemsByRole = {
 };
 
 const AUTH_CHANGE_EVENT = "mx-auth-change";
+const EMPLOYER_PANEL_EVENT = "mx-employer-panel-change";
 const CANDIDATE_PROFILE_KEY = "mx_candidate_profile";
 const EMPLOYER_PROFILE_KEY = "mx_employer_profile";
 
@@ -132,11 +133,32 @@ export default function Navbar() {
     }
   };
 
+  const openEmployerPanel = (panel: "profile" | "account") => (event: MouseEvent<HTMLAnchorElement>) => {
+    if (role !== "employer") {
+      setProfileOpen(false);
+      return;
+    }
+
+    event.preventDefault();
+    setProfileOpen(false);
+
+    if (typeof window === "undefined") return;
+
+    const hash = panel === "profile" ? "#profile" : "#account-settings";
+    if (pathname !== "/employer") {
+      window.location.href = `/employer${hash}`;
+      return;
+    }
+
+    window.history.pushState(null, "", `/employer${hash}`);
+    window.dispatchEvent(new CustomEvent(EMPLOYER_PANEL_EVENT, { detail: panel }));
+  };
+
   const profileMenu = (
     <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-gray-200 bg-white p-2 shadow-md dark:border-white/10 dark:bg-slate-950">
       <Link
         href={profileHref}
-        onClick={() => setProfileOpen(false)}
+        onClick={openEmployerPanel("profile")}
         className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-blue-50 hover:text-blue-600 dark:text-slate-300 dark:hover:bg-white/5"
       >
         <UserRound size={15} />
@@ -144,7 +166,7 @@ export default function Navbar() {
       </Link>
       <Link
         href={accountHref}
-        onClick={() => setProfileOpen(false)}
+        onClick={openEmployerPanel("account")}
         className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-blue-50 hover:text-blue-600 dark:text-slate-300 dark:hover:bg-white/5"
       >
         <Settings size={15} />

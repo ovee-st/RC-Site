@@ -12,6 +12,8 @@ import PageContainer from "@/components/layout/PageContainer";
 import { StaggerContainer } from "@/components/motion/MotionSystem";
 import { useEffect, useState } from "react";
 
+const EMPLOYER_PANEL_EVENT = "mx-employer-panel-change";
+
 const stats = [
   { label: "Active Jobs", value: 3, note: "Live roles", gradient: "from-blue-500/12 via-blue-500/5 to-transparent" },
   { label: "Top Matches", value: 12, note: "Above 80% fit", gradient: "from-emerald-500/14 via-emerald-500/5 to-transparent" },
@@ -23,7 +25,13 @@ export default function EmployerCommandCenter() {
   const [activePanel, setActivePanel] = useState<"home" | "profile" | "account">("home");
 
   useEffect(() => {
-    const syncPanelFromHash = () => {
+    const syncPanelFromHash = (event?: Event) => {
+      const customEvent = event as CustomEvent<"profile" | "account">;
+      if (customEvent?.detail === "profile" || customEvent?.detail === "account") {
+        setActivePanel(customEvent.detail);
+        return;
+      }
+
       const hash = window.location.hash;
       if (hash === "#profile") {
         setActivePanel("profile");
@@ -40,7 +48,14 @@ export default function EmployerCommandCenter() {
 
     syncPanelFromHash();
     window.addEventListener("hashchange", syncPanelFromHash);
-    return () => window.removeEventListener("hashchange", syncPanelFromHash);
+    window.addEventListener("popstate", syncPanelFromHash);
+    window.addEventListener(EMPLOYER_PANEL_EVENT, syncPanelFromHash);
+
+    return () => {
+      window.removeEventListener("hashchange", syncPanelFromHash);
+      window.removeEventListener("popstate", syncPanelFromHash);
+      window.removeEventListener(EMPLOYER_PANEL_EVENT, syncPanelFromHash);
+    };
   }, []);
 
   if (activePanel === "profile") {
