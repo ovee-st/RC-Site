@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Check, Plus, Search } from "lucide-react";
 import Input from "@/components/ui/Input";
 import { bdjobsSkills } from "@/lib/bdjobsSkills";
@@ -9,6 +9,9 @@ import { cn } from "@/lib/cn";
 function normalizeSkill(skill: string) {
   return skill.trim().replace(/\s+/g, " ").toLowerCase();
 }
+
+const CUSTOM_SKILLS_KEY = "mx_custom_skills";
+const CUSTOM_SKILLS_EVENT = "mx-custom-skills-change";
 
 export function uniqueSkills(skills: string[]) {
   const skillMap = new Map<string, string>();
@@ -23,6 +26,25 @@ export function uniqueSkills(skills: string[]) {
   return Array.from(skillMap.values());
 }
 
+function loadCustomSkills() {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const saved = window.localStorage.getItem(CUSTOM_SKILLS_KEY);
+    return saved ? uniqueSkills(JSON.parse(saved)) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCustomSkill(skill: string) {
+  if (typeof window === "undefined") return;
+
+  const nextSkills = uniqueSkills([...loadCustomSkills(), skill]).sort((a, b) => a.localeCompare(b));
+  window.localStorage.setItem(CUSTOM_SKILLS_KEY, JSON.stringify(nextSkills));
+  window.dispatchEvent(new CustomEvent(CUSTOM_SKILLS_EVENT, { detail: nextSkills }));
+}
+
 export default function SkillPicker({
   selectedSkills,
   onChange,
@@ -33,8 +55,9 @@ export default function SkillPicker({
   compact?: boolean;
 }) {
   const [query, setQuery] = useState("");
+  const [customSkills, setCustomSkills] = useState<string[]>([]);
   const selectedSkillKeys = useMemo(() => new Set(selectedSkills.map(normalizeSkill)), [selectedSkills]);
-  const allSkills = useMemo(() => uniqueSkills([...selectedSkills, ...bdjobsSkills]).sort((a, b) => a.localeCompare(b)), [selectedSkills]);
+  const allSkills = useMemo(() => uniqueSkills([...selectedSkills, ...customSkills, ...bdjobsSkills]).sort((a, b) => a.localeCompare(b)), [customSkills, selectedSkills]);
   const visibleSkills = useMemo(() => {
     const normalizedQuery = normalizeSkill(query);
     if (!normalizedQuery) return allSkills;
@@ -42,6 +65,22 @@ export default function SkillPicker({
     return allSkills.filter((skill) => normalizeSkill(skill).includes(normalizedQuery));
   }, [allSkills, query]);
   const canAddQuery = Boolean(query.trim()) && !selectedSkillKeys.has(normalizeSkill(query)) && !allSkills.some((skill) => normalizeSkill(skill) === normalizeSkill(query));
+
+  useEffect(() => {
+    const syncCustomSkills = (event?: Event) => {
+      const customEvent = event as CustomEvent<string[]>;
+      setCustomSkills(Array.isArray(customEvent?.detail) ? customEvent.detail : loadCustomSkills());
+    };
+
+    syncCustomSkills();
+    window.addEventListener(CUSTOM_SKILLS_EVENT, syncCustomSkills);
+    window.addEventListener("storage", syncCustomSkills);
+
+    return () => {
+      window.removeEventListener(CUSTOM_SKILLS_EVENT, syncCustomSkills);
+      window.removeEventListener("storage", syncCustomSkills);
+    };
+  }, []);
 
   const toggleSkill = (skill: string) => {
     const key = normalizeSkill(skill);
@@ -57,7 +96,9 @@ export default function SkillPicker({
   const addCustomSkill = () => {
     if (!query.trim()) return;
 
-    onChange(uniqueSkills([...selectedSkills, query]));
+    const skill = query.trim().replace(/\s+/g, " ");
+    saveCustomSkill(skill);
+    onChange(uniqueSkills([...selectedSkills, skill]));
     setQuery("");
   };
 
