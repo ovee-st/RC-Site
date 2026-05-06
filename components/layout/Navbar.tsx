@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, Menu, UserRound, X } from "lucide-react";
+import { AtSign, KeyRound, Menu, UserRound, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LinkButton } from "@/components/ui/Button";
@@ -65,7 +65,8 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [profileAvatar, setProfileAvatar] = useState<string | null>(null);
   const { user, role, loading } = useAuth();
-  const dashboardHref = role === "employer" ? "/employer" : "/candidate";
+  const profileHref = role === "employer" ? "/employer#profile" : "/candidate?view=profile";
+  const accountHref = role === "employer" ? "/employer#account-settings" : "/candidate?view=profile#account-settings";
   const displayName = user?.user_metadata?.name || user?.user_metadata?.full_name || user?.name || "MX User";
   const avatarSrc = profileAvatar || user?.avatar || user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null;
   const initials = getInitials(displayName);
@@ -132,23 +133,31 @@ export default function Navbar() {
   };
 
   const profileMenu = (
-    <div className="absolute right-0 top-full z-50 mt-2 w-40 rounded-xl border border-gray-200 bg-white p-2 shadow-md dark:border-white/10 dark:bg-slate-950">
+    <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-gray-200 bg-white p-2 shadow-md dark:border-white/10 dark:bg-slate-950">
       <Link
-        href={dashboardHref}
+        href={profileHref}
         onClick={() => setProfileOpen(false)}
         className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-blue-50 hover:text-blue-600 dark:text-slate-300 dark:hover:bg-white/5"
       >
         <UserRound size={15} />
         Edit Profile
       </Link>
-      <button
-        type="button"
-        onClick={handleLogout}
-        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-gray-600 transition hover:bg-red-50 hover:text-red-600 dark:text-slate-300 dark:hover:bg-red-500/10"
+      <Link
+        href={accountHref}
+        onClick={() => setProfileOpen(false)}
+        className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-blue-50 hover:text-blue-600 dark:text-slate-300 dark:hover:bg-white/5"
       >
-        <LogOut size={15} />
-        Logout
-      </button>
+        <AtSign size={15} />
+        Change Email
+      </Link>
+      <Link
+        href={accountHref}
+        onClick={() => setProfileOpen(false)}
+        className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-blue-50 hover:text-blue-600 dark:text-slate-300 dark:hover:bg-white/5"
+      >
+        <KeyRound size={15} />
+        Change Password
+      </Link>
     </div>
   );
 
