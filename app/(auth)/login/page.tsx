@@ -60,17 +60,6 @@ async function resolveUserRole(authUser: { id?: string; email?: string | null; u
       return data.role;
     }
 
-    if (authUser.email) {
-      const { data: emailProfile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("email", authUser.email)
-        .maybeSingle();
-
-      if (emailProfile?.role === "candidate" || emailProfile?.role === "employer" || emailProfile?.role === "admin") {
-        return emailProfile.role;
-      }
-    }
   } catch {
     // If the profiles table is unavailable, keep the selected role as fallback.
   }
