@@ -508,94 +508,101 @@ for select
 to anon, authenticated
 using (bucket_id = 'cvs');
 
--- 2026 platform profile/admin extensions
-alter table public.profiles add column if not exists username text;
-alter table public.profiles add column if not exists phone text;
-create unique index if not exists profiles_username_unique
-on public.profiles(username)
-where username is not null;
+-- Super admin support
+alter table public.profiles
+drop constraint if exists profiles_role_check;
 
-alter table public.candidates add column if not exists linkedin_url text;
-alter table public.candidates add column if not exists email text;
-alter table public.candidates add column if not exists phone text;
+alter table public.profiles
+add constraint profiles_role_check
+check (role in ('candidate', 'employer', 'admin'));
 
-alter table public.employers add column if not exists photo_url text;
-alter table public.employers add column if not exists banner_url text;
-alter table public.employers add column if not exists linkedin_url text;
-alter table public.employers add column if not exists website_url text;
-alter table public.employers add column if not exists facebook_url text;
-
-alter table public.jobs add column if not exists experience_years text;
-alter table public.jobs add column if not exists work_type text;
-alter table public.jobs add column if not exists hide_salary boolean not null default false;
-alter table public.jobs add column if not exists banner_url text;
-
-create table if not exists public.site_visits (
+create table if not exists public.contact_requests (
   id uuid primary key default gen_random_uuid(),
-  created_at timestamptz not null default now(),
-  path text,
-  visitor_key text
+  name text not null,
+  email text not null,
+  company text,
+  phone text,
+  message text not null,
+  status text not null default 'new' check (status in ('new', 'in progress', 'resolved')),
+  created_at timestamptz not null default now()
 );
 
-alter table public.site_visits enable row level security;
+create table if not exists public.coupons (
+  id uuid primary key default gen_random_uuid(),
+  code text unique not null,
+  discount_percentage integer not null check (discount_percentage between 1 and 100),
+  active boolean not null default true,
+  usage_limit integer,
+  used_count integer not null default 0,
+  expires_at timestamptz,
+  created_at timestamptz not null default now()
+);
 
-drop policy if exists "Anyone can create site visit" on public.site_visits;
-create policy "Anyone can create site visit"
-on public.site_visits
+create table if not exists public.transactions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete set null,
+  user_email text,
+  amount numeric not null default 0,
+  payment_method text,
+  coupon_used text,
+  transaction_id text unique,
+  status text not null default 'paid',
+  created_at timestamptz not null default now()
+);
+
+alter table public.contact_requests enable row level security;
+alter table public.coupons enable row level security;
+alter table public.transactions enable row level security;
+
+create or replace function public.is_admin()
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.profiles
+    where id = auth.uid()
+    and role = 'admin'
+  );
+$$;
+
+drop policy if exists "Admins can manage contact requests" on public.contact_requests;
+create policy "Admins can manage contact requests"
+on public.contact_requests
+for all
+to authenticated
+using (public.is_admin())
+with check (public.is_admin());
+
+drop policy if exists "Anyone can create contact requests" on public.contact_requests;
+create policy "Anyone can create contact requests"
+on public.contact_requests
 for insert
 to anon, authenticated
 with check (true);
 
-drop policy if exists "Admins can read site visits" on public.site_visits;
-create policy "Admins can read site visits"
-on public.site_visits
-for select
-to authenticated
-using (
-  exists (
-    select 1 from public.profiles
-    where profiles.id = auth.uid()
-    and profiles.role = 'admin'
-  )
-);
-
--- Admin users can manage profile, candidate, employer, job, and application records.
-drop policy if exists "Admins can manage all profiles" on public.profiles;
-create policy "Admins can manage all profiles"
-on public.profiles
+drop policy if exists "Admins can manage coupons" on public.coupons;
+create policy "Admins can manage coupons"
+on public.coupons
 for all
 to authenticated
-using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'))
-with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'));
+using (public.is_admin())
+with check (public.is_admin());
 
-drop policy if exists "Admins can manage all candidates" on public.candidates;
-create policy "Admins can manage all candidates"
-on public.candidates
+drop policy if exists "Admins can manage transactions" on public.transactions;
+create policy "Admins can manage transactions"
+on public.transactions
 for all
 to authenticated
-using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'))
-with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'));
+using (public.is_admin())
+with check (public.is_admin());
 
-drop policy if exists "Admins can manage all employers" on public.employers;
-create policy "Admins can manage all employers"
-on public.employers
-for all
-to authenticated
-using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'))
-with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'));
+create index if not exists contact_requests_status_idx on public.contact_requests(status);
+create index if not exists coupons_code_idx on public.coupons(code);
+create index if not exists transactions_user_id_idx on public.transactions(user_id);
 
-drop policy if exists "Admins can manage all jobs" on public.jobs;
-create policy "Admins can manage all jobs"
-on public.jobs
-for all
-to authenticated
-using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'))
-with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'));
-
-drop policy if exists "Admins can manage all applications" on public.applications;
-create policy "Admins can manage all applications"
-on public.applications
-for all
-to authenticated
-using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'))
-with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'));
+insert into storage.buckets (id, name, public)
+values ('certifications', 'certifications', true)
+on conflict (id) do nothing;

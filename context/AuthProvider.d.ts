@@ -11,12 +11,10 @@ export type AuthUser = {
     avatar_url?: string;
     picture?: string;
     role?: string;
-    phone?: string;
   };
   name: string;
   username?: string | null;
   avatar?: string | null;
-  phone?: string | null;
 };
 
 export const AuthContext: import("react").Context<{
