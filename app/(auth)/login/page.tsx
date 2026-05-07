@@ -44,13 +44,7 @@ function getDefaultProfile(role: ResolvedRole, fallbackName: string) {
   };
 }
 
-async function resolveUserRole(authUser: { id?: string; user_metadata?: Record<string, unknown> } | null, fallbackRole: LoginRole): Promise<ResolvedRole> {
-  const metadataRole = authUser?.user_metadata?.role;
-
-  if (metadataRole === "candidate" || metadataRole === "employer" || metadataRole === "admin") {
-    return metadataRole;
-  }
-
+async function resolveUserRole(authUser: { id?: string; email?: string | null; user_metadata?: Record<string, unknown> } | null, fallbackRole: LoginRole): Promise<ResolvedRole> {
   if (!authUser?.id || !isSupabaseConfigured) {
     return fallbackRole;
   }
@@ -65,8 +59,26 @@ async function resolveUserRole(authUser: { id?: string; user_metadata?: Record<s
     if (data?.role === "candidate" || data?.role === "employer" || data?.role === "admin") {
       return data.role;
     }
+
+    if (authUser.email) {
+      const { data: emailProfile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("email", authUser.email)
+        .maybeSingle();
+
+      if (emailProfile?.role === "candidate" || emailProfile?.role === "employer" || emailProfile?.role === "admin") {
+        return emailProfile.role;
+      }
+    }
   } catch {
     // If the profiles table is unavailable, keep the selected role as fallback.
+  }
+
+  const metadataRole = authUser?.user_metadata?.role;
+
+  if (metadataRole === "candidate" || metadataRole === "employer" || metadataRole === "admin") {
+    return metadataRole;
   }
 
   return fallbackRole;
@@ -124,10 +136,6 @@ export default function LoginPage() {
     const defaultProfile = getDefaultProfile(role, name);
     if (response.error) {
       setMessage(response.error.message);
-      const fallbackUser = { id: "demo-user", name: defaultProfile.name, email, avatar: defaultProfile.avatar, username: createStableUsername(defaultProfile.name, email, "demo-user") };
-      setUser(fallbackUser, role);
-      persistAuthFallback(fallbackUser, role);
-      router.push(role === "employer" ? "/employer" : "/");
       return;
     }
     const user = response.data.user;
