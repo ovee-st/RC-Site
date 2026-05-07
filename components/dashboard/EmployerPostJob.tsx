@@ -120,13 +120,17 @@ export default function EmployerPostJob({ label = "Post New Job" }: { label?: st
     }));
   };
 
-  const loadEmployerBanner = () => {
-    if (typeof window === "undefined") return null;
+  const loadEmployerBranding = () => {
+    if (typeof window === "undefined") return { bannerUrl: null, photoUrl: null };
     try {
       const saved = window.localStorage.getItem("mx_employer_profile");
-      return saved ? (JSON.parse(saved).banner_url || null) : null;
+      const profile = saved ? JSON.parse(saved) : null;
+      return {
+        bannerUrl: profile?.banner_url || null,
+        photoUrl: profile?.photo_url || null
+      };
     } catch {
-      return null;
+      return { bannerUrl: null, photoUrl: null };
     }
   };
 
@@ -138,6 +142,7 @@ export default function EmployerPostJob({ label = "Post New Job" }: { label?: st
       return;
     }
 
+    const employerBranding = loadEmployerBranding();
     const job: Job = {
       id: `job-${Date.now()}`,
       title: form.title.trim(),
@@ -152,7 +157,8 @@ export default function EmployerPostJob({ label = "Post New Job" }: { label?: st
       salaryMax: Number(form.salaryMax) || 0,
       hideSalary: form.hideSalary,
       deadline: form.deadline,
-      bannerUrl: loadEmployerBanner(),
+      bannerUrl: employerBranding.bannerUrl,
+      employerPhotoUrl: employerBranding.photoUrl,
       status: "active",
       skills: form.skills.split(",").map((skill) => skill.trim()).filter(Boolean),
       description: form.description.trim(),

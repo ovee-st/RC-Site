@@ -13,6 +13,7 @@ export type Job = {
   hideSalary?: boolean;
   deadline?: string;
   bannerUrl?: string | null;
+  employerPhotoUrl?: string | null;
   status?: "active" | "archived" | "hired";
   salaryMin: number;
   salaryMax: number;
@@ -68,3 +69,4 @@ export type Notification = {
   message: string;
   isRead: boolean;
 };
+

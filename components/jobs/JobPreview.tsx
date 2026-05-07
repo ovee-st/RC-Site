@@ -17,14 +17,21 @@ export default function JobPreview() {
   const { role } = useAuth();
   const [savedJobs, setSavedJobs] = useState<Record<string, boolean>>({});
   const [appliedJobs, setAppliedJobs] = useState<Record<string, boolean>>({});
-  const [employerBanner, setEmployerBanner] = useState<string | null>(null);
+  const [employerBranding, setEmployerBranding] = useState<{ bannerUrl: string | null; photoUrl: string | null }>({
+    bannerUrl: null,
+    photoUrl: null
+  });
 
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem("mx_employer_profile");
-      setEmployerBanner(saved ? JSON.parse(saved).banner_url || null : null);
+      const profile = saved ? JSON.parse(saved) : null;
+      setEmployerBranding({
+        bannerUrl: profile?.banner_url || null,
+        photoUrl: profile?.photo_url || null
+      });
     } catch {
-      setEmployerBanner(null);
+      setEmployerBranding({ bannerUrl: null, photoUrl: null });
     }
   }, []);
 
@@ -58,7 +65,8 @@ export default function JobPreview() {
     );
   }
 
-  const bannerUrl = selectedJob.bannerUrl || employerBanner;
+  const bannerUrl = selectedJob.bannerUrl || employerBranding.bannerUrl;
+  const employerPhotoUrl = selectedJob.employerPhotoUrl || employerBranding.photoUrl;
   const highPriority = selectedJob.status === "active";
   const needsReview = selectedJob.status === "archived";
   const saved = Boolean(savedJobs[selectedJob.id]);
@@ -70,42 +78,50 @@ export default function JobPreview() {
   return (
     <aside className="sticky top-24 h-[calc(100vh-7rem)] overflow-y-auto">
       <Card className="depth-primary overflow-hidden rounded-2xl p-0">
-        {bannerUrl ? (
-          <div className="aspect-[4/1] overflow-hidden border-b border-border dark:border-white/10">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={bannerUrl} alt={`${selectedJob.company} banner`} className="h-full w-full object-cover" />
-          </div>
-        ) : null}
-
-        <div className="relative border-b border-border bg-gradient-to-br from-primary/10 via-primary/4 to-transparent p-7 dark:border-white/10">
+        <div className="relative min-h-[174px] overflow-hidden border-b border-border bg-gradient-to-br from-slate-900 via-slate-900 to-primary/80 p-7 dark:border-white/10">
+          {bannerUrl ? (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={bannerUrl} alt={`${selectedJob.company} banner`} className="absolute inset-0 h-full w-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-r from-slate-950/88 via-slate-950/62 to-slate-950/30" />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/45 via-transparent to-slate-950/20" />
+            </>
+          ) : (
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(37,99,235,0.45),transparent_52%)]" />
+          )}
           <button
             type="button"
             onClick={() => setSelectedJob(null)}
-            className="absolute right-5 top-5 hidden h-10 w-10 items-center justify-center rounded-full text-text-muted transition hover:bg-primary/5 hover:text-primary xl:flex"
+            className="absolute right-5 top-5 z-10 hidden h-10 w-10 items-center justify-center rounded-full text-white/75 transition hover:bg-white/10 hover:text-white xl:flex"
             aria-label="Close job details"
           >
             <X className="h-5 w-5" />
           </button>
 
-          <div className="flex items-center gap-3 pr-12">
-            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-primary/15 to-success/15 text-xs font-black text-primary ring-1 ring-primary/15 dark:from-primary/25 dark:to-success/20">
-              {selectedJob.company.slice(0, 2).toUpperCase()}
+          <div className="relative z-10 flex items-center gap-3 pr-12">
+            <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-2xl bg-white/95 text-xs font-black text-primary shadow-soft ring-1 ring-white/30">
+              {employerPhotoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={employerPhotoUrl} alt={`${selectedJob.company} profile`} className="h-full w-full object-cover" />
+              ) : (
+                selectedJob.company.slice(0, 2).toUpperCase()
+              )}
             </div>
             <div>
-              <p className="text-sm font-black text-text-main dark:text-white">{selectedJob.company}</p>
-              <p className="text-xs font-semibold text-text-muted dark:text-slate-400">Posted {postedDate}</p>
+              <p className="text-sm font-black text-white drop-shadow-sm">{selectedJob.company}</p>
+              <p className="text-xs font-semibold text-white/78 drop-shadow-sm">Posted {postedDate}</p>
             </div>
           </div>
 
-          <h1 className="mt-6 text-3xl font-black leading-tight tracking-tight text-text-main dark:text-white">{selectedJob.title}</h1>
-          <p className="mt-3 text-base font-medium text-text-muted dark:text-slate-300">{selectedJob.location}</p>
-          <div className="mt-4 flex flex-wrap gap-3">
+          <h1 className="relative z-10 mt-6 text-3xl font-black leading-tight tracking-tight text-white drop-shadow-sm">{selectedJob.title}</h1>
+          <p className="relative z-10 mt-3 text-base font-semibold text-white/82 drop-shadow-sm">{selectedJob.location}</p>
+          <div className="relative z-10 mt-4 flex flex-wrap gap-3">
             <Badge>{selectedJob.experience}</Badge>
             <Badge>{selectedJob.jobType}</Badge>
             {selectedJob.workType ? <Badge>{selectedJob.workType}</Badge> : null}
             {selectedJob.hideSalary ? <Badge>Salary hidden</Badge> : <Badge>BDT {selectedJob.salaryMin / 1000}k-{selectedJob.salaryMax / 1000}k</Badge>}
           </div>
-          <div className="mt-5 flex flex-wrap gap-2">
+          <div className="relative z-10 mt-5 flex flex-wrap gap-2">
             <Badge variant="primary">{selectedJob.category}</Badge>
             {highPriority ? <PriorityIndicator variant="top" pulse /> : null}
             {needsReview ? <PriorityIndicator variant="review" pulse /> : null}

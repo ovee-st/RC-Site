@@ -25,6 +25,7 @@ export function mapSupabaseJob(row: any): Job {
     hideSalary: Boolean(row.hide_salary || row.salary_hidden),
     deadline: row.last_date || row.deadline || "",
     bannerUrl: row.banner_url || null,
+    employerPhotoUrl: row.employer_photo_url || row.photo_url || row.company_logo_url || null,
     status: row.status || "active",
     skills,
     description: row.description || "Job description will be shared by the employer.",
