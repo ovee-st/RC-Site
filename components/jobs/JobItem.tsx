@@ -120,14 +120,17 @@ export default function JobItem({ job, matchScore }: { job: Job; matchScore: num
         variant="default"
         className={cn(
           "group rounded-none border-0 border-l-4 border-l-transparent bg-transparent text-left shadow-none outline-none transition hover:-translate-y-0 hover:bg-primary/5 hover:shadow-none focus:ring-4 focus:ring-primary/10 dark:hover:bg-slate-800/60",
-          compactListMode ? "p-3" : "p-4",
+          compactListMode ? "p-4 md:p-3" : "p-4",
           highMatch && !isEmployer && "hover:bg-success/5",
           active && "border-l-primary bg-primary/8 ring-0 dark:bg-primary/12",
           archived && "opacity-70",
           hired && "bg-success/5 dark:bg-success/10"
         )}
       >
-        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-3">
+        <div className={cn(
+          "grid min-w-0 gap-3",
+          compactListMode ? "grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-[minmax(0,1fr)_auto]"
+        )}>
           <div className={cn("flex min-w-0 items-start", compactListMode ? "gap-3" : "gap-4")}>
             <div className={cn(
               "grid shrink-0 place-items-center overflow-hidden rounded-xl bg-gradient-to-br from-primary/15 to-success/15 font-black text-primary ring-1 ring-primary/15 transition group-hover:scale-105 dark:from-primary/25 dark:to-success/20",
@@ -142,10 +145,10 @@ export default function JobItem({ job, matchScore }: { job: Job; matchScore: num
             </div>
 
             <div className="min-w-0 flex-1">
-              <div className="flex min-w-0 items-start gap-2">
+              <div className="flex min-w-0 flex-wrap items-start gap-2">
                 <h3 className={cn(
-                  "min-w-0 text-primary transition group-hover:text-primary-hover dark:text-blue-300 dark:group-hover:text-blue-200",
-                  compactListMode ? "truncate text-sm font-black leading-5" : "line-clamp-2 text-base font-black leading-6"
+                  "min-w-0 flex-1 text-primary transition group-hover:text-primary-hover dark:text-blue-300 dark:group-hover:text-blue-200",
+                  compactListMode ? "line-clamp-2 text-base font-black leading-6 md:truncate md:text-sm md:leading-5" : "line-clamp-2 text-base font-black leading-6"
                 )}>
                   {job.title}
                 </h3>
@@ -160,7 +163,7 @@ export default function JobItem({ job, matchScore }: { job: Job; matchScore: num
 
               <div className={cn(
                 "mt-2 flex items-center gap-x-2 gap-y-1 text-xs font-semibold text-text-muted dark:text-slate-300",
-                compactListMode ? "truncate whitespace-nowrap" : "flex-wrap"
+                compactListMode ? "flex-wrap md:flex-nowrap md:overflow-hidden" : "flex-wrap"
               )}>
                 <span>{job.experience}</span>
                 {job.experienceYears && !compactListMode ? <><span>·</span><span>{job.experienceYears} yrs exp</span></> : null}
@@ -179,7 +182,7 @@ export default function JobItem({ job, matchScore }: { job: Job; matchScore: num
               </div>
 
               {!isEmployer ? (
-                <p className={cn("mt-2 text-xs font-semibold text-text-muted dark:text-slate-400", compactListMode && "truncate")}>
+                <p className={cn("mt-2 text-xs font-semibold text-text-muted dark:text-slate-400", compactListMode && "line-clamp-2 md:truncate")}>
                   Viewed · {isCandidate ? "AI ranked" : postTimeLabel(job.createdAt)} · Easy Apply
                 </p>
               ) : null}
@@ -187,8 +190,8 @@ export default function JobItem({ job, matchScore }: { job: Job; matchScore: num
           </div>
 
           <div className={cn(
-            "flex shrink-0 items-start justify-end gap-2",
-            compactListMode ? "min-w-[72px]" : "flex-wrap md:min-w-[112px] md:flex-col md:items-end"
+            "flex shrink-0 items-start gap-2",
+            compactListMode ? "min-w-0 flex-wrap justify-start md:min-w-[72px] md:justify-end" : "flex-wrap justify-end md:min-w-[112px] md:flex-col md:items-end"
           )}>
             {isEmployer ? (
               <>
