@@ -28,6 +28,12 @@ const navItemsByRole = {
     { label: "Jobs", href: "/jobs" },
     { label: "Candidates", href: "/employer/candidates" },
     { label: "We Hire for You", href: "/#pricing" }
+  ],
+  admin: [
+    { label: "Admin", href: "/admin" },
+    { label: "Users", href: "/admin/users" },
+    { label: "Candidates", href: "/admin/candidates" },
+    { label: "Employers", href: "/admin/employers" }
   ]
 };
 
@@ -67,13 +73,13 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [profileAvatar, setProfileAvatar] = useState<string | null>(null);
   const { user, role, loading } = useAuth();
-  const profileHref = role === "employer" ? "/employer#profile" : "/candidate?view=profile";
-  const accountHref = role === "employer" ? "/employer#account-settings" : "/candidate?view=profile#account-settings";
+  const profileHref = role === "admin" ? "/admin/settings" : role === "employer" ? "/employer#profile" : "/candidate?view=profile";
+  const accountHref = role === "admin" ? "/admin/settings" : role === "employer" ? "/employer#account-settings" : "/candidate?view=profile#account-settings";
   const displayName = user?.user_metadata?.name || user?.user_metadata?.full_name || user?.name || "MX User";
   const avatarSrc = profileAvatar || user?.avatar || user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null;
   const isLogoAvatar = Boolean(avatarSrc && /mx-logo|mx[\\/_-]?venture|MX\.png/i.test(avatarSrc));
   const initials = getInitials(displayName);
-  const resolvedRole = user ? (role === "employer" ? "employer" : "candidate") : "guest";
+  const resolvedRole = user ? (role === "admin" ? "admin" : role === "employer" ? "employer" : "candidate") : "guest";
   const navItems = navItemsByRole[resolvedRole];
 
   const avatar = avatarSrc ? (

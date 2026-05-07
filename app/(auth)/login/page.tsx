@@ -19,7 +19,17 @@ const features = [
   { icon: ShieldCheck, label: "Secure profiles" }
 ];
 
-function getDefaultProfile(role: "candidate" | "employer", fallbackName: string) {
+type LoginRole = "candidate" | "employer";
+type ResolvedRole = LoginRole | "admin";
+
+function getDefaultProfile(role: ResolvedRole, fallbackName: string) {
+  if (role === "admin") {
+    return {
+      name: fallbackName && fallbackName !== "MX User" ? fallbackName : "RC Admin",
+      avatar: undefined
+    };
+  }
+
   if (role === "candidate") {
     const candidate = demoCandidates[0];
     return {
@@ -34,10 +44,10 @@ function getDefaultProfile(role: "candidate" | "employer", fallbackName: string)
   };
 }
 
-async function resolveUserRole(authUser: { id?: string; user_metadata?: Record<string, unknown> } | null, fallbackRole: "candidate" | "employer") {
+async function resolveUserRole(authUser: { id?: string; user_metadata?: Record<string, unknown> } | null, fallbackRole: LoginRole): Promise<ResolvedRole> {
   const metadataRole = authUser?.user_metadata?.role;
 
-  if (metadataRole === "candidate" || metadataRole === "employer") {
+  if (metadataRole === "candidate" || metadataRole === "employer" || metadataRole === "admin") {
     return metadataRole;
   }
 
@@ -52,7 +62,7 @@ async function resolveUserRole(authUser: { id?: string; user_metadata?: Record<s
       .eq("id", authUser.id)
       .maybeSingle();
 
-    if (data?.role === "candidate" || data?.role === "employer") {
+    if (data?.role === "candidate" || data?.role === "employer" || data?.role === "admin") {
       return data.role;
     }
   } catch {
@@ -73,7 +83,7 @@ export default function LoginPage() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const persistAuthFallback = (nextUser: { id: string; name: string; email: string; avatar?: string; username?: string }, nextRole: "candidate" | "employer") => {
+  const persistAuthFallback = (nextUser: { id: string; name: string; email: string; avatar?: string; username?: string }, nextRole: ResolvedRole) => {
     if (typeof window === "undefined") return;
     const username = nextUser.username || createStableUsername(nextUser.name, nextUser.email, nextUser.id);
 
@@ -129,7 +139,7 @@ export default function LoginPage() {
     const loggedInUser = { id: user?.id || "demo-user", name: displayName, email, avatar, username: metadata.username || createStableUsername(displayName, email, user?.id || "demo-user") };
     setUser(loggedInUser, resolvedRole);
     persistAuthFallback(loggedInUser, resolvedRole);
-    router.push(resolvedRole === "employer" ? "/employer" : "/");
+    router.push(resolvedRole === "admin" ? "/admin" : resolvedRole === "employer" ? "/employer" : "/");
   };
 
   return (
