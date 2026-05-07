@@ -29,7 +29,12 @@ function normalizeUser(authUser, profile, fallbackUser) {
   return {
     id: authUser.id,
     email: authUser.email,
-    user_metadata: { ...fallbackUser?.user_metadata, ...metadata },
+    user_metadata: {
+      ...fallbackUser?.user_metadata,
+      ...metadata,
+      verified: profile?.verified ?? metadata.verified ?? fallbackUser?.user_metadata?.verified,
+      plan: profile?.plan ?? metadata.plan ?? fallbackUser?.user_metadata?.plan
+    },
     name,
     username: getStableUsername({
       id: authUser.id,
@@ -47,7 +52,7 @@ async function loadProfile(authUser) {
 
   const { data } = await supabase
     .from("profiles")
-    .select("role, full_name, name, avatar_url, photo_url")
+    .select("role, full_name, name, avatar_url, photo_url, verified, plan")
     .eq("id", authUser.id)
     .maybeSingle();
 
@@ -66,7 +71,7 @@ function getMockUser() {
 }
 
 function normalizeRole(value) {
-  return value === "employer" || value === "candidate" || value === "admin" ? value : null;
+  return value === "employer" || value === "candidate" || value === "admin" || value === "viewer" ? value : null;
 }
 
 function applyUserDefaults(user) {

@@ -11,6 +11,8 @@ import {
   Copy,
   CreditCard,
   Download,
+  Edit3,
+  Eye,
   FileText,
   Gift,
   LayoutDashboard,
@@ -18,7 +20,6 @@ import {
   Mail,
   MoreHorizontal,
   Search,
-  Settings,
   ShieldCheck,
   Sparkles,
   Trash2,
@@ -53,10 +54,10 @@ type AdminSection =
   | "users"
   | "candidates"
   | "employers"
+  | "jobs"
   | "contact-requests"
   | "coupons"
-  | "transactions"
-  | "settings";
+  | "transactions";
 
 type AnyRecord = Record<string, any>;
 
@@ -99,6 +100,10 @@ const sectionMeta: Record<AdminSection, { title: string; description: string }> 
     title: "Employer Management",
     description: "Review company profiles, job activity, verification state, and hiring health."
   },
+  jobs: {
+    title: "Job Management",
+    description: "Review, edit, archive, and correct any employer job post from one admin list."
+  },
   "contact-requests": {
     title: "Contact Requests",
     description: "Handle inbound requests, assign status, and keep support follow-up tidy."
@@ -110,10 +115,6 @@ const sectionMeta: Record<AdminSection, { title: string; description: string }> 
   transactions: {
     title: "Transactions",
     description: "Search payments, coupon usage, upgrades, and subscription purchase history."
-  },
-  settings: {
-    title: "Admin Settings",
-    description: "Platform controls, data exports, storage access, and security recommendations."
   }
 };
 
@@ -122,14 +123,15 @@ const navItems = [
   { label: "Users", href: "/admin/users", key: "users", icon: UserCog },
   { label: "Candidates", href: "/admin/candidates", key: "candidates", icon: Users },
   { label: "Employers", href: "/admin/employers", key: "employers", icon: BriefcaseBusiness },
+  { label: "Jobs", href: "/admin/jobs", key: "jobs", icon: FileText },
   { label: "Contact Requests", href: "/admin/contact-requests", key: "contact-requests", icon: Mail },
   { label: "Coupons", href: "/admin/coupons", key: "coupons", icon: Gift },
-  { label: "Transactions", href: "/admin/transactions", key: "transactions", icon: CreditCard },
-  { label: "Settings", href: "/admin/settings", key: "settings", icon: Settings }
+  { label: "Transactions", href: "/admin/transactions", key: "transactions", icon: CreditCard }
 ] as const;
 
 const fallbackProfiles = [
   { id: "admin-demo", full_name: "RC Super Admin", email: "admin@mxventurelab.com", role: "admin", plan: "Internal", applications_used: 0, created_at: "2026-05-01" },
+  { id: "viewer-demo", full_name: "RC Viewer", email: "viewer@mxventurelab.com", role: "viewer", plan: "Internal", applications_used: 0, created_at: "2026-05-01" },
   { id: "candidate-demo", full_name: "Md Jahid Anwar", email: "candidate.admin@mxventurelab.com", role: "candidate", plan: "Free", applications_used: 3, created_at: "2026-04-20" },
   { id: "employer-demo", full_name: "Ovee", email: "employer.admin@mxventurelab.com", role: "employer", plan: "Growth", applications_used: 8, created_at: "2026-04-18" }
 ];
@@ -165,6 +167,14 @@ function getDisplayName(row: AnyRecord) {
 
 function getEmail(row: AnyRecord) {
   return row.email || row.user_email || row.contact_email || "No email";
+}
+
+function isVerifiedRecord(row: AnyRecord) {
+  return Boolean(row.verified) || String(row.plan || "").toLowerCase() === "pro";
+}
+
+function VerifiedBadge() {
+  return <Badge variant="primary" className="gap-1">Verified</Badge>;
 }
 
 function formatDate(value?: string) {
@@ -207,7 +217,7 @@ function AdminStatCard({ label, value, detail, icon: Icon, accent }: { label: st
           <p className="mt-3 text-3xl font-black tracking-tight text-text-main dark:text-white">{value}</p>
           <p className="mt-2 text-xs font-bold text-text-muted dark:text-slate-400">{detail}</p>
         </div>
-        <div className="grid h-12 w-12 place-items-center rounded-2xl bg-primary/10 text-primary transition group-hover:scale-105 dark:bg-primary/20">
+        <div className="grid h-12 w-12 place-items-center rounded-full bg-primary/10 text-primary transition group-hover:scale-105 dark:bg-primary/20">
           <Icon className="h-5 w-5" />
         </div>
       </div>
@@ -254,11 +264,13 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
   const [roleFilter, setRoleFilter] = useState("all");
   const [notice, setNotice] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const readOnly = role === "viewer";
+  const canAccessAdmin = role === "admin" || role === "viewer";
 
   useEffect(() => {
     if (loading) return;
-    if (!user || role !== "admin") router.replace("/");
-  }, [loading, role, router, user]);
+    if (!user || !canAccessAdmin) router.replace("/");
+  }, [canAccessAdmin, loading, router, user]);
 
   useEffect(() => {
     let active = true;
@@ -291,12 +303,12 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
       setDataLoading(false);
     }
 
-    if (!loading && role === "admin") loadAdminData();
+    if (!loading && canAccessAdmin) loadAdminData();
 
     return () => {
       active = false;
     };
-  }, [loading, role]);
+  }, [canAccessAdmin, loading]);
 
   const analytics = useMemo(() => {
     const activeJobs = adminData.jobs.filter((job) => (job.status || "active") === "active").length;
@@ -335,6 +347,10 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
   }), [adminData.profiles, query, roleFilter]);
 
   async function updateRecord(table: string, id: string, patch: AnyRecord) {
+    if (readOnly) {
+      setNotice("Viewer accounts can inspect admin data, but cannot make changes.");
+      return;
+    }
     if (isSupabaseConfigured) {
       await supabase.from(table).update(patch).eq("id", id);
     }
@@ -342,6 +358,10 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
   }
 
   async function deleteRecord(table: string, id: string) {
+    if (readOnly) {
+      setNotice("Viewer accounts can inspect admin data, but cannot delete records.");
+      return;
+    }
     if (isSupabaseConfigured) {
       await supabase.from(table).delete().eq("id", id);
     }
@@ -349,6 +369,10 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
   }
 
   async function generateCoupon() {
+    if (readOnly) {
+      setNotice("Viewer accounts can inspect coupons, but cannot generate them.");
+      return;
+    }
     const code = `RC${Math.floor(10 + Math.random() * 89)}${Math.random().toString(36).slice(2, 5).toUpperCase()}`;
     const coupon = {
       code,
@@ -366,7 +390,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
     setNotice(`Coupon ${code} generated.`);
   }
 
-  if (loading || (user && role !== "admin")) {
+  if (loading || (user && !canAccessAdmin)) {
     return (
       <main className="grid min-h-[70vh] place-items-center px-6">
         <Card className="flex items-center gap-3 rounded-3xl p-6">
@@ -377,7 +401,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
     );
   }
 
-  if (!user || role !== "admin") return null;
+  if (!user || !canAccessAdmin) return null;
 
   const meta = sectionMeta[section];
 
@@ -389,12 +413,11 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
           sidebarOpen ? "translate-x-0" : "-translate-x-[115%] lg:translate-x-0"
         )}>
           <div className="flex items-center gap-3 rounded-2xl bg-gradient-to-br from-slate-950 to-primary p-4 text-white">
-            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-white/15">
+            <div className="grid h-11 w-11 place-items-center rounded-full bg-white/15">
               <ShieldCheck className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm font-black">RC Super Admin</p>
-              <p className="text-xs font-semibold text-white/70">Internal control room</p>
+              <p className="text-sm font-black">Admin</p>
             </div>
           </div>
 
@@ -412,7 +435,9 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
                     active && "bg-primary text-white shadow-primary hover:bg-primary hover:text-white"
                   )}
                 >
-                  <Icon className="h-4 w-4" />
+                  <span className={cn("grid h-8 w-8 place-items-center rounded-full bg-slate-100 text-text-muted dark:bg-white/10 dark:text-slate-300", active && "bg-white/20 text-white")}>
+                    <Icon className="h-4 w-4" />
+                  </span>
                   {item.label}
                 </Link>
               );
@@ -447,7 +472,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
                   <AdminAvatar row={{ full_name: user.name, avatar_url: user.avatar }} className="h-8 w-8" />
                   <div className="hidden sm:block">
                     <p className="text-sm font-black text-text-main dark:text-white">{user.name || "Admin"}</p>
-                    <p className="text-xs font-bold text-text-muted dark:text-slate-400">Super Admin</p>
+                  <p className="text-xs font-bold text-text-muted dark:text-slate-400">{readOnly ? "Viewer" : "Admin"}</p>
                   </div>
                   <ChevronDown className="h-4 w-4 text-text-muted" />
                 </div>
@@ -469,13 +494,13 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
           ) : (
             <>
               {section === "dashboard" ? <DashboardSection analytics={analytics} chartData={chartData} revenueData={revenueData} data={adminData} /> : null}
-              {section === "users" ? <UsersSection rows={filteredProfiles} query={query} roleFilter={roleFilter} setRoleFilter={setRoleFilter} onUpdate={updateRecord} onDelete={deleteRecord} /> : null}
-              {section === "candidates" ? <CandidatesSection rows={adminData.candidates} profiles={adminData.profiles} applications={adminData.applications} /> : null}
-              {section === "employers" ? <EmployersSection rows={adminData.employers} jobs={adminData.jobs} onUpdate={updateRecord} /> : null}
+              {section === "users" ? <UsersSection rows={filteredProfiles} query={query} roleFilter={roleFilter} setRoleFilter={setRoleFilter} onUpdate={updateRecord} onDelete={deleteRecord} readOnly={readOnly} onNotice={setNotice} /> : null}
+              {section === "candidates" ? <CandidatesSection rows={adminData.candidates} profiles={adminData.profiles} applications={adminData.applications} onUpdate={updateRecord} readOnly={readOnly} /> : null}
+              {section === "employers" ? <EmployersSection rows={adminData.employers} jobs={adminData.jobs} onUpdate={updateRecord} readOnly={readOnly} /> : null}
+              {section === "jobs" ? <JobsSection rows={adminData.jobs} onUpdate={updateRecord} readOnly={readOnly} /> : null}
               {section === "contact-requests" ? <ContactRequestsSection rows={adminData.contactRequests} onUpdate={updateRecord} onDelete={deleteRecord} /> : null}
-              {section === "coupons" ? <CouponsSection rows={adminData.coupons} onGenerate={generateCoupon} onUpdate={updateRecord} onDelete={deleteRecord} /> : null}
+              {section === "coupons" ? <CouponsSection rows={adminData.coupons} onGenerate={generateCoupon} onUpdate={updateRecord} onDelete={deleteRecord} readOnly={readOnly} /> : null}
               {section === "transactions" ? <TransactionsSection rows={adminData.transactions} /> : null}
-              {section === "settings" ? <SettingsSection data={adminData} /> : null}
             </>
           )}
         </section>
@@ -568,9 +593,84 @@ function RecentList({ title, rows }: { title: string; rows: AnyRecord[] }) {
   );
 }
 
-function UsersSection({ rows, roleFilter, setRoleFilter, onUpdate, onDelete }: { rows: AnyRecord[]; query: string; roleFilter: string; setRoleFilter: (value: string) => void; onUpdate: (table: string, id: string, patch: AnyRecord) => void; onDelete: (table: string, id: string) => void }) {
+function UsersSection({
+  rows,
+  roleFilter,
+  setRoleFilter,
+  onUpdate,
+  onDelete,
+  readOnly,
+  onNotice
+}: {
+  rows: AnyRecord[];
+  query: string;
+  roleFilter: string;
+  setRoleFilter: (value: string) => void;
+  onUpdate: (table: string, id: string, patch: AnyRecord) => void;
+  onDelete: (table: string, id: string) => void;
+  readOnly: boolean;
+  onNotice: (message: string) => void;
+}) {
+  const [newUser, setNewUser] = useState({ full_name: "", email: "", password: "", role: "admin" });
+  const [creating, setCreating] = useState(false);
+
+  async function createInternalUser() {
+    if (readOnly) {
+      onNotice("Viewer accounts cannot create admin users.");
+      return;
+    }
+
+    if (!newUser.full_name || !newUser.email || !newUser.password) {
+      onNotice("Full name, email, and password are required to create an internal user.");
+      return;
+    }
+
+    setCreating(true);
+    const { data: sessionData } = isSupabaseConfigured ? await supabase.auth.getSession() : { data: { session: null } as any };
+    const response = await fetch("/api/admin/create-user", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(sessionData?.session?.access_token ? { Authorization: `Bearer ${sessionData.session.access_token}` } : {})
+      },
+      body: JSON.stringify(newUser)
+    });
+    const result = await response.json().catch(() => ({}));
+    setCreating(false);
+
+    if (!response.ok) {
+      onNotice(result.error || "Could not create internal user.");
+      return;
+    }
+
+    setNewUser({ full_name: "", email: "", password: "", role: "admin" });
+    onNotice(`${newUser.role === "viewer" ? "Viewer" : "Admin"} user created successfully.`);
+  }
+
   return (
-    <Card className="overflow-hidden rounded-3xl p-0">
+    <div className="grid gap-5">
+      <Card className="rounded-3xl p-5">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+          <div>
+            <p className="type-label text-primary">Internal access</p>
+            <h2 className="mt-2 text-xl font-black text-text-main dark:text-white">Add admin or viewer profile</h2>
+            <p className="type-body mt-1">Admins can edit everything. Viewers can log in and inspect the panel without changing data.</p>
+          </div>
+          {readOnly ? <Badge variant="neutral">Read only</Badge> : null}
+        </div>
+        <div className="mt-5 grid gap-3 lg:grid-cols-[1fr_1fr_180px_180px_auto]">
+          <Input value={newUser.full_name} onChange={(event) => setNewUser((current) => ({ ...current, full_name: event.target.value }))} placeholder="Full name" disabled={readOnly} />
+          <Input value={newUser.email} onChange={(event) => setNewUser((current) => ({ ...current, email: event.target.value }))} placeholder="Email" disabled={readOnly} />
+          <Input value={newUser.password} onChange={(event) => setNewUser((current) => ({ ...current, password: event.target.value }))} placeholder="Password" type="password" disabled={readOnly} />
+          <select value={newUser.role} onChange={(event) => setNewUser((current) => ({ ...current, role: event.target.value }))} disabled={readOnly} className="rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-bold dark:border-white/10 dark:bg-slate-900">
+            <option value="admin">Admin</option>
+            <option value="viewer">Viewer</option>
+          </select>
+          <Button onClick={createInternalUser} disabled={creating || readOnly}>{creating ? "Creating..." : "Add user"}</Button>
+        </div>
+      </Card>
+
+      <Card className="overflow-hidden rounded-3xl p-0">
       <div className="flex flex-col gap-4 border-b border-border p-5 dark:border-white/10 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-xl font-black text-text-main dark:text-white">Registered users</h2>
@@ -581,6 +681,7 @@ function UsersSection({ rows, roleFilter, setRoleFilter, onUpdate, onDelete }: {
           <option value="candidate">Candidates</option>
           <option value="employer">Employers</option>
           <option value="admin">Admins</option>
+          <option value="viewer">Viewers</option>
         </select>
       </div>
       <div className="overflow-x-auto">
@@ -608,9 +709,9 @@ function UsersSection({ rows, roleFilter, setRoleFilter, onUpdate, onDelete }: {
                 <td className="px-5 py-4 text-sm font-bold text-text-muted">{formatDate(row.created_at)}</td>
                 <td className="px-5 py-4">
                   <div className="flex flex-wrap gap-2">
-                    <Button variant="secondary" className="px-3 py-2" onClick={() => onUpdate("profiles", row.id, { role: row.role === "admin" ? "candidate" : "admin" })}>Change role</Button>
-                    <Button variant="secondary" className="px-3 py-2" onClick={() => onUpdate("profiles", row.id, { suspended: !row.suspended })}>Suspend</Button>
-                    <Button variant="ghost" className="px-3 py-2 text-danger" onClick={() => onDelete("profiles", row.id)}><Trash2 className="h-4 w-4" /></Button>
+                    <Button variant="secondary" className="px-3 py-2" disabled={readOnly} onClick={() => onUpdate("profiles", row.id, { role: row.role === "admin" ? "viewer" : "admin" })}>Change role</Button>
+                    <Button variant="secondary" className="px-3 py-2" disabled={readOnly} onClick={() => onUpdate("profiles", row.id, { suspended: !row.suspended })}>Suspend</Button>
+                    <Button variant="ghost" className="px-3 py-2 text-danger" disabled={readOnly} onClick={() => onDelete("profiles", row.id)}><Trash2 className="h-4 w-4" /></Button>
                   </div>
                 </td>
               </tr>
@@ -618,37 +719,112 @@ function UsersSection({ rows, roleFilter, setRoleFilter, onUpdate, onDelete }: {
           </tbody>
         </table>
       </div>
-    </Card>
+      </Card>
+    </div>
   );
 }
 
-function CandidatesSection({ rows, profiles, applications }: { rows: AnyRecord[]; profiles: AnyRecord[]; applications: AnyRecord[] }) {
+function CandidatesSection({
+  rows,
+  profiles,
+  applications,
+  onUpdate,
+  readOnly
+}: {
+  rows: AnyRecord[];
+  profiles: AnyRecord[];
+  applications: AnyRecord[];
+  onUpdate: (table: string, id: string, patch: AnyRecord) => void;
+  readOnly: boolean;
+}) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<AnyRecord>({});
   const candidates = rows.length ? rows : profiles.filter((profile) => profile.role === "candidate");
+
+  function startEdit(candidate: AnyRecord) {
+    setEditingId(candidate.id || candidate.user_id || candidate.email);
+    setDraft({
+      name: candidate.name || candidate.full_name || "",
+      full_name: candidate.full_name || candidate.name || "",
+      email: candidate.email || "",
+      phone: candidate.phone || "",
+      category: candidate.category || "",
+      career_level: candidate.career_level || candidate.experience_level || "",
+      linkedin_url: candidate.linkedin_url || "",
+      location: candidate.location || "",
+      about: candidate.about || candidate.bio || "",
+      plan: candidate.plan || "Basic",
+      verified: isVerifiedRecord(candidate)
+    });
+  }
+
   return (
-    <div className="grid gap-5 xl:grid-cols-2">
+    <div className="grid gap-5">
       {candidates.map((candidate) => {
+        const recordKey = candidate.id || candidate.user_id || candidate.email;
         const history = applications.filter((app) => app.candidate_id === candidate.user_id || app.candidate_id === candidate.id);
         const skills = Array.isArray(candidate.skills) ? candidate.skills : String(candidate.skills || "Admin, Excel").split(",").map((skill) => skill.trim()).filter(Boolean);
+        const editing = editingId === recordKey;
         return (
-          <Card key={candidate.id || candidate.email} className="rounded-3xl p-5">
-            <div className="flex items-start gap-4">
+          <Card key={recordKey} className="rounded-3xl p-5">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
               <AdminAvatar row={candidate} className="h-14 w-14" />
               <div className="min-w-0 flex-1">
-                <h3 className="truncate text-xl font-black text-text-main dark:text-white">{getDisplayName(candidate)}</h3>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="truncate text-xl font-black text-text-main dark:text-white">{getDisplayName(candidate)}</h3>
+                  {isVerifiedRecord(candidate) ? <VerifiedBadge /> : null}
+                </div>
                 <p className="text-sm font-semibold text-text-muted">{getEmail(candidate)}</p>
-                <p className="mt-2 text-sm font-bold text-text-muted">{candidate.career_level || candidate.experience_level || "Career level not set"} • {candidate.category || "No category"}</p>
+                <p className="mt-2 text-sm font-bold text-text-muted">{candidate.career_level || candidate.experience_level || "Career level not set"} ? {candidate.category || "No category"}</p>
               </div>
-              <Badge variant="match-score">AI {candidate.match_score || 86}%</Badge>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="match-score">AI {candidate.match_score || 86}%</Badge>
+                <Button variant="secondary" className="gap-2 px-3 py-2" onClick={() => startEdit(candidate)}><Edit3 className="h-4 w-4" />Edit details</Button>
+              </div>
             </div>
             <div className="mt-4 flex flex-wrap gap-2">{skills.slice(0, 8).map((skill) => <Badge key={skill}>{skill}</Badge>)}</div>
-            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            {editing ? (
+              <div className="mt-5 rounded-3xl border border-border bg-bg p-4 dark:border-white/10 dark:bg-white/5">
+                <div className="grid gap-3 md:grid-cols-2">
+                  <Input value={draft.name || ""} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value, full_name: event.target.value }))} placeholder="Candidate name" />
+                  <Input value={draft.email || ""} onChange={(event) => setDraft((current) => ({ ...current, email: event.target.value }))} placeholder="Email" />
+                  <Input value={draft.phone || ""} onChange={(event) => setDraft((current) => ({ ...current, phone: event.target.value }))} placeholder="Phone" />
+                  <Input value={draft.location || ""} onChange={(event) => setDraft((current) => ({ ...current, location: event.target.value }))} placeholder="Location" />
+                  <Input value={draft.category || ""} onChange={(event) => setDraft((current) => ({ ...current, category: event.target.value }))} placeholder="Category" />
+                  <Input value={draft.career_level || ""} onChange={(event) => setDraft((current) => ({ ...current, career_level: event.target.value }))} placeholder="Career level" />
+                  <Input value={draft.linkedin_url || ""} onChange={(event) => setDraft((current) => ({ ...current, linkedin_url: event.target.value }))} placeholder="LinkedIn profile" />
+                  <select value={draft.plan || "Basic"} onChange={(event) => setDraft((current) => ({ ...current, plan: event.target.value, verified: event.target.value === "Pro" ? true : current.verified }))} className="rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-bold dark:border-white/10 dark:bg-slate-900">
+                    <option value="Basic">Basic</option>
+                    <option value="Pro">Pro</option>
+                  </select>
+                </div>
+                <textarea value={draft.about || ""} onChange={(event) => setDraft((current) => ({ ...current, about: event.target.value }))} placeholder="About candidate" className="mt-3 min-h-28 w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-semibold outline-none focus:border-primary dark:border-white/10 dark:bg-slate-900" />
+                <label className="mt-3 flex items-center gap-2 text-sm font-bold text-text-muted">
+                  <input type="checkbox" checked={Boolean(draft.verified)} onChange={(event) => setDraft((current) => ({ ...current, verified: event.target.checked }))} />
+                  Verified candidate badge
+                </label>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Button disabled={readOnly} onClick={() => {
+                    onUpdate("candidates", candidate.id, draft);
+                    if (candidate.user_id) onUpdate("profiles", candidate.user_id, { full_name: draft.full_name || draft.name, email: draft.email, plan: draft.plan, verified: draft.verified });
+                    setEditingId(null);
+                  }}>Save candidate</Button>
+                  <Button variant="secondary" onClick={() => setEditingId(null)}>Cancel</Button>
+                </div>
+              </div>
+            ) : null}
+            <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_1fr_220px]">
               <Button variant="secondary" className="px-3 py-2">Download ATS CV</Button>
               <Button variant="secondary" className="px-3 py-2">Designed CV</Button>
-              <Button variant="primary" className="px-3 py-2">Upgrade plan</Button>
+              <div className="grid grid-cols-2 gap-2">
+                {["Basic", "Pro"].map((plan) => (
+                  <Button key={plan} variant={String(candidate.plan || "Basic") === plan ? "primary" : "secondary"} className="px-3 py-2" disabled={readOnly} onClick={() => onUpdate("candidates", candidate.id, { plan, verified: plan === "Pro" ? true : candidate.verified })}>{plan}</Button>
+                ))}
+              </div>
             </div>
             <div className="mt-5 rounded-2xl bg-bg p-4 dark:bg-white/5">
               <p className="type-label">Activity timeline</p>
-              <p className="mt-2 text-sm font-semibold text-text-muted">{history.length || 0} applications tracked • Last profile update {formatDate(candidate.updated_at || candidate.created_at)}</p>
+              <p className="mt-2 text-sm font-semibold text-text-muted">{history.length || 0} applications tracked ? Last profile update {formatDate(candidate.updated_at || candidate.created_at)}</p>
             </div>
           </Card>
         );
@@ -657,19 +833,45 @@ function CandidatesSection({ rows, profiles, applications }: { rows: AnyRecord[]
   );
 }
 
-function EmployersSection({ rows, jobs, onUpdate }: { rows: AnyRecord[]; jobs: AnyRecord[]; onUpdate: (table: string, id: string, patch: AnyRecord) => void }) {
+function EmployersSection({ rows, jobs, onUpdate, readOnly }: { rows: AnyRecord[]; jobs: AnyRecord[]; onUpdate: (table: string, id: string, patch: AnyRecord) => void; readOnly: boolean }) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<AnyRecord>({});
+
+  function startEdit(employer: AnyRecord) {
+    setEditingId(employer.id || employer.user_id || employer.email);
+    setDraft({
+      company_name: employer.company_name || employer.name || "",
+      contact_person: employer.contact_person || employer.full_name || "",
+      email: employer.email || "",
+      phone: employer.phone || "",
+      location: employer.location || "",
+      industry: employer.industry || "",
+      company_size: employer.company_size || "",
+      about: employer.about || "",
+      linkedin_url: employer.linkedin_url || employer.linkedin || "",
+      website: employer.website || employer.company_website || "",
+      facebook_url: employer.facebook_url || employer.facebook || "",
+      verified: Boolean(employer.verified)
+    });
+  }
+
   return (
-    <div className="grid gap-5 xl:grid-cols-2">
+    <div className="grid gap-5">
       {rows.length ? rows.map((employer) => {
+        const recordKey = employer.id || employer.user_id || employer.email;
         const employerJobs = jobs.filter((job) => job.employer_id === employer.user_id || job.employer_id === employer.id);
+        const editing = editingId === recordKey;
         return (
-          <Card key={employer.id || employer.user_id} className="rounded-3xl p-5">
-            <div className="flex items-start gap-4">
+          <Card key={recordKey} className="rounded-3xl p-5">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
               <AdminAvatar row={employer} className="h-14 w-14" />
               <div className="min-w-0 flex-1">
-                <h3 className="truncate text-xl font-black text-text-main dark:text-white">{employer.company_name || getDisplayName(employer)}</h3>
-                <p className="text-sm font-semibold text-text-muted">{employer.industry || "Industry not set"} • {employer.location || "Location not set"}</p>
-                <p className="mt-1 text-xs font-bold text-text-muted">{getEmail(employer)} • {employer.phone || "No phone"}</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="truncate text-xl font-black text-text-main dark:text-white">{employer.company_name || getDisplayName(employer)}</h3>
+                  {employer.verified ? <VerifiedBadge /> : null}
+                </div>
+                <p className="text-sm font-semibold text-text-muted">{employer.industry || "Industry not set"} ? {employer.location || "Location not set"}</p>
+                <p className="mt-1 text-xs font-bold text-text-muted">{getEmail(employer)} ? {employer.phone || "No phone"}</p>
               </div>
               <StatusBadge value={employer.verified ? "verified" : "pending"} />
             </div>
@@ -678,16 +880,126 @@ function EmployersSection({ rows, jobs, onUpdate }: { rows: AnyRecord[]; jobs: A
               <AdminStatCard label="Active" value={employerJobs.filter((job) => (job.status || "active") === "active").length} detail="Visible roles" icon={CheckCircle2} accent="bg-success/10" />
               <AdminStatCard label="Plan" value={employer.plan || "Free"} detail="Subscription" icon={Sparkles} accent="bg-purple-400/10" />
             </div>
+            {editing ? (
+              <div className="mt-5 rounded-3xl border border-border bg-bg p-4 dark:border-white/10 dark:bg-white/5">
+                <div className="grid gap-3 md:grid-cols-2">
+                  <Input value={draft.company_name || ""} onChange={(event) => setDraft((current) => ({ ...current, company_name: event.target.value }))} placeholder="Company name" />
+                  <Input value={draft.contact_person || ""} onChange={(event) => setDraft((current) => ({ ...current, contact_person: event.target.value }))} placeholder="Contact person" />
+                  <Input value={draft.email || ""} onChange={(event) => setDraft((current) => ({ ...current, email: event.target.value }))} placeholder="Email" />
+                  <Input value={draft.phone || ""} onChange={(event) => setDraft((current) => ({ ...current, phone: event.target.value }))} placeholder="Phone" />
+                  <Input value={draft.location || ""} onChange={(event) => setDraft((current) => ({ ...current, location: event.target.value }))} placeholder="Location" />
+                  <Input value={draft.industry || ""} onChange={(event) => setDraft((current) => ({ ...current, industry: event.target.value }))} placeholder="Industry" />
+                  <Input value={draft.company_size || ""} onChange={(event) => setDraft((current) => ({ ...current, company_size: event.target.value }))} placeholder="Company size" />
+                  <Input value={draft.linkedin_url || ""} onChange={(event) => setDraft((current) => ({ ...current, linkedin_url: event.target.value }))} placeholder="LinkedIn page" />
+                  <Input value={draft.website || ""} onChange={(event) => setDraft((current) => ({ ...current, website: event.target.value }))} placeholder="Company website" />
+                  <Input value={draft.facebook_url || ""} onChange={(event) => setDraft((current) => ({ ...current, facebook_url: event.target.value }))} placeholder="Facebook page" />
+                </div>
+                <textarea value={draft.about || ""} onChange={(event) => setDraft((current) => ({ ...current, about: event.target.value }))} placeholder="About company" className="mt-3 min-h-28 w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-semibold outline-none focus:border-primary dark:border-white/10 dark:bg-slate-900" />
+                <label className="mt-3 flex items-center gap-2 text-sm font-bold text-text-muted">
+                  <input type="checkbox" checked={Boolean(draft.verified)} onChange={(event) => setDraft((current) => ({ ...current, verified: event.target.checked }))} />
+                  Verified employer badge
+                </label>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Button disabled={readOnly} onClick={() => { onUpdate("employers", employer.id, draft); setEditingId(null); }}>Save company</Button>
+                  <Button variant="secondary" onClick={() => setEditingId(null)}>Cancel</Button>
+                </div>
+              </div>
+            ) : null}
             <div className="mt-5 flex flex-wrap gap-2">
-              <Button variant="primary" onClick={() => onUpdate("employers", employer.id, { verified: true })}>Verify employer</Button>
-              <Button variant="secondary" onClick={() => onUpdate("employers", employer.id, { suspended: !employer.suspended })}>Suspend</Button>
-              <Button variant="secondary">Edit company info</Button>
+              <Button variant="primary" disabled={readOnly} onClick={() => onUpdate("employers", employer.id, { verified: true })}>Verify employer</Button>
+              <Button variant="secondary" disabled={readOnly} onClick={() => onUpdate("employers", employer.id, { suspended: !employer.suspended })}>Suspend</Button>
+              <Button variant="secondary" className="gap-2" onClick={() => startEdit(employer)}><Edit3 className="h-4 w-4" />Edit company info</Button>
             </div>
           </Card>
         );
       }) : (
         <EmptyAdminState title="No employers found" message="Registered employer profiles will appear here after signup or profile completion." />
       )}
+    </div>
+  );
+}
+
+
+function JobsSection({ rows, onUpdate, readOnly }: { rows: AnyRecord[]; onUpdate: (table: string, id: string, patch: AnyRecord) => void; readOnly: boolean }) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<AnyRecord>({});
+
+  function startEdit(job: AnyRecord) {
+    setEditingId(job.id);
+    setDraft({
+      job_title: job.job_title || job.title || "",
+      company_name: job.company_name || job.company || "",
+      job_location: job.job_location || job.location || "",
+      category: job.category || "",
+      job_type: job.job_type || job.type || "",
+      job_level: job.job_level || job.experience_level || "",
+      employment_type: job.employment_type || "",
+      experience_years: job.experience_years || job.required_experience || "",
+      salary_min: job.salary_min || "",
+      salary_max: job.salary_max || "",
+      status: job.status || "active",
+      last_date: job.last_date || job.deadline || "",
+      description: job.description || "",
+      requirements: job.requirements || ""
+    });
+  }
+
+  if (!rows.length) {
+    return <EmptyAdminState title="No jobs found" message="Employer job posts will appear here after they publish hiring requirements." />;
+  }
+
+  return (
+    <div className="grid gap-5">
+      {rows.map((job) => {
+        const editing = editingId === job.id;
+        const title = job.job_title || job.title || "Untitled job";
+        const skills = Array.isArray(job.required_skills) ? job.required_skills : Array.isArray(job.skills) ? job.skills : String(job.required_skills || job.skills || "").split(",").map((skill) => skill.trim()).filter(Boolean);
+        return (
+          <Card key={job.id} className="rounded-3xl p-5">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="truncate text-xl font-black text-text-main dark:text-white">{title}</h3>
+                  <StatusBadge value={job.status || "active"} />
+                </div>
+                <p className="mt-1 text-sm font-semibold text-text-muted">{job.company_name || job.company || "Company not set"} ? {job.job_location || job.location || "Location not set"}</p>
+                <p className="mt-2 text-xs font-bold text-text-muted">{job.category || "No category"} ? {job.job_level || job.experience_level || "Any level"} ? {job.job_type || "Any type"}</p>
+              </div>
+              <Button variant="secondary" className="gap-2" onClick={() => startEdit(job)}><Edit3 className="h-4 w-4" />Edit job</Button>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">{skills.slice(0, 10).map((skill) => <Badge key={skill}>{skill}</Badge>)}</div>
+            {editing ? (
+              <div className="mt-5 rounded-3xl border border-border bg-bg p-4 dark:border-white/10 dark:bg-white/5">
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  <Input value={draft.job_title || ""} onChange={(event) => setDraft((current) => ({ ...current, job_title: event.target.value }))} placeholder="Job title" />
+                  <Input value={draft.company_name || ""} onChange={(event) => setDraft((current) => ({ ...current, company_name: event.target.value }))} placeholder="Company name" />
+                  <Input value={draft.job_location || ""} onChange={(event) => setDraft((current) => ({ ...current, job_location: event.target.value }))} placeholder="Location" />
+                  <Input value={draft.category || ""} onChange={(event) => setDraft((current) => ({ ...current, category: event.target.value }))} placeholder="Category" />
+                  <Input value={draft.job_type || ""} onChange={(event) => setDraft((current) => ({ ...current, job_type: event.target.value }))} placeholder="Job type" />
+                  <Input value={draft.job_level || ""} onChange={(event) => setDraft((current) => ({ ...current, job_level: event.target.value }))} placeholder="Job level" />
+                  <Input value={draft.employment_type || ""} onChange={(event) => setDraft((current) => ({ ...current, employment_type: event.target.value }))} placeholder="Employment type" />
+                  <Input value={draft.experience_years || ""} onChange={(event) => setDraft((current) => ({ ...current, experience_years: event.target.value }))} placeholder="Required experience" />
+                  <select value={draft.status || "active"} onChange={(event) => setDraft((current) => ({ ...current, status: event.target.value }))} className="rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-bold dark:border-white/10 dark:bg-slate-900">
+                    <option value="active">Active</option>
+                    <option value="archived">Archived</option>
+                    <option value="hired">Hired</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                  <Input value={draft.salary_min || ""} onChange={(event) => setDraft((current) => ({ ...current, salary_min: event.target.value }))} placeholder="Min salary" />
+                  <Input value={draft.salary_max || ""} onChange={(event) => setDraft((current) => ({ ...current, salary_max: event.target.value }))} placeholder="Max salary" />
+                  <Input value={draft.last_date || ""} onChange={(event) => setDraft((current) => ({ ...current, last_date: event.target.value }))} placeholder="Application deadline" />
+                </div>
+                <textarea value={draft.description || ""} onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))} placeholder="Description" className="mt-3 min-h-28 w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-semibold outline-none focus:border-primary dark:border-white/10 dark:bg-slate-900" />
+                <textarea value={draft.requirements || ""} onChange={(event) => setDraft((current) => ({ ...current, requirements: event.target.value }))} placeholder="Requirements" className="mt-3 min-h-28 w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-semibold outline-none focus:border-primary dark:border-white/10 dark:bg-slate-900" />
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Button disabled={readOnly} onClick={() => { onUpdate("jobs", job.id, draft); setEditingId(null); }}>Save job</Button>
+                  <Button variant="secondary" onClick={() => setEditingId(null)}>Cancel</Button>
+                </div>
+              </div>
+            ) : null}
+          </Card>
+        );
+      })}
     </div>
   );
 }
@@ -717,11 +1029,11 @@ function ContactRequestsSection({ rows, onUpdate, onDelete }: { rows: AnyRecord[
   );
 }
 
-function CouponsSection({ rows, onGenerate, onUpdate, onDelete }: { rows: AnyRecord[]; onGenerate: () => void; onUpdate: (table: string, id: string, patch: AnyRecord) => void; onDelete: (table: string, id: string) => void }) {
+function CouponsSection({ rows, onGenerate, onUpdate, onDelete, readOnly }: { rows: AnyRecord[]; onGenerate: () => void; onUpdate: (table: string, id: string, patch: AnyRecord) => void; onDelete: (table: string, id: string) => void; readOnly: boolean }) {
   return (
     <div className="grid gap-5">
       <div className="flex justify-end">
-        <Button onClick={onGenerate} className="gap-2"><Gift className="h-4 w-4" />Generate Random Coupon</Button>
+        <Button onClick={onGenerate} disabled={readOnly} className="gap-2"><Gift className="h-4 w-4" />Generate Random Coupon</Button>
       </div>
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         {rows.map((coupon) => (
@@ -740,8 +1052,8 @@ function CouponsSection({ rows, onGenerate, onUpdate, onDelete }: { rows: AnyRec
             </div>
             <div className="mt-5 flex flex-wrap gap-2">
               <Button variant="secondary" className="gap-2" onClick={() => navigator.clipboard?.writeText(coupon.code)}><Copy className="h-4 w-4" />Copy</Button>
-              <Button variant="secondary" onClick={() => onUpdate("coupons", coupon.id, { active: !coupon.active })}>{coupon.active ? "Disable" : "Enable"}</Button>
-              <Button variant="ghost" className="text-danger" onClick={() => onDelete("coupons", coupon.id)}><Trash2 className="h-4 w-4" /></Button>
+              <Button variant="secondary" disabled={readOnly} onClick={() => onUpdate("coupons", coupon.id, { active: !coupon.active })}>{coupon.active ? "Disable" : "Enable"}</Button>
+              <Button variant="ghost" disabled={readOnly} className="text-danger" onClick={() => onDelete("coupons", coupon.id)}><Trash2 className="h-4 w-4" /></Button>
             </div>
           </Card>
         ))}

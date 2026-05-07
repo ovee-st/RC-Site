@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, Menu, Settings, UserRound, X } from "lucide-react";
+import { CheckCircle2, LogOut, Menu, Settings, UserRound, X } from "lucide-react";
 import { type MouseEvent, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LinkButton } from "@/components/ui/Button";
@@ -33,7 +33,15 @@ const navItemsByRole = {
     { label: "Admin", href: "/admin" },
     { label: "Users", href: "/admin/users" },
     { label: "Candidates", href: "/admin/candidates" },
-    { label: "Employers", href: "/admin/employers" }
+    { label: "Employers", href: "/admin/employers" },
+    { label: "Jobs", href: "/admin/jobs" }
+  ],
+  viewer: [
+    { label: "Admin", href: "/admin" },
+    { label: "Users", href: "/admin/users" },
+    { label: "Candidates", href: "/admin/candidates" },
+    { label: "Employers", href: "/admin/employers" },
+    { label: "Jobs", href: "/admin/jobs" }
   ]
 };
 
@@ -73,13 +81,14 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [profileAvatar, setProfileAvatar] = useState<string | null>(null);
   const { user, role, loading } = useAuth();
-  const profileHref = role === "admin" ? "/admin/settings" : role === "employer" ? "/employer#profile" : "/candidate?view=profile";
-  const accountHref = role === "admin" ? "/admin/settings" : role === "employer" ? "/employer#account-settings" : "/candidate?view=profile#account-settings";
+  const profileHref = role === "admin" || role === "viewer" ? "/admin" : role === "employer" ? "/employer#profile" : "/candidate?view=profile";
+  const accountHref = role === "admin" || role === "viewer" ? "/admin/users" : role === "employer" ? "/employer#account-settings" : "/candidate?view=profile#account-settings";
   const displayName = user?.user_metadata?.name || user?.user_metadata?.full_name || user?.name || "MX User";
   const avatarSrc = profileAvatar || user?.avatar || user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null;
+  const verified = Boolean(user?.user_metadata?.verified) || String(user?.user_metadata?.plan || "").toLowerCase() === "pro";
   const isLogoAvatar = Boolean(avatarSrc && /mx-logo|mx[\\/_-]?venture|MX\.png/i.test(avatarSrc));
   const initials = getInitials(displayName);
-  const resolvedRole = user ? (role === "admin" ? "admin" : role === "employer" ? "employer" : "candidate") : "guest";
+  const resolvedRole = user ? (role === "admin" ? "admin" : role === "viewer" ? "viewer" : role === "employer" ? "employer" : "candidate") : "guest";
   const navItems = navItemsByRole[resolvedRole];
 
   const avatar = avatarSrc ? (
@@ -253,6 +262,7 @@ export default function Navbar() {
               >
                 <span className="block h-8 w-8 shrink-0 overflow-hidden rounded-full">{avatar}</span>
                 <span className="max-w-28 truncate text-sm font-medium text-text-main dark:text-white">{displayName}</span>
+                {verified ? <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" /> : null}
               </button>
               <AnimatePresence>
                 {profileOpen ? (
@@ -331,7 +341,10 @@ export default function Navbar() {
                     <div className="mb-3 flex items-center gap-2">
                       <span className="block h-8 w-8 shrink-0 overflow-hidden rounded-full">{avatar}</span>
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-text-main dark:text-white">{displayName}</p>
+                        <p className="flex items-center gap-1 truncate text-sm font-semibold text-text-main dark:text-white">
+                          <span className="truncate">{displayName}</span>
+                          {verified ? <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" /> : null}
+                        </p>
                         <p className="text-xs font-medium text-text-muted">{role || "member"}</p>
                       </div>
                     </div>

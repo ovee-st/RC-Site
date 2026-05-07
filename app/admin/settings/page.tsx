@@ -1,5 +1,5 @@
-import AdminPanel from "@/components/admin/AdminPanel";
+﻿import { redirect } from "next/navigation";
 
 export default function AdminSettingsPage() {
-  return <AdminPanel section="settings" />;
+  redirect("/admin");
 }

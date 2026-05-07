@@ -514,7 +514,13 @@ drop constraint if exists profiles_role_check;
 
 alter table public.profiles
 add constraint profiles_role_check
-check (role in ('candidate', 'employer', 'admin'));
+check (role in ('candidate', 'employer', 'admin', 'viewer'));
+
+alter table public.profiles add column if not exists plan text default 'Basic';
+alter table public.profiles add column if not exists verified boolean not null default false;
+alter table public.candidates add column if not exists plan text default 'Basic';
+alter table public.candidates add column if not exists verified boolean not null default false;
+alter table public.employers add column if not exists verified boolean not null default false;
 
 create table if not exists public.contact_requests (
   id uuid primary key default gen_random_uuid(),
@@ -568,7 +574,95 @@ as $$
   );
 $$;
 
+create or replace function public.is_admin_or_viewer()
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.profiles
+    where id = auth.uid()
+    and role in ('admin', 'viewer')
+  );
+$$;
+
+drop policy if exists "Admins and viewers can read profiles" on public.profiles;
+create policy "Admins and viewers can read profiles"
+on public.profiles
+for select
+to authenticated
+using (public.is_admin_or_viewer());
+
+drop policy if exists "Admins can manage profiles" on public.profiles;
+create policy "Admins can manage profiles"
+on public.profiles
+for all
+to authenticated
+using (public.is_admin())
+with check (public.is_admin());
+
+drop policy if exists "Admins and viewers can read candidates" on public.candidates;
+create policy "Admins and viewers can read candidates"
+on public.candidates
+for select
+to authenticated
+using (public.is_admin_or_viewer());
+
+drop policy if exists "Admins can manage candidates" on public.candidates;
+create policy "Admins can manage candidates"
+on public.candidates
+for all
+to authenticated
+using (public.is_admin())
+with check (public.is_admin());
+
+drop policy if exists "Admins and viewers can read employers" on public.employers;
+create policy "Admins and viewers can read employers"
+on public.employers
+for select
+to authenticated
+using (public.is_admin_or_viewer());
+
+drop policy if exists "Admins can manage employers" on public.employers;
+create policy "Admins can manage employers"
+on public.employers
+for all
+to authenticated
+using (public.is_admin())
+with check (public.is_admin());
+
+drop policy if exists "Admins and viewers can read jobs" on public.jobs;
+create policy "Admins and viewers can read jobs"
+on public.jobs
+for select
+to authenticated
+using (public.is_admin_or_viewer());
+
+drop policy if exists "Admins can manage jobs" on public.jobs;
+create policy "Admins can manage jobs"
+on public.jobs
+for all
+to authenticated
+using (public.is_admin())
+with check (public.is_admin());
+
+drop policy if exists "Admins and viewers can read applications" on public.applications;
+create policy "Admins and viewers can read applications"
+on public.applications
+for select
+to authenticated
+using (public.is_admin_or_viewer());
+
 drop policy if exists "Admins can manage contact requests" on public.contact_requests;
+drop policy if exists "Admins and viewers can read contact requests" on public.contact_requests;
+create policy "Admins and viewers can read contact requests"
+on public.contact_requests
+for select
+to authenticated
+using (public.is_admin_or_viewer());
+
 create policy "Admins can manage contact requests"
 on public.contact_requests
 for all
@@ -584,6 +678,13 @@ to anon, authenticated
 with check (true);
 
 drop policy if exists "Admins can manage coupons" on public.coupons;
+drop policy if exists "Admins and viewers can read coupons" on public.coupons;
+create policy "Admins and viewers can read coupons"
+on public.coupons
+for select
+to authenticated
+using (public.is_admin_or_viewer());
+
 create policy "Admins can manage coupons"
 on public.coupons
 for all
@@ -592,6 +693,13 @@ using (public.is_admin())
 with check (public.is_admin());
 
 drop policy if exists "Admins can manage transactions" on public.transactions;
+drop policy if exists "Admins and viewers can read transactions" on public.transactions;
+create policy "Admins and viewers can read transactions"
+on public.transactions
+for select
+to authenticated
+using (public.is_admin_or_viewer());
+
 create policy "Admins can manage transactions"
 on public.transactions
 for all

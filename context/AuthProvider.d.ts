@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-export type AuthRole = "candidate" | "employer" | "admin" | null;
+export type AuthRole = "candidate" | "employer" | "admin" | "viewer" | null;
 
 export type AuthUser = {
   id: string;
@@ -11,6 +11,8 @@ export type AuthUser = {
     avatar_url?: string;
     picture?: string;
     role?: string;
+    verified?: boolean;
+    plan?: string;
   };
   name: string;
   username?: string | null;

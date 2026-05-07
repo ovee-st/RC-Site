@@ -20,10 +20,10 @@ const features = [
 ];
 
 type LoginRole = "candidate" | "employer";
-type ResolvedRole = LoginRole | "admin";
+type ResolvedRole = LoginRole | "admin" | "viewer";
 
 function getDefaultProfile(role: ResolvedRole, fallbackName: string) {
-  if (role === "admin") {
+  if (role === "admin" || role === "viewer") {
     return {
       name: fallbackName && fallbackName !== "MX User" ? fallbackName : "RC Admin",
       avatar: undefined
@@ -56,7 +56,7 @@ async function resolveUserRole(authUser: { id?: string; email?: string | null; u
       .eq("id", authUser.id)
       .maybeSingle();
 
-    if (data?.role === "candidate" || data?.role === "employer" || data?.role === "admin") {
+    if (data?.role === "candidate" || data?.role === "employer" || data?.role === "admin" || data?.role === "viewer") {
       return data.role;
     }
 
@@ -66,7 +66,7 @@ async function resolveUserRole(authUser: { id?: string; email?: string | null; u
 
   const metadataRole = authUser?.user_metadata?.role;
 
-  if (metadataRole === "candidate" || metadataRole === "employer" || metadataRole === "admin") {
+  if (metadataRole === "candidate" || metadataRole === "employer" || metadataRole === "admin" || metadataRole === "viewer") {
     return metadataRole;
   }
 
@@ -136,7 +136,7 @@ export default function LoginPage() {
     const loggedInUser = { id: user?.id || "demo-user", name: displayName, email, avatar, username: metadata.username || createStableUsername(displayName, email, user?.id || "demo-user") };
     setUser(loggedInUser, resolvedRole);
     persistAuthFallback(loggedInUser, resolvedRole);
-    router.push(resolvedRole === "admin" ? "/admin" : resolvedRole === "employer" ? "/employer" : "/");
+    router.push(resolvedRole === "admin" || resolvedRole === "viewer" ? "/admin" : resolvedRole === "employer" ? "/employer" : "/");
   };
 
   return (
