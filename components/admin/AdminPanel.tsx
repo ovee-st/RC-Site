@@ -240,7 +240,7 @@ function AdminAvatar({ row, className }: { row: AnyRecord; className?: string })
   );
 }
 
-function StatusBadge({ value }: { value?: string | boolean }) {
+function StatusBadge({ value, className }: { value?: string | boolean; className?: string }) {
   const normalized = String(value ?? "active").toLowerCase();
   const variant = normalized.includes("paid") || normalized.includes("active") || normalized.includes("resolved") || value === true
     ? "success"
@@ -250,7 +250,7 @@ function StatusBadge({ value }: { value?: string | boolean }) {
         ? "danger"
         : "neutral";
 
-  return <Badge variant={variant as any}>{value === true ? "Active" : value === false ? "Inactive" : normalized}</Badge>;
+  return <Badge variant={variant as any} className={className}>{value === true ? "Active" : value === false ? "Inactive" : normalized}</Badge>;
 }
 
 export default function AdminPanel({ section }: { section: AdminSection }) {
@@ -576,7 +576,7 @@ function DashboardSection({ analytics, chartData, revenueData, data }: { analyti
         </Card>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-3">
+      <div className="grid min-w-0 gap-6 xl:grid-cols-3">
         <RecentList title="Recent Signups" rows={data.profiles.slice(0, 5)} />
         <RecentList title="Latest Transactions" rows={data.transactions.slice(0, 5)} />
         <RecentList title="Latest Contact Requests" rows={data.contactRequests.slice(0, 5)} />
@@ -587,16 +587,16 @@ function DashboardSection({ analytics, chartData, revenueData, data }: { analyti
 
 function RecentList({ title, rows }: { title: string; rows: AnyRecord[] }) {
   return (
-    <Card className="rounded-3xl p-5">
+    <Card className="min-w-0 overflow-hidden rounded-3xl p-5">
       <h3 className="text-lg font-black text-text-main dark:text-white">{title}</h3>
       <div className="mt-4 grid gap-3">
         {rows.length ? rows.map((row) => (
-          <div key={row.id || row.email || row.code} className="flex items-center justify-between gap-3 rounded-2xl bg-bg p-3 dark:bg-white/5">
-            <div className="min-w-0">
+          <div key={row.id || row.email || row.code} className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-2xl bg-bg p-3 dark:bg-white/5">
+            <div className="min-w-0 overflow-hidden">
               <p className="truncate text-sm font-black text-text-main dark:text-white">{getDisplayName(row) || row.code || row.transaction_id}</p>
               <p className="truncate text-xs font-semibold text-text-muted dark:text-slate-400">{getEmail(row)} • {formatDate(row.created_at)}</p>
             </div>
-            <StatusBadge value={row.status || row.role || row.active} />
+            <StatusBadge value={row.status || row.role || row.active} className="max-w-[112px] justify-center truncate px-2" />
           </div>
         )) : <p className="text-sm font-semibold text-text-muted">No records yet.</p>}
       </div>
