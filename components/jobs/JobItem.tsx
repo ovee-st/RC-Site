@@ -121,7 +121,7 @@ export default function JobItem({ job, matchScore }: { job: Job; matchScore: num
         className={cn(
           "group rounded-none border-0 border-l-4 border-l-transparent bg-transparent text-left shadow-none outline-none transition hover:-translate-y-0 hover:bg-primary/5 hover:shadow-none focus:ring-4 focus:ring-primary/10 dark:hover:bg-slate-800/60",
           compactListMode ? "p-4 md:p-3" : "p-4",
-          highMatch && !isEmployer && "hover:bg-success/5",
+          highMatch && isCandidate && "hover:bg-success/5",
           active && "border-l-primary bg-primary/8 ring-0 dark:bg-primary/12",
           archived && "opacity-70",
           hired && "bg-success/5 dark:bg-success/10"
@@ -154,8 +154,8 @@ export default function JobItem({ job, matchScore }: { job: Job; matchScore: num
                 </h3>
                 {!compactListMode && archived ? <Badge variant="neutral">Archived</Badge> : null}
                 {!compactListMode && hired ? <Badge variant="success">Hired</Badge> : null}
-                {!compactListMode && !isEmployer && highMatch ? <PriorityIndicator variant="top" pulse /> : null}
-                {!compactListMode && !isEmployer && staleJob ? <PriorityIndicator variant="stale" /> : null}
+                {!compactListMode && isCandidate && highMatch ? <PriorityIndicator variant="top" pulse /> : null}
+                {!compactListMode && isCandidate && staleJob ? <PriorityIndicator variant="stale" /> : null}
               </div>
 
               <p className="mt-1 truncate text-sm font-medium text-text-main dark:text-slate-100">{job.company}</p>

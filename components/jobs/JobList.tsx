@@ -139,7 +139,9 @@ export default function JobList({ headerAction, showArchived = false }: { header
                 ? showArchived
                   ? "Archived and expired roles are kept here and hidden from public job listings."
                   : "Active published roles are visible on the jobs page. Archived roles stay hidden."
-                : "Based on your profile, preferences, filters, and AI relevance signals."}
+                : role === "candidate"
+                  ? "Based on your profile, preferences, filters, and AI relevance signals."
+                  : "Browse open roles by company, location, category, and job type."}
             </p>
             <p className="mt-1 text-sm font-semibold text-text-muted dark:text-slate-400">
               {showArchived ? `${archivedCount} archived jobs` : `${openCount} open jobs`}
