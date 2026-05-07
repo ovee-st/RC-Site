@@ -17,6 +17,12 @@ export default function JobsPage() {
   const { user, role } = useAuth();
   const showPostJob = Boolean(user) && role === "employer";
   const [showArchivedJobs, setShowArchivedJobs] = useState(false);
+  const closeSelectedJob = () => {
+    if (typeof window !== "undefined" && window.location.search.includes("job=")) {
+      window.history.replaceState(null, "", "/jobs");
+    }
+    setSelectedJob(null);
+  };
   const employerHeaderAction = showPostJob ? (
     <div className="grid w-full grid-cols-1 gap-2 sm:w-auto sm:grid-cols-2 sm:items-center sm:justify-end sm:gap-3">
       <EmployerPostJob label="Post a Job" />
@@ -73,12 +79,12 @@ export default function JobsPage() {
             type="button"
             aria-label="Close job details"
             className="absolute inset-0 cursor-default"
-            onClick={() => setSelectedJob(null)}
+            onClick={closeSelectedJob}
           />
           <div className="absolute inset-x-0 bottom-0 max-h-[92vh] w-full overflow-y-auto rounded-t-[2rem] bg-bg p-3 shadow-elevated dark:bg-slate-950 sm:left-auto sm:right-0 sm:top-0 sm:h-full sm:max-h-none sm:max-w-2xl sm:rounded-none sm:p-6">
             <button
               type="button"
-              onClick={() => setSelectedJob(null)}
+              onClick={closeSelectedJob}
               className="sticky top-0 z-10 ml-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full border border-border bg-surface text-text-muted shadow-soft transition hover:border-primary/25 hover:text-primary dark:border-white/10 dark:bg-slate-900"
               aria-label="Close details"
             >

@@ -14,7 +14,7 @@ import { matchCandidateToJob } from "@/lib/ai/matching";
 
 export default function JobPreview({ mode = "panel" }: { mode?: "panel" | "modal" }) {
   const { selectedJob, setSelectedJob } = useJobStore();
-  const { role } = useAuth();
+  const { user, role } = useAuth();
   const [savedJobs, setSavedJobs] = useState<Record<string, boolean>>({});
   const [appliedJobs, setAppliedJobs] = useState<Record<string, boolean>>({});
   const [employerBranding, setEmployerBranding] = useState<{ bannerUrl: string | null; photoUrl: string | null }>({
@@ -74,6 +74,13 @@ export default function JobPreview({ mode = "panel" }: { mode?: "panel" | "modal
   const postedDate = selectedJob.createdAt ? new Date(selectedJob.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "Recently posted";
   const deadline = selectedJob.deadline ? new Date(selectedJob.deadline).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "Not specified";
   const match = matchCandidateToJob(demoCandidates[0], selectedJob);
+  const showCandidateAI = Boolean(user) && role === "candidate";
+  const closePreview = () => {
+    if (typeof window !== "undefined" && window.location.search.includes("job=")) {
+      window.history.replaceState(null, "", "/jobs");
+    }
+    setSelectedJob(null);
+  };
 
   return (
     <aside className={mode === "panel" ? "sticky top-24 h-[calc(100vh-7rem)] overflow-y-auto" : "relative h-auto overflow-visible"}>
@@ -91,7 +98,10 @@ export default function JobPreview({ mode = "panel" }: { mode?: "panel" | "modal
           )}
           <button
             type="button"
-            onClick={() => setSelectedJob(null)}
+            onClick={(event) => {
+              event.stopPropagation();
+              closePreview();
+            }}
             className="absolute right-4 top-4 z-10 hidden h-10 w-10 items-center justify-center rounded-full text-white/75 transition hover:bg-white/10 hover:text-white xl:flex"
             aria-label="Close job details"
           >
@@ -123,13 +133,13 @@ export default function JobPreview({ mode = "panel" }: { mode?: "panel" | "modal
           </div>
           <div className="relative z-10 mt-4 flex flex-wrap gap-2 sm:mt-5">
             <Badge variant="primary">{selectedJob.category}</Badge>
-            {highPriority ? <PriorityIndicator variant="top" pulse /> : null}
+            {showCandidateAI && highPriority ? <PriorityIndicator variant="top" pulse /> : null}
             {needsReview ? <PriorityIndicator variant="review" pulse /> : null}
           </div>
         </div>
 
         <div className="p-4 sm:p-6">
-          {role === "employer" ? null : (
+          {showCandidateAI ? (
             <section className="mb-6">
               <h2 className="text-xl font-black tracking-tight text-text-main dark:text-white sm:text-2xl">How your profile and resume fit this job</h2>
               <div className="mt-4 rounded-2xl border border-border bg-bg p-4 dark:border-white/10 dark:bg-white/5 sm:p-5">
@@ -159,7 +169,7 @@ export default function JobPreview({ mode = "panel" }: { mode?: "panel" | "modal
                 ))}
               </div>
             </section>
-          )}
+          ) : null}
 
           <Card className="bg-bg p-4 shadow-none dark:bg-white/5 sm:p-6">
             <div className="grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-center">
