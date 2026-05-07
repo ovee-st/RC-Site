@@ -12,7 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { demoCandidates } from "@/lib/demoData";
 import { matchCandidateToJob } from "@/lib/ai/matching";
 
-export default function JobPreview() {
+export default function JobPreview({ mode = "panel" }: { mode?: "panel" | "modal" }) {
   const { selectedJob, setSelectedJob } = useJobStore();
   const { role } = useAuth();
   const [savedJobs, setSavedJobs] = useState<Record<string, boolean>>({});
@@ -57,7 +57,7 @@ export default function JobPreview() {
   if (!selectedJob) {
     return (
       <EmptyState
-        className="sticky top-20"
+        className={mode === "panel" ? "sticky top-20" : ""}
         icon={<MousePointerClick size={22} />}
         title="Select a job to view details"
         message="Choose a role from the list to see company details, requirements, salary range, and the application deadline."
@@ -76,9 +76,9 @@ export default function JobPreview() {
   const match = matchCandidateToJob(demoCandidates[0], selectedJob);
 
   return (
-    <aside className="sticky top-24 h-[calc(100vh-7rem)] overflow-y-auto">
+    <aside className={mode === "panel" ? "sticky top-24 h-[calc(100vh-7rem)] overflow-y-auto" : "relative h-auto overflow-visible"}>
       <Card className="depth-primary overflow-hidden rounded-2xl p-0">
-        <div className="relative min-h-[174px] overflow-hidden border-b border-border bg-gradient-to-br from-slate-900 via-slate-900 to-primary/80 p-7 dark:border-white/10">
+        <div className="relative min-h-[150px] overflow-hidden border-b border-border bg-gradient-to-br from-slate-900 via-slate-900 to-primary/80 p-5 dark:border-white/10 sm:min-h-[174px] sm:p-7">
           {bannerUrl ? (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -92,14 +92,14 @@ export default function JobPreview() {
           <button
             type="button"
             onClick={() => setSelectedJob(null)}
-            className="absolute right-5 top-5 z-10 hidden h-10 w-10 items-center justify-center rounded-full text-white/75 transition hover:bg-white/10 hover:text-white xl:flex"
+            className="absolute right-4 top-4 z-10 hidden h-10 w-10 items-center justify-center rounded-full text-white/75 transition hover:bg-white/10 hover:text-white xl:flex"
             aria-label="Close job details"
           >
             <X className="h-5 w-5" />
           </button>
 
-          <div className="relative z-10 flex items-center gap-3 pr-12">
-            <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-2xl bg-white/95 text-xs font-black text-primary shadow-soft ring-1 ring-white/30">
+          <div className="relative z-10 flex items-center gap-3 pr-10 sm:pr-12">
+            <div className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-2xl bg-white/95 text-xs font-black text-primary shadow-soft ring-1 ring-white/30 sm:h-12 sm:w-12">
               {employerPhotoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={employerPhotoUrl} alt={`${selectedJob.company} profile`} className="h-full w-full object-cover" />
@@ -113,27 +113,27 @@ export default function JobPreview() {
             </div>
           </div>
 
-          <h1 className="relative z-10 mt-6 text-3xl font-black leading-tight tracking-tight text-white drop-shadow-sm">{selectedJob.title}</h1>
-          <p className="relative z-10 mt-3 text-base font-semibold text-white/82 drop-shadow-sm">{selectedJob.location}</p>
-          <div className="relative z-10 mt-4 flex flex-wrap gap-3">
+          <h1 className="relative z-10 mt-5 text-2xl font-black leading-tight tracking-tight text-white drop-shadow-sm sm:mt-6 sm:text-3xl">{selectedJob.title}</h1>
+          <p className="relative z-10 mt-2 text-sm font-semibold text-white/82 drop-shadow-sm sm:mt-3 sm:text-base">{selectedJob.location}</p>
+          <div className="relative z-10 mt-4 flex flex-wrap gap-2 sm:gap-3">
             <Badge>{selectedJob.experience}</Badge>
             <Badge>{selectedJob.jobType}</Badge>
             {selectedJob.workType ? <Badge>{selectedJob.workType}</Badge> : null}
             {selectedJob.hideSalary ? <Badge>Salary hidden</Badge> : <Badge>BDT {selectedJob.salaryMin / 1000}k-{selectedJob.salaryMax / 1000}k</Badge>}
           </div>
-          <div className="relative z-10 mt-5 flex flex-wrap gap-2">
+          <div className="relative z-10 mt-4 flex flex-wrap gap-2 sm:mt-5">
             <Badge variant="primary">{selectedJob.category}</Badge>
             {highPriority ? <PriorityIndicator variant="top" pulse /> : null}
             {needsReview ? <PriorityIndicator variant="review" pulse /> : null}
           </div>
         </div>
 
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {role === "employer" ? null : (
             <section className="mb-6">
-              <h2 className="text-2xl font-black tracking-tight text-text-main dark:text-white">How your profile and resume fit this job</h2>
-              <div className="mt-4 rounded-2xl border border-border bg-bg p-5 dark:border-white/10 dark:bg-white/5">
-                <div className="flex items-center justify-between gap-4">
+              <h2 className="text-xl font-black tracking-tight text-text-main dark:text-white sm:text-2xl">How your profile and resume fit this job</h2>
+              <div className="mt-4 rounded-2xl border border-border bg-bg p-4 dark:border-white/10 dark:bg-white/5 sm:p-5">
+                <div className="flex flex-wrap items-center justify-between gap-3 sm:gap-4">
                   <div>
                     <span className="type-label">AI Match Score</span>
                     <p className="mt-1 text-sm font-semibold text-text-muted dark:text-slate-300">
@@ -161,8 +161,8 @@ export default function JobPreview() {
             </section>
           )}
 
-          <Card className="bg-bg shadow-none dark:bg-white/5">
-            <div className="flex flex-wrap items-center justify-between gap-4">
+          <Card className="bg-bg p-4 shadow-none dark:bg-white/5 sm:p-6">
+            <div className="grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-center">
               <div>
                 <span className="type-label">Post Date</span>
                 <p className="mt-1 text-lg font-black text-text-main dark:text-white">{postedDate}</p>
@@ -194,8 +194,8 @@ export default function JobPreview() {
         </div>
 
         {role === "employer" ? null : (
-        <div className="sticky bottom-0 border-t border-border bg-surface/92 p-6 backdrop-blur dark:border-white/10 dark:bg-slate-900/92">
-          <div className="grid grid-cols-[0.8fr_1.2fr] gap-3">
+        <div className="sticky bottom-0 border-t border-border bg-surface/92 p-4 backdrop-blur dark:border-white/10 dark:bg-slate-900/92 sm:p-6">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-[0.8fr_1.2fr]">
             <Button
               variant={saved ? "success" : "secondary"}
               className="gap-2 py-3"

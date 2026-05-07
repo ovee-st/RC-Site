@@ -128,10 +128,10 @@ export default function JobList({ headerAction, showArchived = false }: { header
 
   return (
     <Card className="overflow-hidden p-0">
-      <div className="border-b border-border bg-surface/80 p-5 backdrop-blur dark:border-white/10 dark:bg-slate-900/80">
-        <div className="flex items-start justify-between gap-4">
+      <div className="border-b border-border bg-surface/80 p-4 backdrop-blur dark:border-white/10 dark:bg-slate-900/80 sm:p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <h2 className="text-2xl font-semibold tracking-tight text-text-main dark:text-white">
+            <h2 className="text-xl font-semibold tracking-tight text-text-main dark:text-white sm:text-2xl">
               {role === "employer" ? (showArchived ? "Archived jobs" : "Published jobs") : "Top job picks for you"}
             </h2>
             <p className="mt-1 text-sm leading-6 text-text-muted dark:text-slate-300">
@@ -145,7 +145,7 @@ export default function JobList({ headerAction, showArchived = false }: { header
               {showArchived ? `${archivedCount} archived jobs` : `${openCount} open jobs`}
             </p>
           </div>
-          {headerAction ? <div className="shrink-0">{headerAction}</div> : null}
+          {headerAction ? <div className="shrink-0 sm:self-start">{headerAction}</div> : null}
         </div>
       </div>
 

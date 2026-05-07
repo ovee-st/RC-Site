@@ -18,7 +18,7 @@ export default function JobsPage() {
   const showPostJob = Boolean(user) && role === "employer";
   const [showArchivedJobs, setShowArchivedJobs] = useState(false);
   const employerHeaderAction = showPostJob ? (
-    <div className="flex flex-wrap items-center justify-end gap-3">
+    <div className="grid w-full grid-cols-1 gap-2 sm:w-auto sm:grid-cols-2 sm:items-center sm:justify-end sm:gap-3">
       <EmployerPostJob label="Post a Job" />
       <Button
         type="button"
@@ -46,7 +46,7 @@ export default function JobsPage() {
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-transparent">
       {selectedJob ? (
-        <div className="mx-auto grid w-full max-w-[1400px] grid-cols-1 gap-0 px-6 py-8 xl:grid-cols-[minmax(390px,0.82fr)_minmax(0,1.18fr)]">
+        <div className="mx-auto grid w-full max-w-[1400px] grid-cols-1 gap-0 px-3 py-4 sm:px-6 sm:py-8 xl:grid-cols-[minmax(390px,0.82fr)_minmax(0,1.18fr)]">
           <section className="min-w-0 xl:border-r xl:border-border xl:dark:border-white/10">
             <JobList headerAction={employerHeaderAction} showArchived={showArchivedJobs} />
           </section>
@@ -56,7 +56,7 @@ export default function JobsPage() {
           </section>
         </div>
       ) : (
-        <div className="mx-auto grid w-full max-w-[1200px] grid-cols-1 gap-6 px-6 py-8 xl:grid-cols-[300px_minmax(0,1fr)]">
+        <div className="mx-auto grid w-full max-w-[1200px] grid-cols-1 gap-4 px-3 py-4 sm:px-6 sm:py-8 lg:gap-6 xl:grid-cols-[300px_minmax(0,1fr)]">
           <aside className="xl:sticky xl:top-24 xl:h-fit">
             <FiltersPanel />
           </aside>
@@ -75,7 +75,7 @@ export default function JobsPage() {
             className="absolute inset-0 cursor-default"
             onClick={() => setSelectedJob(null)}
           />
-          <div className="absolute right-0 top-0 h-full w-full overflow-y-auto bg-bg p-4 shadow-elevated dark:bg-slate-950 sm:max-w-2xl sm:p-6">
+          <div className="absolute inset-x-0 bottom-0 max-h-[92vh] w-full overflow-y-auto rounded-t-[2rem] bg-bg p-3 shadow-elevated dark:bg-slate-950 sm:left-auto sm:right-0 sm:top-0 sm:h-full sm:max-h-none sm:max-w-2xl sm:rounded-none sm:p-6">
             <button
               type="button"
               onClick={() => setSelectedJob(null)}
@@ -84,7 +84,7 @@ export default function JobsPage() {
             >
               <X className="h-5 w-5" />
             </button>
-            <JobPreview />
+            <JobPreview mode="modal" />
           </div>
         </div>
       ) : null}
