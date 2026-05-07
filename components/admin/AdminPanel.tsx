@@ -7,6 +7,7 @@ import {
   Bell,
   BriefcaseBusiness,
   CheckCircle2,
+  CircleDollarSign,
   Copy,
   CreditCard,
   Download,
@@ -123,6 +124,7 @@ const navItems = [
   { label: "Candidates", href: "/admin/candidates", key: "candidates", icon: Users },
   { label: "Employers", href: "/admin/employers", key: "employers", icon: BriefcaseBusiness },
   { label: "Jobs", href: "/admin/jobs", key: "jobs", icon: FileText },
+  { label: "Support Tickets", href: "/admin/support", key: "support", icon: Bell },
   { label: "Contact Requests", href: "/admin/contact-requests", key: "contact-requests", icon: Mail },
   { label: "Coupons", href: "/admin/coupons", key: "coupons", icon: Gift },
   { label: "Transactions", href: "/admin/transactions", key: "transactions", icon: CreditCard }
@@ -262,6 +264,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
   const [query, setQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [notice, setNotice] = useState<string | null>(null);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const readOnly = role === "viewer";
   const canAccessAdmin = role === "admin" || role === "viewer";
@@ -344,6 +347,46 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
     const matchesRole = roleFilter === "all" || profile.role === roleFilter;
     return matchesQuery && matchesRole;
   }), [adminData.profiles, query, roleFilter]);
+
+  const adminNotifications = useMemo(() => {
+    const contactItems = adminData.contactRequests
+      .filter((request) => String(request.status || "new").toLowerCase() !== "resolved")
+      .slice(0, 4)
+      .map((request) => ({
+        id: `contact-${request.id}`,
+        title: request.status === "in progress" ? "Contact request in progress" : "New contact request",
+        message: `${request.name || "Someone"} from ${request.company || "a company"} needs follow-up.`,
+        href: "/admin/contact-requests",
+        icon: Mail,
+        created_at: request.created_at
+      }));
+
+    const signupItems = adminData.profiles
+      .slice(0, 4)
+      .map((profile) => ({
+        id: `profile-${profile.id || profile.email}`,
+        title: `New ${profile.role || "user"} registered`,
+        message: `${getDisplayName(profile)} joined RC.`,
+        href: profile.role === "employer" ? "/admin/employers" : profile.role === "candidate" ? "/admin/candidates" : "/admin/users",
+        icon: Users,
+        created_at: profile.created_at
+      }));
+
+    const transactionItems = adminData.transactions
+      .slice(0, 3)
+      .map((tx) => ({
+        id: `tx-${tx.id || tx.transaction_id}`,
+        title: String(tx.status || "paid").toLowerCase() === "paid" ? "Payment completed" : "Payment needs review",
+        message: `${getEmail(tx)} • BDT ${Number(tx.amount || 0).toLocaleString()}`,
+        href: "/admin/transactions",
+        icon: CircleDollarSign,
+        created_at: tx.created_at
+      }));
+
+    return [...contactItems, ...signupItems, ...transactionItems]
+      .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+      .slice(0, 10);
+  }, [adminData.contactRequests, adminData.profiles, adminData.transactions]);
 
   async function updateRecord(table: string, id: string, patch: AnyRecord) {
     if (readOnly) {
@@ -487,10 +530,56 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
                   <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
                   <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search users, companies, transactions..." className="rounded-2xl pl-11" />
                 </div>
-                <button className="relative grid h-11 w-11 place-items-center rounded-2xl border border-border bg-surface shadow-soft dark:border-white/10 dark:bg-slate-900">
-                  <Bell className="h-5 w-5 text-text-muted" />
-                  <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-danger" />
-                </button>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setNotificationsOpen((value) => !value)}
+                    className="relative grid h-11 w-11 place-items-center rounded-2xl border border-border bg-surface shadow-soft transition hover:border-primary/30 hover:text-primary dark:border-white/10 dark:bg-slate-900"
+                    aria-label="Admin notifications"
+                  >
+                    <Bell className="h-5 w-5 text-text-muted" />
+                    {adminNotifications.length ? (
+                      <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-danger px-1 text-[10px] font-black text-white">
+                        {adminNotifications.length}
+                      </span>
+                    ) : null}
+                  </button>
+                  {notificationsOpen ? (
+                    <div className="absolute right-0 top-full z-50 mt-3 w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-border bg-white shadow-elevated dark:border-white/10 dark:bg-slate-950">
+                      <div className="border-b border-border p-4 dark:border-white/10">
+                        <p className="type-label text-primary">Notifications</p>
+                        <h3 className="mt-1 text-lg font-black text-text-main dark:text-white">Admin activity</h3>
+                      </div>
+                      <div className="max-h-96 overflow-y-auto p-2">
+                        {adminNotifications.length ? adminNotifications.map((item) => {
+                          const Icon = item.icon;
+                          return (
+                            <Link
+                              key={item.id}
+                              href={item.href}
+                              onClick={() => setNotificationsOpen(false)}
+                              className="flex gap-3 rounded-2xl p-3 transition hover:bg-primary/5 dark:hover:bg-white/5"
+                            >
+                              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+                                <Icon className="h-4 w-4" />
+                              </span>
+                              <span className="min-w-0">
+                                <span className="block truncate text-sm font-black text-text-main dark:text-white">{item.title}</span>
+                                <span className="mt-1 block text-xs font-semibold leading-5 text-text-muted dark:text-slate-400">{item.message}</span>
+                                <span className="mt-1 block text-[11px] font-bold text-text-muted">{formatDate(item.created_at)}</span>
+                              </span>
+                            </Link>
+                          );
+                        }) : (
+                          <div className="p-6 text-center">
+                            <Bell className="mx-auto h-6 w-6 text-text-muted" />
+                            <p className="mt-3 text-sm font-bold text-text-muted">No new admin notifications.</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
               </div>
             </div>
           </header>
@@ -677,10 +766,11 @@ function UsersSection({
           <Input value={newUser.full_name} onChange={(event) => setNewUser((current) => ({ ...current, full_name: event.target.value }))} placeholder="Full name" disabled={readOnly} />
           <Input value={newUser.email} onChange={(event) => setNewUser((current) => ({ ...current, email: event.target.value }))} placeholder="Email" disabled={readOnly} />
           <Input value={newUser.password} onChange={(event) => setNewUser((current) => ({ ...current, password: event.target.value }))} placeholder="Password" type="password" disabled={readOnly} />
-          <select value={newUser.role} onChange={(event) => setNewUser((current) => ({ ...current, role: event.target.value }))} disabled={readOnly} className="rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-bold dark:border-white/10 dark:bg-slate-900">
-            <option value="admin">Admin</option>
-            <option value="viewer">Viewer</option>
-          </select>
+                <select value={newUser.role} onChange={(event) => setNewUser((current) => ({ ...current, role: event.target.value }))} disabled={readOnly} className="rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-bold dark:border-white/10 dark:bg-slate-900">
+                  <option value="admin">Admin</option>
+                  <option value="employee">Employee</option>
+                  <option value="viewer">Viewer</option>
+                </select>
           <Button onClick={createInternalUser} disabled={creating || readOnly}>{creating ? "Creating..." : "Add user"}</Button>
         </div>
       </Card>
@@ -694,8 +784,9 @@ function UsersSection({
         <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)} className="rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-bold dark:border-white/10 dark:bg-slate-900">
           <option value="all">All roles</option>
           <option value="candidate">Candidates</option>
-          <option value="employer">Employers</option>
-          <option value="admin">Admins</option>
+            <option value="employer">Employers</option>
+            <option value="employee">Employees</option>
+            <option value="admin">Admins</option>
           <option value="viewer">Viewers</option>
         </select>
       </div>

@@ -717,3 +717,224 @@ create index if not exists transactions_user_id_idx on public.transactions(user_
 insert into storage.buckets (id, name, public)
 values ('certifications', 'certifications', true)
 on conflict (id) do nothing;
+
+-- ---------------------------------------------------------------------------
+-- RC internal employee support and ticket management
+-- ---------------------------------------------------------------------------
+
+alter table if exists public.profiles
+add column if not exists username text,
+add column if not exists suspended boolean default false;
+
+alter table if exists public.profiles
+drop constraint if exists profiles_role_check;
+
+alter table if exists public.profiles
+add constraint profiles_role_check
+check (role in ('candidate', 'employer', 'employee', 'admin', 'viewer'));
+
+create unique index if not exists profiles_username_unique
+on public.profiles (lower(username))
+where username is not null;
+
+create or replace function public.generate_rc_username(profile_role text, profile_name text, profile_email text, profile_id uuid)
+returns text
+language plpgsql
+as $$
+declare
+  prefix text := case
+    when profile_role = 'employer' then 'employer'
+    when profile_role = 'employee' then 'employee'
+    when profile_role = 'admin' then 'admin'
+    else 'candidate'
+  end;
+  sequence_number bigint;
+begin
+  select count(*) + 1 into sequence_number
+  from public.profiles
+  where role = profile_role;
+
+  return prefix || '_' || lpad(sequence_number::text, 6, '0');
+end;
+$$;
+
+create or replace function public.ensure_profile_username()
+returns trigger
+language plpgsql
+as $$
+begin
+  if new.username is null or length(trim(new.username)) = 0 then
+    new.username := public.generate_rc_username(new.role, coalesce(new.full_name, new.name), new.email, new.id);
+  end if;
+
+  if new.username !~ '^[a-z0-9][a-z0-9_-]{2,28}[a-z0-9]$' then
+    raise exception 'Invalid username format';
+  end if;
+
+  new.username := lower(new.username);
+  return new;
+end;
+$$;
+
+drop trigger if exists profiles_username_before_write on public.profiles;
+create trigger profiles_username_before_write
+before insert or update of username, role on public.profiles
+for each row execute function public.ensure_profile_username();
+
+create table if not exists public.employees (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null unique references auth.users(id) on delete cascade,
+  full_name text not null,
+  email text not null unique,
+  username text not null unique,
+  department text default 'Support',
+  permissions text[] default array['tickets:read', 'tickets:update', 'messages:create'],
+  active boolean default true,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+do $$
+begin
+  if not exists (select 1 from pg_class where relkind = 'S' and relname = 'support_ticket_number_seq') then
+    create sequence support_ticket_number_seq start 100001;
+  end if;
+end;
+$$;
+
+create table if not exists public.support_tickets (
+  id uuid primary key default gen_random_uuid(),
+  ticket_number text not null unique default ('RC-' || extract(year from now())::text || '-' || lpad(nextval('support_ticket_number_seq')::text, 6, '0')),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  user_role text not null check (user_role in ('candidate', 'employer', 'employee', 'admin')),
+  username text not null,
+  subject text not null,
+  message text not null,
+  priority text not null default 'MEDIUM' check (priority in ('LOW', 'MEDIUM', 'HIGH', 'URGENT')),
+  status text not null default 'OPEN' check (status in ('OPEN', 'IN_PROGRESS', 'WAITING_USER', 'ESCALATED', 'RESOLVED', 'CLOSED')),
+  assigned_employee_id uuid references auth.users(id) on delete set null,
+  attachment_urls text[] default '{}',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table if not exists public.ticket_messages (
+  id uuid primary key default gen_random_uuid(),
+  ticket_id uuid not null references public.support_tickets(id) on delete cascade,
+  sender_id uuid not null references auth.users(id) on delete cascade,
+  sender_role text not null check (sender_role in ('candidate', 'employer', 'employee', 'admin')),
+  message text not null,
+  internal_note boolean default false,
+  attachment_urls text[] default '{}',
+  created_at timestamptz default now()
+);
+
+create index if not exists support_tickets_user_id_idx on public.support_tickets(user_id);
+create index if not exists support_tickets_status_idx on public.support_tickets(status);
+create index if not exists support_tickets_assigned_employee_idx on public.support_tickets(assigned_employee_id);
+create index if not exists ticket_messages_ticket_id_idx on public.ticket_messages(ticket_id);
+
+alter table public.employees enable row level security;
+alter table public.support_tickets enable row level security;
+alter table public.ticket_messages enable row level security;
+
+create or replace function public.current_profile_role()
+returns text
+language sql
+security definer
+set search_path = public
+as $$
+  select role from public.profiles where id = auth.uid()
+$$;
+
+drop policy if exists "Employees read own employee profile" on public.employees;
+create policy "Employees read own employee profile"
+on public.employees for select
+to authenticated
+using (user_id = auth.uid() or public.current_profile_role() in ('admin', 'viewer'));
+
+drop policy if exists "Admins manage employees" on public.employees;
+create policy "Admins manage employees"
+on public.employees for all
+to authenticated
+using (public.current_profile_role() = 'admin')
+with check (public.current_profile_role() = 'admin');
+
+drop policy if exists "Users read own tickets and agents read assigned" on public.support_tickets;
+create policy "Users read own tickets and agents read assigned"
+on public.support_tickets for select
+to authenticated
+using (
+  user_id = auth.uid()
+  or public.current_profile_role() in ('admin', 'viewer')
+  or (public.current_profile_role() = 'employee' and (assigned_employee_id is null or assigned_employee_id = auth.uid()))
+);
+
+drop policy if exists "Users create own tickets" on public.support_tickets;
+create policy "Users create own tickets"
+on public.support_tickets for insert
+to authenticated
+with check (user_id = auth.uid());
+
+drop policy if exists "Agents update tickets" on public.support_tickets;
+create policy "Agents update tickets"
+on public.support_tickets for update
+to authenticated
+using (public.current_profile_role() in ('admin', 'employee'))
+with check (public.current_profile_role() in ('admin', 'employee'));
+
+drop policy if exists "Users and agents read ticket messages" on public.ticket_messages;
+create policy "Users and agents read ticket messages"
+on public.ticket_messages for select
+to authenticated
+using (
+  exists (
+    select 1 from public.support_tickets t
+    where t.id = ticket_id
+      and (
+        t.user_id = auth.uid()
+        or public.current_profile_role() in ('admin', 'viewer')
+        or (public.current_profile_role() = 'employee' and (t.assigned_employee_id is null or t.assigned_employee_id = auth.uid()))
+      )
+  )
+  and (
+    internal_note = false
+    or public.current_profile_role() in ('admin', 'employee')
+  )
+);
+
+drop policy if exists "Users and agents create ticket messages" on public.ticket_messages;
+create policy "Users and agents create ticket messages"
+on public.ticket_messages for insert
+to authenticated
+with check (
+  sender_id = auth.uid()
+  and exists (
+    select 1 from public.support_tickets t
+    where t.id = ticket_id
+      and (
+        t.user_id = auth.uid()
+        or public.current_profile_role() in ('admin', 'employee')
+      )
+  )
+  and (
+    internal_note = false
+    or public.current_profile_role() in ('admin', 'employee')
+  )
+);
+
+insert into storage.buckets (id, name, public)
+values ('support-attachments', 'support-attachments', true)
+on conflict (id) do nothing;
+
+drop policy if exists "Authenticated support attachment uploads" on storage.objects;
+create policy "Authenticated support attachment uploads"
+on storage.objects for insert
+to authenticated
+with check (bucket_id = 'support-attachments');
+
+drop policy if exists "Authenticated support attachment reads" on storage.objects;
+create policy "Authenticated support attachment reads"
+on storage.objects for select
+to authenticated
+using (bucket_id = 'support-attachments');

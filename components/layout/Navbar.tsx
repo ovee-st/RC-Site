@@ -29,19 +29,25 @@ const navItemsByRole = {
     { label: "Candidates", href: "/employer/candidates" },
     { label: "We Hire for You", href: "/#pricing" }
   ],
+  employee: [
+    { label: "Support Desk", href: "/employee" },
+    { label: "Tickets", href: "/employee" }
+  ],
   admin: [
     { label: "Admin", href: "/admin" },
     { label: "Users", href: "/admin/users" },
     { label: "Candidates", href: "/admin/candidates" },
     { label: "Employers", href: "/admin/employers" },
-    { label: "Jobs", href: "/admin/jobs" }
+    { label: "Jobs", href: "/admin/jobs" },
+    { label: "Support", href: "/admin/support" }
   ],
   viewer: [
     { label: "Admin", href: "/admin" },
     { label: "Users", href: "/admin/users" },
     { label: "Candidates", href: "/admin/candidates" },
     { label: "Employers", href: "/admin/employers" },
-    { label: "Jobs", href: "/admin/jobs" }
+    { label: "Jobs", href: "/admin/jobs" },
+    { label: "Support", href: "/admin/support" }
   ]
 };
 
@@ -81,14 +87,15 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [profileAvatar, setProfileAvatar] = useState<string | null>(null);
   const { user, role, loading } = useAuth();
-  const profileHref = role === "admin" || role === "viewer" ? "/admin" : role === "employer" ? "/employer#profile" : "/candidate?view=profile";
-  const accountHref = role === "admin" || role === "viewer" ? "/admin/users" : role === "employer" ? "/employer#account-settings" : "/candidate?view=profile#account-settings";
+  const currentRole = role as string | null;
+  const profileHref = currentRole === "admin" || currentRole === "viewer" ? "/admin" : currentRole === "employee" ? "/employee" : currentRole === "employer" ? "/employer#profile" : "/candidate?view=profile";
+  const accountHref = currentRole === "admin" || currentRole === "viewer" ? "/admin/users" : currentRole === "employee" ? "/employee" : currentRole === "employer" ? "/employer#account-settings" : "/candidate?view=profile#account-settings";
   const displayName = user?.user_metadata?.name || user?.user_metadata?.full_name || user?.name || "MX User";
   const avatarSrc = profileAvatar || user?.avatar || user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null;
   const verified = Boolean(user?.user_metadata?.verified) || String(user?.user_metadata?.plan || "").toLowerCase() === "pro";
   const isLogoAvatar = Boolean(avatarSrc && /mx-logo|mx[\\/_-]?venture|MX\.png/i.test(avatarSrc));
   const initials = getInitials(displayName);
-  const resolvedRole = user ? (role === "admin" ? "admin" : role === "viewer" ? "viewer" : role === "employer" ? "employer" : "candidate") : "guest";
+  const resolvedRole = user ? (currentRole === "admin" ? "admin" : currentRole === "viewer" ? "viewer" : currentRole === "employee" ? "employee" : currentRole === "employer" ? "employer" : "candidate") : "guest";
   const navItems = navItemsByRole[resolvedRole];
 
   const avatar = avatarSrc ? (

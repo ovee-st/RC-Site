@@ -2,7 +2,7 @@
 import { createClient } from "@supabase/supabase-js";
 
 const ADMIN_ROLES = new Set(["admin"]);
-const INTERNAL_ROLES = new Set(["admin", "viewer"]);
+const INTERNAL_ROLES = new Set(["admin", "viewer", "employee"]);
 
 export async function POST(request: Request) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -73,6 +73,18 @@ export async function POST(request: Request) {
 
   if (profileError) {
     return NextResponse.json({ error: profileError.message }, { status: 400 });
+  }
+
+  if (role === "employee") {
+    await adminClient.from("employees").upsert({
+      user_id: created.user.id,
+      full_name: fullName,
+      email,
+      username: `employee_${String(Date.now()).slice(-6)}`,
+      department: body.department || "Support",
+      permissions: body.permissions || ["tickets:read", "tickets:update", "messages:create"],
+      active: true
+    }, { onConflict: "user_id" });
   }
 
   return NextResponse.json({ ok: true, user: { id: created.user.id, email, full_name: fullName, role } });

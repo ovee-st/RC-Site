@@ -20,6 +20,20 @@ export function createStableUsername(name?: string | null, email?: string | null
   return `${cleanSource || "mx-user"}.${suffix}`;
 }
 
+export function createRoleUsername(role?: string | null, sequence?: number | null, name?: string | null, email?: string | null, id?: string | null) {
+  const normalizedRole = role === "employer" ? "employer" : role === "employee" ? "employee" : role === "admin" ? "admin" : "candidate";
+  if (typeof sequence === "number" && Number.isFinite(sequence) && sequence > 0) {
+    return `${normalizedRole}_${String(sequence).padStart(6, "0")}`;
+  }
+
+  const stable = createStableUsername(name, email, id).replace(/\./g, "-");
+  return `rc-${stable}`;
+}
+
+export function isValidUsername(username?: string | null) {
+  return Boolean(username && /^[a-z0-9](?:[a-z0-9_-]{2,28}[a-z0-9])$/.test(username));
+}
+
 export function getStableUsername(user?: {
   id?: string | null;
   email?: string | null;
