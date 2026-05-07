@@ -353,7 +353,11 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
     if (isSupabaseConfigured) {
       await supabase.from(table).update(patch).eq("id", id);
     }
-    setNotice("Update saved. Supabase will reconcile live data on refresh.");
+    setNotice("Update saved");
+
+    if ((table === "candidates" || table === "employers") && Object.prototype.hasOwnProperty.call(patch, "verified")) {
+      window.setTimeout(() => window.location.reload(), 900);
+    }
   }
 
   async function deleteRecord(table: string, id: string) {
