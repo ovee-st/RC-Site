@@ -216,7 +216,7 @@ function AdminStatCard({ label, value, detail, icon: Icon, accent }: { label: st
           <p className="mt-3 text-3xl font-black tracking-tight text-text-main dark:text-white">{value}</p>
           <p className="mt-2 text-xs font-bold text-text-muted dark:text-slate-400">{detail}</p>
         </div>
-        <div className="grid h-12 w-12 place-items-center rounded-full bg-primary/10 text-primary transition group-hover:scale-105 dark:bg-primary/20">
+        <div className="grid h-12 w-12 place-items-center text-primary transition group-hover:scale-105">
           <Icon className="h-5 w-5" />
         </div>
       </div>
