@@ -39,6 +39,7 @@ function mapSupabaseJob(row: any): Job {
     hideSalary: Boolean(row.hide_salary || row.salary_hidden),
     deadline: row.last_date || row.deadline || "",
     bannerUrl: row.banner_url || null,
+    employerPhotoUrl: row.employer_photo_url || row.photo_url || row.company_logo_url || null,
     status: row.status || "active",
     skills,
     description: row.description || "Job description will be shared by the employer.",
@@ -64,7 +65,28 @@ export default function JobList({ headerAction, showArchived = false }: { header
       let query = supabase.from("jobs").select("*");
       if (role === "employer" && user?.id) query = query.eq("employer_id", user.id);
       const { data, error } = await query.order("created_at", { ascending: false });
-      if (!error && data?.length) setJobs(data.map(mapSupabaseJob));
+      if (error || !data?.length) return;
+
+      const employerIds = Array.from(new Set(data.map((row: any) => row.employer_id).filter(Boolean)));
+      let brandingByEmployer = new Map<string, { banner_url?: string | null; photo_url?: string | null }>();
+
+      if (employerIds.length) {
+        const { data: employerProfiles } = await supabase
+          .from("employers")
+          .select("user_id, banner_url, photo_url")
+          .in("user_id", employerIds);
+
+        brandingByEmployer = new Map((employerProfiles || []).map((profile: any) => [profile.user_id, profile]));
+      }
+
+      setJobs(data.map((row: any) => {
+        const branding = brandingByEmployer.get(row.employer_id);
+        return mapSupabaseJob({
+          ...row,
+          banner_url: row.banner_url || branding?.banner_url || null,
+          employer_photo_url: row.employer_photo_url || branding?.photo_url || null
+        });
+      }));
     }
 
     loadJobs().catch(() => null);

@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Archive, Bookmark, Check, Pencil, Send, Trophy, X } from "lucide-react";
 import type { Job } from "@/types";
 import { useJobStore } from "@/store/useJobStore";
@@ -49,6 +49,7 @@ export default function JobItem({ job, matchScore }: { job: Job; matchScore: num
   const [saved, setSaved] = useState(false);
   const [applied, setApplied] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [localEmployerPhoto, setLocalEmployerPhoto] = useState<string | null>(null);
   const [draft, setDraft] = useState({
     title: job.title,
     location: job.location,
@@ -65,6 +66,17 @@ export default function JobItem({ job, matchScore }: { job: Job; matchScore: num
   const isCandidate = role === "candidate";
   const archived = job.status === "archived" || isExpired(job.deadline);
   const hired = job.status === "hired";
+  const employerPhotoUrl = job.employerPhotoUrl || localEmployerPhoto;
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem("mx_employer_profile");
+      const profile = saved ? JSON.parse(saved) : null;
+      setLocalEmployerPhoto(profile?.photo_url || null);
+    } catch {
+      setLocalEmployerPhoto(null);
+    }
+  }, []);
 
   const saveEdit = () => {
     updateJob(job.id, {
@@ -118,10 +130,15 @@ export default function JobItem({ job, matchScore }: { job: Job; matchScore: num
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-3">
           <div className={cn("flex min-w-0 items-start", compactListMode ? "gap-3" : "gap-4")}>
             <div className={cn(
-              "grid shrink-0 place-items-center rounded-xl bg-gradient-to-br from-primary/15 to-success/15 font-black text-primary ring-1 ring-primary/15 transition group-hover:scale-105 dark:from-primary/25 dark:to-success/20",
+              "grid shrink-0 place-items-center overflow-hidden rounded-xl bg-gradient-to-br from-primary/15 to-success/15 font-black text-primary ring-1 ring-primary/15 transition group-hover:scale-105 dark:from-primary/25 dark:to-success/20",
               compactListMode ? "h-11 w-11 text-xs" : "h-14 w-14 text-sm"
             )}>
-              {job.company.slice(0, 2).toUpperCase()}
+              {employerPhotoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={employerPhotoUrl} alt={`${job.company} profile`} className="h-full w-full object-cover" />
+              ) : (
+                job.company.slice(0, 2).toUpperCase()
+              )}
             </div>
 
             <div className="min-w-0 flex-1">
