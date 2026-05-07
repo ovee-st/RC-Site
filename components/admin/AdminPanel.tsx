@@ -7,7 +7,6 @@ import {
   Bell,
   BriefcaseBusiness,
   CheckCircle2,
-  ChevronDown,
   Copy,
   CreditCard,
   Download,
@@ -468,14 +467,6 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
                   <Bell className="h-5 w-5 text-text-muted" />
                   <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-danger" />
                 </button>
-                <div className="flex items-center gap-2 rounded-2xl border border-border bg-surface px-3 py-2 shadow-soft dark:border-white/10 dark:bg-slate-900">
-                  <AdminAvatar row={{ full_name: user.name, avatar_url: user.avatar }} className="h-8 w-8" />
-                  <div className="hidden sm:block">
-                    <p className="text-sm font-black text-text-main dark:text-white">{user.name || "Admin"}</p>
-                  <p className="text-xs font-bold text-text-muted dark:text-slate-400">{readOnly ? "Viewer" : "Admin"}</p>
-                  </div>
-                  <ChevronDown className="h-4 w-4 text-text-muted" />
-                </div>
               </div>
             </div>
           </header>
