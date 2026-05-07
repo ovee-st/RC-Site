@@ -78,7 +78,7 @@ export default function LoginPage() {
   const { setUser } = useUserStore();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [role, setRole] = useState<"candidate" | "employer">("candidate");
-  const [email, setEmail] = useState("candidate.admin@mxventurelab.com");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("MX User");
   const [message, setMessage] = useState("");

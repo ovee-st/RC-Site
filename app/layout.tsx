@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
 import AppLayout from "@/components/layout/AppLayout";
 import { AuthProvider } from "@/context/AuthProvider";
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
   title: "MX VENTURE LAB | AI Hiring Platform",
@@ -18,16 +21,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             __html: `
               try {
                 const theme = localStorage.getItem('theme');
-                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                if (theme === 'dark' || (!theme && prefersDark)) {
+                if (theme === 'dark') {
                   document.documentElement.classList.add('dark');
+                } else {
+                  document.documentElement.classList.remove('dark');
                 }
               } catch (_) {}
             `
           }}
         />
       </head>
-      <body>
+      <body className={inter.variable}>
         <AuthProvider>
           <Providers>
             <AppLayout>{children}</AppLayout>
