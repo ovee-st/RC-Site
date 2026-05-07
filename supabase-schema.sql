@@ -535,6 +535,7 @@ create table if not exists public.contact_requests (
 
 create table if not exists public.coupons (
   id uuid primary key default gen_random_uuid(),
+  coupon_name text,
   code text unique not null,
   discount_percentage integer not null check (discount_percentage between 1 and 100),
   active boolean not null default true,
@@ -543,6 +544,8 @@ create table if not exists public.coupons (
   expires_at timestamptz,
   created_at timestamptz not null default now()
 );
+
+alter table public.coupons add column if not exists coupon_name text;
 
 create table if not exists public.transactions (
   id uuid primary key default gen_random_uuid(),

@@ -389,6 +389,26 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
     setNotice(`Coupon ${code} generated.`);
   }
 
+  async function createCoupon(coupon: AnyRecord) {
+    if (readOnly) {
+      setNotice("Viewer accounts can inspect coupons, but cannot create them.");
+      return;
+    }
+
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase.from("coupons").insert(coupon).select("*").maybeSingle();
+      if (error) {
+        setNotice(error.message);
+        return;
+      }
+      setAdminData((current) => ({ ...current, coupons: [data || { id: coupon.code, ...coupon }, ...current.coupons] }));
+    } else {
+      setAdminData((current) => ({ ...current, coupons: [{ id: coupon.code, ...coupon }, ...current.coupons] }));
+    }
+
+    setNotice(`Coupon ${coupon.code} added.`);
+  }
+
   if (loading || (user && !canAccessAdmin)) {
     return (
       <main className="grid min-h-[70vh] place-items-center px-6">
@@ -490,7 +510,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
               {section === "employers" ? <EmployersSection rows={adminData.employers} jobs={adminData.jobs} onUpdate={updateRecord} readOnly={readOnly} /> : null}
               {section === "jobs" ? <JobsSection rows={adminData.jobs} onUpdate={updateRecord} readOnly={readOnly} /> : null}
               {section === "contact-requests" ? <ContactRequestsSection rows={adminData.contactRequests} onUpdate={updateRecord} onDelete={deleteRecord} /> : null}
-              {section === "coupons" ? <CouponsSection rows={adminData.coupons} onGenerate={generateCoupon} onUpdate={updateRecord} onDelete={deleteRecord} readOnly={readOnly} /> : null}
+              {section === "coupons" ? <CouponsSection rows={adminData.coupons} onCreate={createCoupon} onGenerate={generateCoupon} onUpdate={updateRecord} onDelete={deleteRecord} readOnly={readOnly} /> : null}
               {section === "transactions" ? <TransactionsSection rows={adminData.transactions} /> : null}
             </>
           )}
@@ -1020,34 +1040,124 @@ function ContactRequestsSection({ rows, onUpdate, onDelete }: { rows: AnyRecord[
   );
 }
 
-function CouponsSection({ rows, onGenerate, onUpdate, onDelete, readOnly }: { rows: AnyRecord[]; onGenerate: () => void; onUpdate: (table: string, id: string, patch: AnyRecord) => void; onDelete: (table: string, id: string) => void; readOnly: boolean }) {
+function CouponsSection({
+  rows,
+  onCreate,
+  onGenerate,
+  onUpdate,
+  onDelete,
+  readOnly
+}: {
+  rows: AnyRecord[];
+  onCreate: (coupon: AnyRecord) => void;
+  onGenerate: () => void;
+  onUpdate: (table: string, id: string, patch: AnyRecord) => void;
+  onDelete: (table: string, id: string) => void;
+  readOnly: boolean;
+}) {
+  const [form, setForm] = useState({ coupon_name: "", code: "", discount_percentage: "20", usage_limit: "100", expires_at: "" });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<AnyRecord>({});
+
+  function submitCoupon() {
+    const code = form.code.trim().toUpperCase();
+    const discount = Number(form.discount_percentage || 0);
+    const usageLimit = Number(form.usage_limit || 0);
+
+    if (!code || !form.coupon_name.trim()) return;
+
+    onCreate({
+      coupon_name: form.coupon_name.trim(),
+      code,
+      discount_percentage: Math.min(100, Math.max(1, discount || 1)),
+      active: true,
+      usage_limit: usageLimit || null,
+      used_count: 0,
+      expires_at: form.expires_at || null
+    });
+    setForm({ coupon_name: "", code: "", discount_percentage: "20", usage_limit: "100", expires_at: "" });
+  }
+
+  function startEdit(coupon: AnyRecord) {
+    setEditingId(coupon.id || coupon.code);
+    setDraft({
+      coupon_name: coupon.coupon_name || coupon.name || coupon.code || "",
+      code: coupon.code || "",
+      discount_percentage: coupon.discount_percentage || 20,
+      usage_limit: coupon.usage_limit || "",
+      expires_at: coupon.expires_at ? String(coupon.expires_at).slice(0, 10) : "",
+      active: coupon.active !== false
+    });
+  }
+
   return (
     <div className="grid gap-5">
-      <div className="flex justify-end">
-        <Button onClick={onGenerate} disabled={readOnly} className="gap-2"><Gift className="h-4 w-4" />Generate Random Coupon</Button>
-      </div>
+      <Card className="rounded-3xl p-5">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+          <div>
+            <p className="type-label text-primary">Coupon setup</p>
+            <h2 className="mt-2 text-xl font-black text-text-main dark:text-white">Add custom coupon</h2>
+            <p className="type-body mt-1">Create named coupons with discount amount, expiry date, and usage quantity.</p>
+          </div>
+          <Button onClick={onGenerate} disabled={readOnly} variant="secondary" className="gap-2"><Gift className="h-4 w-4" />Generate Random</Button>
+        </div>
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-[1fr_160px_140px_150px_170px_auto]">
+          <Input value={form.coupon_name} onChange={(event) => setForm((current) => ({ ...current, coupon_name: event.target.value }))} placeholder="Coupon name" disabled={readOnly} />
+          <Input value={form.code} onChange={(event) => setForm((current) => ({ ...current, code: event.target.value.toUpperCase() }))} placeholder="Code e.g. RC50" disabled={readOnly} />
+          <Input value={form.discount_percentage} onChange={(event) => setForm((current) => ({ ...current, discount_percentage: event.target.value }))} placeholder="Discount %" type="number" min={1} max={100} disabled={readOnly} />
+          <Input value={form.usage_limit} onChange={(event) => setForm((current) => ({ ...current, usage_limit: event.target.value }))} placeholder="Quantity" type="number" min={1} disabled={readOnly} />
+          <Input value={form.expires_at} onChange={(event) => setForm((current) => ({ ...current, expires_at: event.target.value }))} type="date" disabled={readOnly} />
+          <Button onClick={submitCoupon} disabled={readOnly || !form.coupon_name || !form.code}>Add coupon</Button>
+        </div>
+      </Card>
+
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-        {rows.map((coupon) => (
-          <Card key={coupon.id || coupon.code} className="rounded-3xl p-5">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="type-label">Coupon code</p>
-                <h3 className="mt-2 text-3xl font-black tracking-tight text-text-main dark:text-white">{coupon.code}</h3>
+        {rows.map((coupon) => {
+          const key = coupon.id || coupon.code;
+          const editing = editingId === key;
+          return (
+            <Card key={key} className="rounded-3xl p-5">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="type-label">Coupon</p>
+                  <h3 className="mt-2 truncate text-2xl font-black tracking-tight text-text-main dark:text-white">{coupon.coupon_name || coupon.name || coupon.code}</h3>
+                  <p className="mt-1 text-sm font-black text-primary">{coupon.code}</p>
+                </div>
+                <StatusBadge value={coupon.active} />
               </div>
-              <StatusBadge value={coupon.active} />
-            </div>
-            <div className="mt-5 grid gap-3 rounded-2xl bg-bg p-4 text-sm font-bold text-text-muted dark:bg-white/5">
-              <p>{coupon.discount_percentage}% discount</p>
-              <p>{coupon.used_count || 0}/{coupon.usage_limit || "∞"} used</p>
-              <p>Expires {formatDate(coupon.expires_at)}</p>
-            </div>
-            <div className="mt-5 flex flex-wrap gap-2">
-              <Button variant="secondary" className="gap-2" onClick={() => navigator.clipboard?.writeText(coupon.code)}><Copy className="h-4 w-4" />Copy</Button>
-              <Button variant="secondary" disabled={readOnly} onClick={() => onUpdate("coupons", coupon.id, { active: !coupon.active })}>{coupon.active ? "Disable" : "Enable"}</Button>
-              <Button variant="ghost" disabled={readOnly} className="text-danger" onClick={() => onDelete("coupons", coupon.id)}><Trash2 className="h-4 w-4" /></Button>
-            </div>
-          </Card>
-        ))}
+              <div className="mt-5 grid gap-3 rounded-2xl bg-bg p-4 text-sm font-bold text-text-muted dark:bg-white/5">
+                <p>{coupon.discount_percentage}% discount</p>
+                <p>{coupon.used_count || 0}/{coupon.usage_limit || "?"} used</p>
+                <p>Expires {formatDate(coupon.expires_at)}</p>
+              </div>
+              {editing ? (
+                <div className="mt-4 grid gap-3 rounded-2xl border border-border bg-surface p-3 dark:border-white/10 dark:bg-slate-900">
+                  <Input value={draft.coupon_name || ""} onChange={(event) => setDraft((current) => ({ ...current, coupon_name: event.target.value }))} placeholder="Coupon name" />
+                  <Input value={draft.code || ""} onChange={(event) => setDraft((current) => ({ ...current, code: event.target.value.toUpperCase() }))} placeholder="Coupon code" />
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input value={draft.discount_percentage || ""} onChange={(event) => setDraft((current) => ({ ...current, discount_percentage: Number(event.target.value) }))} type="number" min={1} max={100} placeholder="Discount" />
+                    <Input value={draft.usage_limit || ""} onChange={(event) => setDraft((current) => ({ ...current, usage_limit: Number(event.target.value) || null }))} type="number" min={1} placeholder="Quantity" />
+                  </div>
+                  <Input value={draft.expires_at || ""} onChange={(event) => setDraft((current) => ({ ...current, expires_at: event.target.value || null }))} type="date" />
+                  <label className="flex items-center gap-2 text-sm font-bold text-text-muted">
+                    <input type="checkbox" checked={draft.active !== false} onChange={(event) => setDraft((current) => ({ ...current, active: event.target.checked }))} />
+                    Coupon active
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    <Button disabled={readOnly} onClick={() => { onUpdate("coupons", coupon.id, draft); setEditingId(null); }}>Save</Button>
+                    <Button variant="secondary" onClick={() => setEditingId(null)}>Cancel</Button>
+                  </div>
+                </div>
+              ) : null}
+              <div className="mt-5 flex flex-wrap gap-2">
+                <Button variant="secondary" className="gap-2" onClick={() => navigator.clipboard?.writeText(coupon.code)}><Copy className="h-4 w-4" />Copy</Button>
+                <Button variant="secondary" className="gap-2" onClick={() => startEdit(coupon)}><Edit3 className="h-4 w-4" />Edit</Button>
+                <Button variant="secondary" disabled={readOnly} onClick={() => onUpdate("coupons", coupon.id, { active: !coupon.active })}>{coupon.active ? "Disable" : "Enable"}</Button>
+                <Button variant="ghost" disabled={readOnly} className="text-danger" onClick={() => onDelete("coupons", coupon.id)}><Trash2 className="h-4 w-4" /></Button>
+              </div>
+            </Card>
+          );
+        })}
       </div>
     </div>
   );
