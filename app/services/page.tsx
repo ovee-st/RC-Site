@@ -86,12 +86,9 @@ export default function ServicesPage() {
                 A simplified service page focused on practical technology delivery, support, and product development for businesses that need dependable execution.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <LinkButton href="/login" className="rounded-2xl px-7 py-4 text-base font-black">
-                  Get Started
+                <LinkButton href="mailto:info@mxventurelab.com" className="rounded-2xl px-7 py-4 text-base font-black">
+                  Contact Us
                   <ArrowRight className="h-4 w-4" />
-                </LinkButton>
-                <LinkButton href="/#pricing" variant="secondary" className="rounded-2xl px-7 py-4 text-base font-black">
-                  Hire for Me
                 </LinkButton>
               </div>
             </div>
