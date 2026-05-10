@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { useLiveChatStore } from "@/store/useLiveChatStore";
+import { useLiveChatRealtime } from "@/hooks/useLiveChatRealtime";
 import type { LiveChatSession } from "@/types/liveChat";
 import ChatWindow from "@/components/chat/ChatWindow";
 
@@ -17,11 +18,17 @@ async function authHeaders(): Promise<Record<string, string>> {
 
 export default function ChatWidget() {
   const { user, role, loading } = useAuth();
-  const { sessions, setSessions, activeSessionId, selectSession, upsertSession } = useLiveChatStore();
+  const { sessions, setSessions, activeSessionId, selectSession, upsertSession, addMessage } = useLiveChatStore();
   const [open, setOpen] = useState(false);
 
   const canUseChat = Boolean(user && (role === "candidate" || role === "employer"));
   const activeSession = useMemo(() => sessions.find((session) => session.id === activeSessionId) || sessions.find((session) => session.status !== "ENDED") || null, [activeSessionId, sessions]);
+
+  useLiveChatRealtime({
+    channelKey: `widget-${user?.id || "guest"}`,
+    onSessionChange: upsertSession,
+    onMessageCreate: addMessage
+  });
 
   useEffect(() => {
     if (!canUseChat || !isSupabaseConfigured) return;
@@ -79,4 +86,5 @@ export default function ChatWidget() {
     </div>
   );
 }
+
 

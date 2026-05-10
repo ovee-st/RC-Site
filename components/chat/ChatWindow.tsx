@@ -5,7 +5,6 @@ import { Loader2, PhoneOff, ShieldCheck, Sparkles } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { formatLiveChatStatus } from "@/lib/liveChat";
-import { useLiveChatRealtime } from "@/hooks/useLiveChatRealtime";
 import { useLiveChatStore } from "@/store/useLiveChatStore";
 import type { LiveChatMessage, LiveChatSession } from "@/types/liveChat";
 import { Button } from "@/components/ui/Button";
@@ -29,14 +28,6 @@ export default function ChatWindow({ sessionId, mode = "user", onSessionChange }
   const activeSession = useMemo(() => sessions.find((session) => session.id === sessionId) || null, [sessions, sessionId]);
   const messages = sessionId ? messagesBySession[sessionId] || [] : [];
 
-  useLiveChatRealtime({
-    channelKey: `${mode}-${user?.id || "guest"}`,
-    onSessionChange: (session) => {
-      upsertSession(session);
-      onSessionChange?.(session);
-    },
-    onMessageCreate: addMessage
-  });
 
   useEffect(() => {
     if (!sessionId || !isSupabaseConfigured) return;
@@ -158,6 +149,7 @@ export default function ChatWindow({ sessionId, mode = "user", onSessionChange }
     </div>
   );
 }
+
 
 
 
