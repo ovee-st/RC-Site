@@ -24,6 +24,7 @@ export default function LiveChatDashboard({ mode = "employee", compact = false }
   const { sessions, setSessions, upsertSession, activeSessionId, selectSession, addMessage } = useLiveChatStore();
   const [dataLoading, setDataLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [setupRequired, setSetupRequired] = useState(false);
 
   useLiveChatRealtime({
     channelKey: `${mode}-${user?.id || "guest"}`,
@@ -46,6 +47,7 @@ export default function LiveChatDashboard({ mode = "employee", compact = false }
         const payload = await response.json().catch(() => ({}));
         if (!active) return;
         if (!response.ok) throw new Error(payload.error || "Could not load live chats.");
+        setSetupRequired(Boolean(payload.setupRequired));
         const rows = (payload.sessions || []) as LiveChatSession[];
         setSessions(rows);
         if (rows[0]) selectSession(rows[0].id);
@@ -128,6 +130,12 @@ export default function LiveChatDashboard({ mode = "employee", compact = false }
           })}
         </div>
       </div>
+
+      {setupRequired ? (
+        <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-700">
+          Live chat is ready in the app. Run <span className="font-black">supabase-live-chat-system.sql</span> in Supabase to activate realtime chat storage.
+        </div>
+      ) : null}
 
       {error ? <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-600">{error}</div> : null}
 

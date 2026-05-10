@@ -54,7 +54,19 @@ export async function GET(request: Request) {
   }
 
   const { data, error } = await query.limit(100);
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) {
+    const setupMissing = /live_chat_sessions|schema cache|does not exist|Could not find/i.test(error.message);
+    if (setupMissing) {
+      return NextResponse.json({
+        sessions: [],
+        setupRequired: true,
+        message: "Live chat tables are not configured yet."
+      });
+    }
+
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+
   return NextResponse.json({ sessions: data || [] });
 }
 
