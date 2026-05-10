@@ -31,7 +31,8 @@ const navItemsByRole = {
   ],
   employee: [
     { label: "Support Desk", href: "/employee" },
-    { label: "Tickets", href: "/employee/tickets" }
+    { label: "Tickets", href: "/employee/tickets" },
+    { label: "Live Chat", href: "/employee/live-chat" }
   ],
   admin: [
     { label: "Admin", href: "/admin" },
@@ -376,3 +377,5 @@ export default function Navbar() {
     </header>
   );
 }
+
+
