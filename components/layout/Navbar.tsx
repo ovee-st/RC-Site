@@ -97,6 +97,7 @@ export default function Navbar() {
   const initials = getInitials(displayName);
   const resolvedRole = user ? (currentRole === "admin" ? "admin" : currentRole === "viewer" ? "viewer" : currentRole === "employee" ? "employee" : currentRole === "employer" ? "employer" : "candidate") : "guest";
   const navItems = navItemsByRole[resolvedRole];
+  const isAdminNavigation = resolvedRole === "admin" || resolvedRole === "viewer";
 
   const avatar = avatarSrc ? (
     // eslint-disable-next-line @next/next/no-img-element
@@ -217,8 +218,8 @@ export default function Navbar() {
         scrolled && "bg-white/64 shadow-md backdrop-blur-xl dark:bg-slate-950/62"
       )}
     >
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-10 px-6">
-        <div className="flex min-w-0 flex-1 items-center gap-8">
+      <div className={cn("mx-auto flex h-16 max-w-7xl items-center justify-between px-6", isAdminNavigation ? "gap-4" : "gap-10")}>
+        <div className={cn("flex min-w-0 flex-1 items-center", isAdminNavigation ? "gap-5" : "gap-8")}>
           <Link href="/" className="flex shrink-0 items-center gap-3">
             <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-full border border-gray-200 bg-white p-1 shadow-secondary ring-1 ring-black/5 dark:border-white/20 dark:bg-white dark:ring-white/20">
               <Image src="/mx-logo.png" alt="MX Venture Lab logo" width={36} height={36} className="h-full w-full object-contain" priority />
@@ -226,7 +227,7 @@ export default function Navbar() {
             <span className="whitespace-nowrap text-sm font-black tracking-tight text-text-main dark:text-white">MX Venture Lab</span>
           </Link>
 
-          <nav className="hidden items-center gap-6 whitespace-nowrap lg:flex">
+          <nav className={cn("hidden items-center whitespace-nowrap lg:flex", isAdminNavigation ? "gap-4" : "gap-6")}>
             {navItems.map((item) => {
               const active = isActiveRoute(pathname, item.href);
               return (
@@ -252,11 +253,11 @@ export default function Navbar() {
           </nav>
         </div>
 
-        <div className="hidden w-[320px] shrink-0 justify-center md:flex lg:w-[420px]">
-          <GlobalSearch className="md:w-[320px] md:focus-within:w-[320px] lg:focus-within:w-[420px]" />
+        <div className={cn("hidden shrink-0 justify-center md:flex", isAdminNavigation ? "w-[260px] lg:w-[300px]" : "w-[320px] lg:w-[420px]")}>
+          <GlobalSearch className={cn(isAdminNavigation ? "md:w-[260px] md:focus-within:w-[260px] lg:w-[300px] lg:focus-within:w-[300px]" : "md:w-[320px] md:focus-within:w-[320px] lg:focus-within:w-[420px]")} />
         </div>
 
-        <div className="hidden w-[230px] shrink-0 items-center justify-end gap-3 md:flex">
+        <div className={cn("hidden shrink-0 items-center justify-end gap-3 md:flex", isAdminNavigation ? "w-[170px]" : "w-[230px]")}>
           {!loading && !user ? (
             <LinkButton href="/login" className="whitespace-nowrap rounded-full px-5 py-2">Login</LinkButton>
           ) : null}

@@ -442,7 +442,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
     }
 
     const verified = nextPlan === "Pro";
-    const userId = candidate.user_id || candidate.id || "";
+    const userId = candidate.user_id || "";
     const email = getEmail(candidate);
 
     if (isSupabaseConfigured) {
@@ -464,8 +464,20 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
 
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setNotice(payload.error || "Could not update plan.");
-        return;
+        const canFallbackToClientUpdate = response.status === 500 && String(payload.error || "").toLowerCase().includes("service role");
+
+        if (!canFallbackToClientUpdate) {
+          setNotice(payload.error || "Could not update plan.");
+          return;
+        }
+
+        await supabase.from("candidates").update({ plan: nextPlan, verified }).eq("id", candidate.id);
+
+        if (userId) {
+          await supabase.from("profiles").update({ plan: nextPlan, verified }).eq("id", userId);
+        } else if (email) {
+          await supabase.from("profiles").update({ plan: nextPlan, verified }).eq("email", email);
+        }
       }
     }
 
