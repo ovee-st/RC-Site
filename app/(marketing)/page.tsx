@@ -19,6 +19,7 @@ import AnalyticsPanel from "@/components/dashboard/AnalyticsPanel";
 import JobRecommendations from "@/components/dashboard/JobRecommendations";
 import ResumeSection from "@/components/dashboard/ResumeSection";
 import EmployerCommandCenter from "@/components/dashboard/EmployerCommandCenter";
+import AdminPanel from "@/components/admin/AdminPanel";
 import type { CandidateAnalytics, CandidateDocument, CandidateNotification, CandidateProfile, InterviewEvent, SkillAssessment } from "@/types/candidate";
 import type { CandidateApplication, JobRecommendation } from "@/types/application";
 
@@ -173,8 +174,13 @@ function CandidateHomeDashboard({ profile }: { profile: CandidateProfile }) {
 
 export default function LandingPage() {
   const { user, role } = useAuth();
+  const isAdmin = Boolean(user) && (role === "admin" || role === "viewer");
   const isEmployer = Boolean(user) && role === "employer";
-  const isCandidate = Boolean(user) && role !== "employer";
+  const isCandidate = Boolean(user) && role === "candidate";
+
+  if (isAdmin) {
+    return <AdminPanel section="dashboard" />;
+  }
 
   if (isCandidate) {
     const candidateProfile = {

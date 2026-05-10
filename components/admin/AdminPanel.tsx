@@ -60,6 +60,20 @@ type AdminSection =
   | "transactions";
 
 type AnyRecord = Record<string, any>;
+type PlatformRole = "admin" | "viewer" | "employer" | "employee" | "candidate";
+
+const platformRoles: { value: PlatformRole; label: string }[] = [
+  { value: "admin", label: "Admin" },
+  { value: "viewer", label: "Admin (Viewer)" },
+  { value: "employer", label: "Employer" },
+  { value: "employee", label: "Employee" },
+  { value: "candidate", label: "Candidate" }
+];
+
+const roleLabelMap = platformRoles.reduce<Record<string, string>>((labels, role) => {
+  labels[role.value] = role.label;
+  return labels;
+}, {});
 
 type AdminState = {
   profiles: AnyRecord[];
@@ -252,7 +266,8 @@ function StatusBadge({ value, className }: { value?: string | boolean; className
         ? "danger"
         : "neutral";
 
-  return <Badge variant={variant as any} className={className}>{value === true ? "Active" : value === false ? "Inactive" : normalized}</Badge>;
+  const label = value === true ? "Active" : value === false ? "Inactive" : String(value ?? "active");
+  return <Badge variant={variant as any} className={className}>{label}</Badge>;
 }
 
 export default function AdminPanel({ section }: { section: AdminSection }) {
@@ -396,11 +411,119 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
     if (isSupabaseConfigured) {
       await supabase.from(table).update(patch).eq("id", id);
     }
+    const stateKey = ({
+      profiles: "profiles",
+      candidates: "candidates",
+      employers: "employers",
+      jobs: "jobs",
+      applications: "applications",
+      contact_requests: "contactRequests",
+      coupons: "coupons",
+      transactions: "transactions"
+    } as Record<string, keyof AdminState>)[table];
+
+    if (stateKey) {
+      setAdminData((current) => ({
+        ...current,
+        [stateKey]: current[stateKey].map((row) => row.id === id ? { ...row, ...patch } : row)
+      }));
+    }
     setNotice("Update saved");
 
     if ((table === "candidates" || table === "employers") && Object.prototype.hasOwnProperty.call(patch, "verified")) {
       window.setTimeout(() => window.location.reload(), 900);
     }
+  }
+
+  async function updateCandidatePlan(candidate: AnyRecord, nextPlan: "Basic" | "Pro") {
+    if (readOnly) {
+      setNotice("Viewer accounts can inspect admin data, but cannot change plans.");
+      return;
+    }
+
+    const verified = nextPlan === "Pro";
+    const userId = candidate.user_id || candidate.id || "";
+    const email = getEmail(candidate);
+
+    if (isSupabaseConfigured) {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const response = await fetch("/api/admin/update-user-plan", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(sessionData?.session?.access_token ? { Authorization: `Bearer ${sessionData.session.access_token}` } : {})
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          candidate_id: candidate.id,
+          email,
+          plan: nextPlan,
+          verified
+        })
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setNotice(payload.error || "Could not update plan.");
+        return;
+      }
+    }
+
+    setAdminData((current) => ({
+      ...current,
+      profiles: current.profiles.map((row) => (
+        row.id === userId || (email && String(row.email || "").toLowerCase() === email.toLowerCase())
+          ? { ...row, plan: nextPlan, verified }
+          : row
+      )),
+      candidates: current.candidates.map((row) => (
+        row.id === candidate.id || row.user_id === userId || (email && String(row.email || "").toLowerCase() === email.toLowerCase())
+          ? { ...row, plan: nextPlan, verified }
+          : row
+      ))
+    }));
+    setNotice(`Candidate plan changed to ${nextPlan}.`);
+  }
+
+  async function updateUserRole(profile: AnyRecord, nextRole: PlatformRole) {
+    if (readOnly) {
+      setNotice("Viewer accounts can inspect admin data, but cannot change roles.");
+      return;
+    }
+
+    if (!profile?.id || !platformRoles.some((roleItem) => roleItem.value === nextRole)) {
+      setNotice("Could not update role because the user record is invalid.");
+      return;
+    }
+
+    if (isSupabaseConfigured) {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const response = await fetch("/api/admin/update-user-role", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(sessionData?.session?.access_token ? { Authorization: `Bearer ${sessionData.session.access_token}` } : {})
+        },
+        body: JSON.stringify({
+          user_id: profile.id,
+          role: nextRole,
+          full_name: getDisplayName(profile),
+          email: getEmail(profile)
+        })
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setNotice(payload.error || "Could not update role.");
+        return;
+      }
+    }
+
+    setAdminData((current) => ({
+      ...current,
+      profiles: current.profiles.map((row) => row.id === profile.id ? { ...row, role: nextRole } : row)
+    }));
+    setNotice(`Role changed to ${roleLabelMap[nextRole]}.`);
   }
 
   async function deleteRecord(table: string, id: string) {
@@ -598,8 +721,8 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
           ) : (
             <>
               {section === "dashboard" ? <DashboardSection analytics={analytics} chartData={chartData} revenueData={revenueData} data={adminData} /> : null}
-              {section === "users" ? <UsersSection rows={filteredProfiles} query={query} roleFilter={roleFilter} setRoleFilter={setRoleFilter} onUpdate={updateRecord} onDelete={deleteRecord} readOnly={readOnly} onNotice={setNotice} /> : null}
-              {section === "candidates" ? <CandidatesSection rows={adminData.candidates} profiles={adminData.profiles} applications={adminData.applications} onUpdate={updateRecord} readOnly={readOnly} /> : null}
+              {section === "users" ? <UsersSection rows={filteredProfiles} query={query} roleFilter={roleFilter} setRoleFilter={setRoleFilter} onUpdate={updateRecord} onRoleChange={updateUserRole} onDelete={deleteRecord} readOnly={readOnly} onNotice={setNotice} /> : null}
+              {section === "candidates" ? <CandidatesSection rows={adminData.candidates} profiles={adminData.profiles} applications={adminData.applications} onUpdate={updateRecord} onPlanChange={updateCandidatePlan} readOnly={readOnly} /> : null}
               {section === "employers" ? <EmployersSection rows={adminData.employers} jobs={adminData.jobs} onUpdate={updateRecord} readOnly={readOnly} /> : null}
               {section === "jobs" ? <JobsSection rows={adminData.jobs} onUpdate={updateRecord} readOnly={readOnly} /> : null}
               {section === "contact-requests" ? <ContactRequestsSection rows={adminData.contactRequests} onUpdate={updateRecord} onDelete={deleteRecord} /> : null}
@@ -702,6 +825,7 @@ function UsersSection({
   roleFilter,
   setRoleFilter,
   onUpdate,
+  onRoleChange,
   onDelete,
   readOnly,
   onNotice
@@ -711,6 +835,7 @@ function UsersSection({
   roleFilter: string;
   setRoleFilter: (value: string) => void;
   onUpdate: (table: string, id: string, patch: AnyRecord) => void;
+  onRoleChange: (profile: AnyRecord, nextRole: PlatformRole) => void;
   onDelete: (table: string, id: string) => void;
   readOnly: boolean;
   onNotice: (message: string) => void;
@@ -748,7 +873,7 @@ function UsersSection({
     }
 
     setNewUser({ full_name: "", email: "", password: "", role: "admin" });
-    onNotice(`${newUser.role === "viewer" ? "Viewer" : "Admin"} user created successfully.`);
+    onNotice(`${roleLabelMap[newUser.role] || "Internal"} user created successfully.`);
   }
 
   return (
@@ -757,8 +882,8 @@ function UsersSection({
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <p className="type-label text-primary">Internal access</p>
-            <h2 className="mt-2 text-xl font-black text-text-main dark:text-white">Add admin or viewer profile</h2>
-            <p className="type-body mt-1">Admins can edit everything. Viewers can log in and inspect the panel without changing data.</p>
+            <h2 className="mt-2 text-xl font-black text-text-main dark:text-white">Add internal user</h2>
+            <p className="type-body mt-1">Create Admin, Admin (Viewer), or Employee access. Candidate and Employer roles are managed in the user table below.</p>
           </div>
           {readOnly ? <Badge variant="neutral">Read only</Badge> : null}
         </div>
@@ -768,8 +893,8 @@ function UsersSection({
           <Input value={newUser.password} onChange={(event) => setNewUser((current) => ({ ...current, password: event.target.value }))} placeholder="Password" type="password" disabled={readOnly} />
                 <select value={newUser.role} onChange={(event) => setNewUser((current) => ({ ...current, role: event.target.value }))} disabled={readOnly} className="rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-bold dark:border-white/10 dark:bg-slate-900">
                   <option value="admin">Admin</option>
+                  <option value="viewer">Admin (Viewer)</option>
                   <option value="employee">Employee</option>
-                  <option value="viewer">Viewer</option>
                 </select>
           <Button onClick={createInternalUser} disabled={creating || readOnly}>{creating ? "Creating..." : "Add user"}</Button>
         </div>
@@ -783,11 +908,9 @@ function UsersSection({
         </div>
         <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)} className="rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-bold dark:border-white/10 dark:bg-slate-900">
           <option value="all">All roles</option>
-          <option value="candidate">Candidates</option>
-            <option value="employer">Employers</option>
-            <option value="employee">Employees</option>
-            <option value="admin">Admins</option>
-          <option value="viewer">Viewers</option>
+          {platformRoles.map((roleItem) => (
+            <option key={roleItem.value} value={roleItem.value}>{roleItem.label}</option>
+          ))}
         </select>
       </div>
       <div className="overflow-x-auto">
@@ -809,13 +932,22 @@ function UsersSection({
                     </div>
                   </div>
                 </td>
-                <td className="px-5 py-4"><StatusBadge value={row.role || "candidate"} /></td>
+                <td className="px-5 py-4"><StatusBadge value={roleLabelMap[row.role] || row.role || "Candidate"} /></td>
                 <td className="px-5 py-4 text-sm font-bold text-text-muted">{row.plan || "Free"}</td>
                 <td className="px-5 py-4 text-sm font-bold text-text-muted">{row.applications_used || 0}</td>
                 <td className="px-5 py-4 text-sm font-bold text-text-muted">{formatDate(row.created_at)}</td>
                 <td className="px-5 py-4">
                   <div className="flex flex-wrap gap-2">
-                    <Button variant="secondary" className="px-3 py-2" disabled={readOnly} onClick={() => onUpdate("profiles", row.id, { role: row.role === "admin" ? "viewer" : "admin" })}>Change role</Button>
+                    <select
+                      value={platformRoles.some((roleItem) => roleItem.value === row.role) ? row.role : "candidate"}
+                      disabled={readOnly}
+                      onChange={(event) => onRoleChange(row, event.target.value as PlatformRole)}
+                      className="rounded-2xl border border-border bg-surface px-3 py-2 text-sm font-bold text-text-main shadow-soft transition focus:border-primary focus:outline-none dark:border-white/10 dark:bg-slate-900 dark:text-white"
+                    >
+                      {platformRoles.map((roleItem) => (
+                        <option key={roleItem.value} value={roleItem.value}>{roleItem.label}</option>
+                      ))}
+                    </select>
                     <Button variant="secondary" className="px-3 py-2" disabled={readOnly} onClick={() => onUpdate("profiles", row.id, { suspended: !row.suspended })}>Suspend</Button>
                     <Button variant="ghost" className="px-3 py-2 text-danger" disabled={readOnly} onClick={() => onDelete("profiles", row.id)}><Trash2 className="h-4 w-4" /></Button>
                   </div>
@@ -835,12 +967,14 @@ function CandidatesSection({
   profiles,
   applications,
   onUpdate,
+  onPlanChange,
   readOnly
 }: {
   rows: AnyRecord[];
   profiles: AnyRecord[];
   applications: AnyRecord[];
   onUpdate: (table: string, id: string, patch: AnyRecord) => void;
+  onPlanChange: (candidate: AnyRecord, nextPlan: "Basic" | "Pro") => void;
   readOnly: boolean;
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -913,6 +1047,7 @@ function CandidatesSection({
                   <Button disabled={readOnly} onClick={() => {
                     onUpdate("candidates", candidate.id, draft);
                     if (candidate.user_id) onUpdate("profiles", candidate.user_id, { full_name: draft.full_name || draft.name, email: draft.email, plan: draft.plan, verified: draft.verified });
+                    if (draft.plan === "Basic" || draft.plan === "Pro") onPlanChange(candidate, draft.plan);
                     setEditingId(null);
                   }}>Save candidate</Button>
                   <Button variant="secondary" onClick={() => setEditingId(null)}>Cancel</Button>
@@ -924,7 +1059,7 @@ function CandidatesSection({
               <Button variant="secondary" className="px-3 py-2">Designed CV</Button>
               <div className="grid grid-cols-2 gap-2">
                 {["Basic", "Pro"].map((plan) => (
-                  <Button key={plan} variant={String(candidate.plan || "Basic") === plan ? "primary" : "secondary"} className="px-3 py-2" disabled={readOnly} onClick={() => onUpdate("candidates", candidate.id, { plan, verified: plan === "Pro" ? true : candidate.verified })}>{plan}</Button>
+                  <Button key={plan} variant={String(candidate.plan || "Basic") === plan ? "primary" : "secondary"} className="px-3 py-2" disabled={readOnly} onClick={() => onPlanChange(candidate, plan as "Basic" | "Pro")}>{plan}</Button>
                 ))}
               </div>
             </div>
