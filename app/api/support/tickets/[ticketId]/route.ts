@@ -54,5 +54,14 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     .maybeSingle();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+  await context.adminClient.from("ticket_activity").insert({
+    ticket_id: ticketId,
+    actor_id: context.user.id,
+    actor_role: context.profile?.role || "employee",
+    action: body.status ? "status_changed" : "ticket_updated",
+    metadata: patch
+  });
+
   return NextResponse.json({ ticket: data });
 }

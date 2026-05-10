@@ -55,6 +55,7 @@ type AdminSection =
   | "candidates"
   | "employers"
   | "jobs"
+  | "employees"
   | "contact-requests"
   | "coupons"
   | "transactions";
@@ -79,6 +80,7 @@ type AdminState = {
   profiles: AnyRecord[];
   candidates: AnyRecord[];
   employers: AnyRecord[];
+  employees: AnyRecord[];
   jobs: AnyRecord[];
   applications: AnyRecord[];
   contactRequests: AnyRecord[];
@@ -90,6 +92,7 @@ const emptyState: AdminState = {
   profiles: [],
   candidates: [],
   employers: [],
+  employees: [],
   jobs: [],
   applications: [],
   contactRequests: [],
@@ -118,6 +121,10 @@ const sectionMeta: Record<AdminSection, { title: string; description: string }> 
     title: "Job Management",
     description: "Review, edit, archive, and correct any employer job post from one admin list."
   },
+  employees: {
+    title: "Employee Management",
+    description: "Create support employees, monitor access, and keep internal ticket ownership clear."
+  },
   "contact-requests": {
     title: "Contact Requests",
     description: "Handle inbound requests, assign status, and keep support follow-up tidy."
@@ -138,6 +145,7 @@ const navItems = [
   { label: "Candidates", href: "/admin/candidates", key: "candidates", icon: Users },
   { label: "Employers", href: "/admin/employers", key: "employers", icon: BriefcaseBusiness },
   { label: "Jobs", href: "/admin/jobs", key: "jobs", icon: FileText },
+  { label: "Employees", href: "/admin/employees", key: "employees", icon: UserCog },
   { label: "Support Tickets", href: "/admin/support", key: "support", icon: Bell },
   { label: "Contact Requests", href: "/admin/contact-requests", key: "contact-requests", icon: Mail },
   { label: "Coupons", href: "/admin/coupons", key: "coupons", icon: Gift },
@@ -280,6 +288,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
   const [roleFilter, setRoleFilter] = useState("all");
   const [notice, setNotice] = useState<string | null>(null);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [clearedNotificationIds, setClearedNotificationIds] = useState<string[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const readOnly = role === "viewer";
   const canAccessAdmin = role === "admin" || role === "viewer";
@@ -294,10 +303,11 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
 
     async function loadAdminData() {
       setDataLoading(true);
-      const [profiles, candidates, employers, jobs, applications, contactRequests, coupons, transactions] = await Promise.all([
+      const [profiles, candidates, employers, employees, jobs, applications, contactRequests, coupons, transactions] = await Promise.all([
         safeSelect("profiles"),
         safeSelect("candidates"),
         safeSelect("employers"),
+        safeSelect("employees"),
         safeSelect("jobs"),
         safeSelect("applications"),
         safeSelect("contact_requests"),
@@ -311,6 +321,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
         profiles: profiles.length ? profiles : fallbackProfiles,
         candidates,
         employers,
+        employees,
         jobs,
         applications,
         contactRequests: contactRequests.length ? contactRequests : fallbackContacts,
@@ -403,6 +414,18 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
       .slice(0, 10);
   }, [adminData.contactRequests, adminData.profiles, adminData.transactions]);
 
+  const visibleAdminNotifications = useMemo(() => (
+    adminNotifications.filter((item) => !clearedNotificationIds.includes(item.id))
+  ), [adminNotifications, clearedNotificationIds]);
+
+  function clearAdminNotifications() {
+    setClearedNotificationIds((current) => {
+      const next = new Set(current);
+      visibleAdminNotifications.forEach((item) => next.add(item.id));
+      return Array.from(next);
+    });
+  }
+
   async function updateRecord(table: string, id: string, patch: AnyRecord) {
     if (readOnly) {
       setNotice("Viewer accounts can inspect admin data, but cannot make changes.");
@@ -415,6 +438,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
       profiles: "profiles",
       candidates: "candidates",
       employers: "employers",
+      employees: "employees",
       jobs: "jobs",
       applications: "applications",
       contact_requests: "contactRequests",
@@ -673,20 +697,31 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
                     aria-label="Admin notifications"
                   >
                     <Bell className="h-5 w-5 text-text-muted" />
-                    {adminNotifications.length ? (
+                    {visibleAdminNotifications.length ? (
                       <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-danger px-1 text-[10px] font-black text-white">
-                        {adminNotifications.length}
+                        {visibleAdminNotifications.length}
                       </span>
                     ) : null}
                   </button>
                   {notificationsOpen ? (
                     <div className="absolute right-0 top-full z-50 mt-3 w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-border bg-white shadow-elevated dark:border-white/10 dark:bg-slate-950">
-                      <div className="border-b border-border p-4 dark:border-white/10">
-                        <p className="type-label text-primary">Notifications</p>
-                        <h3 className="mt-1 text-lg font-black text-text-main dark:text-white">Admin activity</h3>
+                      <div className="flex items-start justify-between gap-3 border-b border-border p-4 dark:border-white/10">
+                        <div>
+                          <p className="type-label text-primary">Notifications</p>
+                          <h3 className="mt-1 text-lg font-black text-text-main dark:text-white">Admin activity</h3>
+                        </div>
+                        {visibleAdminNotifications.length ? (
+                          <button
+                            type="button"
+                            onClick={clearAdminNotifications}
+                            className="rounded-full border border-border px-3 py-1 text-xs font-black text-text-muted transition hover:border-primary/30 hover:bg-primary/5 hover:text-primary dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
+                          >
+                            Clear
+                          </button>
+                        ) : null}
                       </div>
                       <div className="max-h-96 overflow-y-auto p-2">
-                        {adminNotifications.length ? adminNotifications.map((item) => {
+                        {visibleAdminNotifications.length ? visibleAdminNotifications.map((item) => {
                           const Icon = item.icon;
                           return (
                             <Link
@@ -737,6 +772,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
               {section === "candidates" ? <CandidatesSection rows={adminData.candidates} profiles={adminData.profiles} applications={adminData.applications} onUpdate={updateRecord} onPlanChange={updateCandidatePlan} readOnly={readOnly} /> : null}
               {section === "employers" ? <EmployersSection rows={adminData.employers} jobs={adminData.jobs} onUpdate={updateRecord} readOnly={readOnly} /> : null}
               {section === "jobs" ? <JobsSection rows={adminData.jobs} onUpdate={updateRecord} readOnly={readOnly} /> : null}
+              {section === "employees" ? <EmployeesSection rows={adminData.employees} onUpdate={updateRecord} readOnly={readOnly} /> : null}
               {section === "contact-requests" ? <ContactRequestsSection rows={adminData.contactRequests} onUpdate={updateRecord} onDelete={deleteRecord} /> : null}
               {section === "coupons" ? <CouponsSection rows={adminData.coupons} onCreate={createCoupon} onGenerate={generateCoupon} onUpdate={updateRecord} onDelete={deleteRecord} readOnly={readOnly} /> : null}
               {section === "transactions" ? <TransactionsSection rows={adminData.transactions} /> : null}
@@ -1253,6 +1289,70 @@ function JobsSection({ rows, onUpdate, readOnly }: { rows: AnyRecord[]; onUpdate
           </Card>
         );
       })}
+    </div>
+  );
+}
+
+function EmployeesSection({ rows, onUpdate, readOnly }: { rows: AnyRecord[]; onUpdate: (table: string, id: string, patch: AnyRecord) => void; readOnly: boolean }) {
+  const activeEmployees = rows.filter((employee) => employee.is_active !== false);
+
+  return (
+    <div className="grid gap-4">
+      <Card className="rounded-3xl p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="type-label text-primary">Support team</p>
+            <h2 className="mt-1 text-xl font-black text-text-main dark:text-white">{activeEmployees.length} active employee{activeEmployees.length === 1 ? "" : "s"}</h2>
+            <p className="mt-1 text-sm font-semibold text-text-muted">Create employee accounts from Users. Manage activation, department, and ticket ownership here.</p>
+          </div>
+          <LinkButton href="/admin/users" className="rounded-2xl">Add employee</LinkButton>
+        </div>
+      </Card>
+
+      {rows.length ? rows.map((employee) => (
+        <Card key={employee.id || employee.user_id || employee.email} className="rounded-3xl p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex min-w-0 gap-4">
+              <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-primary to-success text-sm font-black text-white">
+                {employee.avatar_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={employee.avatar_url} alt={employee.full_name || employee.email} className="h-full w-full object-cover" />
+                ) : getInitials(employee.full_name || employee.email)}
+              </div>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-lg font-black text-text-main dark:text-white">{employee.full_name || "Support employee"}</h3>
+                  <Badge variant={employee.is_active === false ? "neutral" : "success"}>{employee.is_active === false ? "inactive" : "active"}</Badge>
+                </div>
+                <p className="mt-1 text-sm font-bold text-text-muted">{employee.email}</p>
+                <p className="mt-1 text-sm font-semibold text-text-muted">{employee.department || "Support"} - {employee.username || employee.id}</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="secondary"
+                disabled={readOnly}
+                onClick={() => onUpdate("employees", employee.id || employee.user_id, { is_active: employee.is_active === false })}
+              >
+                {employee.is_active === false ? "Activate" : "Deactivate"}
+              </Button>
+              <Button
+                variant="secondary"
+                disabled={readOnly}
+                onClick={() => onUpdate("employees", employee.id || employee.user_id, { department: employee.department === "Support" ? "Support Manager" : "Support" })}
+              >
+                Toggle department
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )) : (
+        <Card className="rounded-3xl p-8 text-center">
+          <UserCog className="mx-auto h-8 w-8 text-primary" />
+          <h3 className="mt-3 text-lg font-black text-text-main dark:text-white">No employees yet</h3>
+          <p className="mt-2 text-sm font-semibold text-text-muted">Create the first employee from the Users tab and select the Employee role.</p>
+        </Card>
+      )}
     </div>
   );
 }

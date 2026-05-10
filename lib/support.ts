@@ -4,6 +4,17 @@ export const ticketStatuses: SupportTicketStatus[] = ["OPEN", "IN_PROGRESS", "WA
 
 export const ticketPriorities: SupportTicketPriority[] = ["LOW", "MEDIUM", "HIGH", "URGENT"];
 
+export const ticketCategories = [
+  "Billing",
+  "CV Generation",
+  "Job Applications",
+  "Profile Issues",
+  "Hiring Pipeline",
+  "Subscription",
+  "Technical Bug",
+  "Other"
+] as const;
+
 export function formatTicketStatus(status: SupportTicketStatus | string) {
   return String(status).replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
 }
@@ -40,6 +51,7 @@ export const demoSupportTickets: SupportTicket[] = [
     user_role: "candidate",
     username: "candidate_000245",
     subject: "Profile photo upload issue",
+    category: "Profile Issues",
     message: "My profile photo is not showing after upload.",
     priority: "HIGH",
     status: "OPEN",
@@ -54,6 +66,7 @@ export const demoSupportTickets: SupportTicket[] = [
     user_role: "employer",
     username: "employer_000081",
     subject: "Need help archiving a job",
+    category: "Hiring Pipeline",
     message: "A closed job is still visible on the public jobs page.",
     priority: "MEDIUM",
     status: "IN_PROGRESS",
@@ -88,4 +101,8 @@ export const demoTicketMessages: TicketMessage[] = [
 
 export function normalizeSupportRole(role?: string | null): SupportUserRole {
   return role === "employer" || role === "employee" || role === "admin" ? role : "candidate";
+}
+
+export function normalizeTicketUserRole(role?: string | null): "candidate" | "employer" {
+  return role === "employer" ? "employer" : "candidate";
 }

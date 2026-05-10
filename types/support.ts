@@ -14,13 +14,16 @@ export type SupportTicket = {
   id: string;
   ticket_number: string;
   user_id: string;
-  user_role: SupportUserRole;
+  user_role: "candidate" | "employer";
   username: string;
   subject: string;
+  category?: string;
   message: string;
   priority: SupportTicketPriority;
   status: SupportTicketStatus;
   assigned_employee_id?: string | null;
+  assigned_employee?: EmployeeProfile | null;
+  attachment_url?: string | null;
   attachment_urls?: string[];
   created_at: string;
   updated_at?: string;
@@ -32,6 +35,7 @@ export type TicketMessage = {
   sender_id: string;
   sender_role: SupportUserRole;
   message: string;
+  attachment_url?: string | null;
   internal_note: boolean;
   attachment_urls?: string[];
   created_at: string;
@@ -46,5 +50,15 @@ export type EmployeeProfile = {
   department?: string;
   permissions: string[];
   active: boolean;
+  created_at: string;
+};
+
+export type TicketActivity = {
+  id: string;
+  ticket_id: string;
+  actor_id: string;
+  actor_role: SupportUserRole;
+  action: string;
+  metadata?: Record<string, unknown>;
   created_at: string;
 };

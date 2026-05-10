@@ -76,15 +76,25 @@ export async function POST(request: Request) {
   }
 
   if (role === "employee") {
-    await adminClient.from("employees").upsert({
+    const employeePayload = {
+      id: created.user.id,
       user_id: created.user.id,
       full_name: fullName,
       email,
+      avatar_url: null,
       username: `employee_${String(Date.now()).slice(-6)}`,
       department: body.department || "Support",
       permissions: body.permissions || ["tickets:read", "tickets:update", "messages:create"],
-      active: true
-    }, { onConflict: "user_id" });
+      active: true,
+      is_active: true,
+      role: "employee"
+    };
+
+    const employeeWrite = await adminClient.from("employees").upsert(employeePayload, { onConflict: "id" });
+    if (employeeWrite.error && /user_id|permissions|active/i.test(employeeWrite.error.message)) {
+      const { user_id: _userId, permissions: _permissions, active: _active, ...strictEmployeePayload } = employeePayload;
+      await adminClient.from("employees").upsert(strictEmployeePayload, { onConflict: "id" });
+    }
   }
 
   return NextResponse.json({ ok: true, user: { id: created.user.id, email, full_name: fullName, role } });

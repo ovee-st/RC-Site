@@ -73,19 +73,42 @@ export async function POST(request: Request, { params }: RouteContext) {
   const senderRole = normalizeSupportRole(context.profile?.role);
   const internalNote = Boolean(body.internal_note && (senderRole === "admin" || senderRole === "employee"));
 
-  const { data, error } = await context.adminClient
+  const messagePayload = {
+    ticket_id: ticketId,
+    sender_id: context.user.id,
+    sender_role: senderRole,
+    message,
+    internal_note: internalNote,
+    attachment_url: Array.isArray(body.attachment_urls) ? body.attachment_urls[0] || null : body.attachment_url || null,
+    attachment_urls: body.attachment_urls || []
+  };
+
+  let { data, error } = await context.adminClient
     .from("ticket_messages")
-    .insert({
-      ticket_id: ticketId,
-      sender_id: context.user.id,
-      sender_role: senderRole,
-      message,
-      internal_note: internalNote,
-      attachment_urls: body.attachment_urls || []
-    })
+    .insert(messagePayload)
     .select("*")
     .maybeSingle();
 
+  if (error && /attachment_url|attachment_urls/i.test(error.message)) {
+    const { attachment_url: _attachmentUrl, attachment_urls: _attachmentUrls, ...legacyPayload } = messagePayload;
+    const retry = await context.adminClient
+      .from("ticket_messages")
+      .insert(legacyPayload)
+      .select("*")
+      .maybeSingle();
+    data = retry.data;
+    error = retry.error;
+  }
+
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+  await context.adminClient.from("ticket_activity").insert({
+    ticket_id: ticketId,
+    actor_id: context.user.id,
+    actor_role: senderRole,
+    action: internalNote ? "internal_note_added" : "reply_added",
+    metadata: {}
+  });
+
   return NextResponse.json({ message: data });
 }

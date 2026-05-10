@@ -31,7 +31,7 @@ const navItemsByRole = {
   ],
   employee: [
     { label: "Support Desk", href: "/employee" },
-    { label: "Tickets", href: "/employee" }
+    { label: "Tickets", href: "/employee/tickets" }
   ],
   admin: [
     { label: "Admin", href: "/admin" },
@@ -39,6 +39,7 @@ const navItemsByRole = {
     { label: "Candidates", href: "/admin/candidates" },
     { label: "Employers", href: "/admin/employers" },
     { label: "Jobs", href: "/admin/jobs" },
+    { label: "Employees", href: "/admin/employees" },
     { label: "Support", href: "/admin/support" }
   ],
   viewer: [
@@ -47,6 +48,7 @@ const navItemsByRole = {
     { label: "Candidates", href: "/admin/candidates" },
     { label: "Employers", href: "/admin/employers" },
     { label: "Jobs", href: "/admin/jobs" },
+    { label: "Employees", href: "/admin/employees" },
     { label: "Support", href: "/admin/support" }
   ]
 };

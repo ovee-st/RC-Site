@@ -27,6 +27,7 @@ import {
   formatTicketStatus,
   getTicketTone,
   normalizeSupportRole,
+  ticketCategories,
   ticketPriorities,
   ticketStatuses
 } from "@/lib/support";
@@ -44,6 +45,7 @@ type TicketCenterProps = {
 
 type TicketDraft = {
   subject: string;
+  category: string;
   message: string;
   priority: SupportTicketPriority;
   files: File[];
@@ -51,6 +53,7 @@ type TicketDraft = {
 
 const emptyDraft: TicketDraft = {
   subject: "",
+  category: "Other",
   message: "",
   priority: "MEDIUM",
   files: []
@@ -206,9 +209,10 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
       id,
       ticket_number: `RC-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 899999)}`,
       user_id: user.id,
-      user_role: currentRole,
+      user_role: currentRole === "employer" ? "employer" : "candidate",
       username,
       subject: draft.subject.trim(),
+      category: draft.category,
       message: draft.message.trim(),
       priority: draft.priority,
       status: "OPEN",
@@ -217,14 +221,29 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
     };
 
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase.from("support_tickets").insert(ticket).select("*").maybeSingle();
-      if (error) {
-        setStatusMessage(error.message);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const response = await fetch("/api/support/tickets", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(sessionData?.session?.access_token ? { Authorization: `Bearer ${sessionData.session.access_token}` } : {})
+        },
+        body: JSON.stringify({
+          subject: ticket.subject,
+          category: draft.category,
+          message: ticket.message,
+          priority: ticket.priority,
+          attachment_urls
+        })
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setStatusMessage(payload.error || "Could not create ticket.");
         setIsCreating(false);
         return;
       }
-      upsertTicket(data as SupportTicket);
-      selectTicket((data as SupportTicket).id);
+      upsertTicket(payload.ticket as SupportTicket);
+      selectTicket((payload.ticket as SupportTicket).id);
     } else {
       const localTicket = { ...ticket, created_at: new Date().toISOString() } as SupportTicket;
       upsertTicket(localTicket);
@@ -250,12 +269,25 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
     };
 
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase.from("ticket_messages").insert(message).select("*").maybeSingle();
-      if (error) {
-        setStatusMessage(error.message);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const response = await fetch(`/api/support/tickets/${selectedTicket.id}/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(sessionData?.session?.access_token ? { Authorization: `Bearer ${sessionData.session.access_token}` } : {})
+        },
+        body: JSON.stringify({
+          message: message.message,
+          internal_note: message.internal_note,
+          attachment_urls: message.attachment_urls
+        })
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setStatusMessage(payload.error || "Could not send reply.");
         return;
       }
-      addMessage(data as TicketMessage);
+      addMessage(payload.message as TicketMessage);
     } else {
       addMessage({ ...message, created_at: new Date().toISOString() });
     }
@@ -267,7 +299,15 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
   async function updateStatus(ticketId: string, status: SupportTicketStatus) {
     moveTicket(ticketId, status);
     if (isSupabaseConfigured) {
-      await supabase.from("support_tickets").update({ status, updated_at: new Date().toISOString() }).eq("id", ticketId);
+      const { data: sessionData } = await supabase.auth.getSession();
+      await fetch(`/api/support/tickets/${ticketId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...(sessionData?.session?.access_token ? { Authorization: `Bearer ${sessionData.session.access_token}` } : {})
+        },
+        body: JSON.stringify({ status })
+      });
     }
   }
 
@@ -276,7 +316,17 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
     const patch = { assigned_employee_id: user.id, status: "IN_PROGRESS" as SupportTicketStatus, updated_at: new Date().toISOString() };
     const ticket = tickets.find((item) => item.id === ticketId);
     if (ticket) upsertTicket({ ...ticket, ...patch });
-    if (isSupabaseConfigured) await supabase.from("support_tickets").update(patch).eq("id", ticketId);
+    if (isSupabaseConfigured) {
+      const { data: sessionData } = await supabase.auth.getSession();
+      await fetch(`/api/support/tickets/${ticketId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...(sessionData?.session?.access_token ? { Authorization: `Bearer ${sessionData.session.access_token}` } : {})
+        },
+        body: JSON.stringify({ assigned_employee_id: user.id, status: "IN_PROGRESS" })
+      });
+    }
   }
 
   async function onDragEnd(result: DropResult) {
@@ -310,7 +360,7 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
   }
 
   return (
-    <div className="mx-auto max-w-[1440px] px-4 py-8 sm:px-6">
+    <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6">
       <div className="mb-6 grid gap-4 rounded-[2rem] border border-white/60 bg-white/82 p-5 shadow-elevated backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/75 lg:grid-cols-[1fr_auto]">
         <div>
           <Badge variant="primary" className="type-label">{isAgent ? "Employee Support Desk" : "Support Center"}</Badge>
@@ -346,8 +396,8 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
         </div>
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-[380px_1fr]">
-        <div className="grid gap-5">
+      <div className="grid min-w-0 gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
+        <div className="grid min-w-0 gap-5">
           {!isAgent ? (
             <Card className="rounded-3xl p-5">
               <div className="flex items-start gap-3">
@@ -361,6 +411,13 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
               </div>
               <div className="mt-5 grid gap-3">
                 <Input value={draft.subject} onChange={(event) => setDraft((current) => ({ ...current, subject: event.target.value }))} placeholder="Ticket subject" />
+                <select
+                  value={draft.category}
+                  onChange={(event) => setDraft((current) => ({ ...current, category: event.target.value }))}
+                  className="rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-bold dark:border-white/10 dark:bg-slate-900"
+                >
+                  {ticketCategories.map((category) => <option key={category} value={category}>{category}</option>)}
+                </select>
                 <textarea
                   value={draft.message}
                   onChange={(event) => setDraft((current) => ({ ...current, message: event.target.value }))}
@@ -414,7 +471,7 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
                       <div className="min-w-0">
                         <p className="text-xs font-black uppercase tracking-wider text-primary">{ticket.ticket_number}</p>
                         <h3 className="mt-1 line-clamp-2 text-sm font-black text-text-main dark:text-white">{ticket.subject}</h3>
-                        <p className="mt-1 truncate text-xs font-semibold text-text-muted">{ticket.username} • {ticket.user_role}</p>
+                        <p className="mt-1 truncate text-xs font-semibold text-text-muted">{ticket.username} - {ticket.user_role} - {ticket.category || "Other"}</p>
                       </div>
                       <Badge variant={getTicketTone(ticket.status) as any}>{formatTicketStatus(ticket.status)}</Badge>
                     </div>
@@ -435,9 +492,9 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
           </Card>
         </div>
 
-        <div className="grid gap-6">
+        <div className="grid min-w-0 gap-6">
           {isAgent ? (
-            <Card className="rounded-3xl p-4">
+            <Card className="min-w-0 overflow-hidden rounded-3xl p-4">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
                   <p className="type-label text-primary">Kanban workflow</p>
@@ -446,7 +503,7 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
                 <p className="text-xs font-bold text-text-muted">Drag cards to update status</p>
               </div>
               <DragDropContext onDragEnd={onDragEnd}>
-                <div className="flex gap-3 overflow-x-auto pb-2">
+                <div className="flex max-w-full gap-3 overflow-x-auto pb-2">
                   {ticketStatuses.map((status) => {
                     const StatusIcon = statusIcon(status);
                     const statusTickets = tickets.filter((ticket) => ticket.status === status);
@@ -457,7 +514,7 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
                             ref={provided.innerRef}
                             {...provided.droppableProps}
                             className={cn(
-                              "min-h-[220px] w-64 shrink-0 rounded-2xl border border-border bg-bg p-3 transition dark:border-white/10 dark:bg-white/5",
+                              "min-h-[220px] w-[220px] shrink-0 rounded-2xl border border-border bg-bg p-3 transition dark:border-white/10 dark:bg-white/5 2xl:w-[232px]",
                               snapshot.isDraggingOver && "border-primary bg-primary/5"
                             )}
                           >
@@ -482,7 +539,7 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
                                     >
                                       <p className="text-xs font-black text-primary">{ticket.ticket_number}</p>
                                       <p className="mt-1 line-clamp-2 text-sm font-black text-text-main dark:text-white">{ticket.subject}</p>
-                                      <p className="mt-2 text-xs font-bold text-text-muted">{ticket.priority} • {ticket.username}</p>
+                                      <p className="mt-2 text-xs font-bold text-text-muted">{ticket.priority} - {ticket.username}</p>
                                     </button>
                                   )}
                                 </Draggable>
@@ -499,7 +556,7 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
             </Card>
           ) : null}
 
-          <Card className="rounded-3xl p-0">
+          <Card className="min-w-0 overflow-hidden rounded-3xl p-0">
             {selectedTicket ? (
               <>
                 <div className="border-b border-border p-5 dark:border-white/10">
