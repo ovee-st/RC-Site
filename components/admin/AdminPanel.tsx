@@ -48,6 +48,7 @@ import Badge from "@/components/ui/Badge";
 import Input from "@/components/ui/Input";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
+import { mergeRowsWithProfiles } from "@/lib/authUserSync";
 
 type AdminSection =
   | "dashboard"
@@ -303,6 +304,26 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
 
     async function loadAdminData() {
       setDataLoading(true);
+      let syncedCandidates: AnyRecord[] = [];
+      let syncedEmployers: AnyRecord[] = [];
+
+      if (isSupabaseConfigured) {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+        if (token) {
+          const response = await fetch("/api/admin/sync-auth-users", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` }
+          }).catch(() => null);
+
+          if (response?.ok) {
+            const payload = await response.json().catch(() => ({}));
+            syncedCandidates = Array.isArray(payload.candidates) ? payload.candidates : [];
+            syncedEmployers = Array.isArray(payload.employers) ? payload.employers : [];
+          }
+        }
+      }
+
       const [profiles, candidates, employers, employees, jobs, applications, contactRequests, coupons, transactions] = await Promise.all([
         safeSelect("profiles"),
         safeSelect("candidates"),
@@ -319,8 +340,8 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
 
       setAdminData({
         profiles: profiles.length ? profiles : fallbackProfiles,
-        candidates,
-        employers,
+        candidates: syncedCandidates.length ? syncedCandidates : mergeRowsWithProfiles(candidates, profiles.length ? profiles : fallbackProfiles, "candidate"),
+        employers: syncedEmployers.length ? syncedEmployers : mergeRowsWithProfiles(employers, profiles.length ? profiles : fallbackProfiles, "employer"),
         employees,
         jobs,
         applications,

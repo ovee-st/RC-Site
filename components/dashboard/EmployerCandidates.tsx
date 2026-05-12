@@ -163,6 +163,23 @@ export default function EmployerCandidates() {
       }
 
       try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+        const response = token
+          ? await fetch("/api/candidates/registered", {
+            headers: { Authorization: `Bearer ${token}` }
+          }).catch(() => null)
+          : null;
+
+        if (response?.ok) {
+          const payload = await response.json().catch(() => ({}));
+          const registered = Array.isArray(payload.candidates) ? payload.candidates.map(mapCandidateRow) : [];
+          if (registered.length) {
+            setCandidates(registered);
+            return;
+          }
+        }
+
         const { data, error } = await supabase
           .from("candidates")
           .select("id, user_id, full_name, name, title, career_level, category, categories, skills, skills_array, about, photo_url, avatar, location, linkedin_url");

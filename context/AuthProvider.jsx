@@ -56,7 +56,20 @@ async function loadProfile(authUser) {
     .eq("id", authUser.id)
     .maybeSingle();
 
-  return data;
+  const { data: sessionData } = await supabase.auth.getSession();
+  const token = sessionData?.session?.access_token;
+  if (!token) return data || null;
+
+  const response = await fetch("/api/profile/ensure", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  }).catch(() => null);
+
+  if (!response?.ok) return data || null;
+  const payload = await response.json().catch(() => ({}));
+  return payload.profile || data || null;
 }
 
 function getMockUser() {
