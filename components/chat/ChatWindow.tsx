@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, PhoneOff, ShieldCheck, Sparkles } from "lucide-react";
+import { Loader2, MessageCircle, PhoneOff, ShieldCheck, Sparkles } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { formatLiveChatStatus } from "@/lib/liveChat";
@@ -102,6 +102,22 @@ export default function ChatWindow({ sessionId, mode = "user", onSessionChange }
   }
 
   if (!sessionId || !activeSession) {
+    if (mode !== "user") {
+      return (
+        <div className="grid min-h-[360px] place-items-center rounded-3xl border border-border bg-white p-8 text-center shadow-elevated dark:border-white/10 dark:bg-slate-950">
+          <div>
+            <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-primary/10 text-primary">
+              <MessageCircle className="h-5 w-5" />
+            </div>
+            <h3 className="mt-4 text-xl font-black text-text-main dark:text-white">Select a live chat</h3>
+            <p className="mt-2 max-w-sm text-sm font-semibold text-text-muted">
+              Waiting and active conversations will open here for support follow-up.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="grid gap-4 rounded-3xl border border-border bg-white p-5 shadow-elevated dark:border-white/10 dark:bg-slate-950">
         <div className="grid h-12 w-12 place-items-center rounded-2xl bg-primary/10 text-primary">
@@ -149,6 +165,7 @@ export default function ChatWindow({ sessionId, mode = "user", onSessionChange }
     </div>
   );
 }
+
 
 
 
