@@ -12,11 +12,34 @@ import PriorityIndicator from "@/components/ui/PriorityIndicator";
 import { cn } from "@/lib/cn";
 import { useAuth } from "@/hooks/useAuth";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
+import { normalizeDateValue, normalizeJobStatus } from "@/lib/jobUpdate";
 
 function isExpired(deadline?: string) {
   if (!deadline) return false;
   const deadlineDate = new Date(`${deadline}T23:59:59`);
   return Number.isFinite(deadlineDate.getTime()) && deadlineDate < new Date();
+}
+
+async function persistJobUpdate(jobId: string, patch: Record<string, any>) {
+  if (!isSupabaseConfigured) return;
+
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) return;
+
+  const response = await fetch(`/api/jobs/${jobId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(patch)
+  });
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload.error || "Could not update job.");
+  }
 }
 
 function salaryLabel(job: Job) {
@@ -64,7 +87,7 @@ export default function JobItem({ job, matchScore }: { job: Job; matchScore: num
   const staleJob = matchScore < 45;
   const isEmployer = role === "employer";
   const isCandidate = role === "candidate";
-  const archived = job.status === "archived" || isExpired(job.deadline);
+  const archived = normalizeJobStatus(job.status) === "archived" || isExpired(job.deadline);
   const hired = job.status === "hired";
   const employerPhotoUrl = job.employerPhotoUrl || localEmployerPhoto;
 
@@ -78,28 +101,30 @@ export default function JobItem({ job, matchScore }: { job: Job; matchScore: num
     }
   }, []);
 
-  const saveEdit = () => {
-    updateJob(job.id, {
+  const saveEdit = async () => {
+    const updates = {
       title: draft.title,
       location: draft.location,
       salaryMin: Number(draft.salaryMin) || job.salaryMin,
       salaryMax: Number(draft.salaryMax) || job.salaryMax,
-      deadline: draft.deadline
-    });
+      deadline: normalizeDateValue(draft.deadline)
+    };
+    updateJob(job.id, updates);
     setEditing(false);
+
+    try {
+      await persistJobUpdate(job.id, updates);
+    } catch {
+      // The optimistic UI remains in place; a later refresh will reconcile any server failure.
+    }
   };
 
   const setJobStatus = async (status: Job["status"]) => {
-    updateJob(job.id, { status });
-
-    if (!isSupabaseConfigured || !isEmployer) return;
+    const normalizedStatus = normalizeJobStatus(status);
+    updateJob(job.id, { status: normalizedStatus });
 
     try {
-      await supabase
-        .from("jobs")
-        .update({ status })
-        .eq("id", job.id)
-        .throwOnError();
+      await persistJobUpdate(job.id, { status: normalizedStatus });
     } catch {
       // Keep the UI responsive; the next Supabase refresh will reconcile any failed update.
     }

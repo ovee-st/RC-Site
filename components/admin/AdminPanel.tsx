@@ -49,6 +49,7 @@ import Input from "@/components/ui/Input";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import { mergeRowsWithProfiles } from "@/lib/authUserSync";
+import { normalizeDateValue, normalizeJobPatch, normalizeJobStatus } from "@/lib/jobUpdate";
 
 type AdminSection =
   | "dashboard"
@@ -452,8 +453,35 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
       setNotice("Viewer accounts can inspect admin data, but cannot make changes.");
       return;
     }
+    let savedPatch = patch;
+
     if (isSupabaseConfigured) {
-      await supabase.from(table).update(patch).eq("id", id);
+      if (table === "jobs") {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const response = await fetch(`/api/jobs/${id}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            ...(sessionData.session?.access_token ? { Authorization: `Bearer ${sessionData.session.access_token}` } : {})
+          },
+          body: JSON.stringify(patch)
+        });
+
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          setNotice(payload.error || "Could not update job.");
+          return;
+        }
+
+        savedPatch = normalizeJobPatch(patch);
+        if (payload.status) savedPatch.status = payload.status;
+      } else {
+        const { error } = await supabase.from(table).update(patch).eq("id", id);
+        if (error) {
+          setNotice(error.message);
+          return;
+        }
+      }
     }
     const stateKey = ({
       profiles: "profiles",
@@ -470,7 +498,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
     if (stateKey) {
       setAdminData((current) => ({
         ...current,
-        [stateKey]: current[stateKey].map((row) => row.id === id ? { ...row, ...patch } : row)
+        [stateKey]: current[stateKey].map((row) => row.id === id ? { ...row, ...savedPatch } : row)
       }));
     }
     setNotice("Update saved");
@@ -1264,8 +1292,8 @@ function JobsSection({ rows, onUpdate, readOnly }: { rows: AnyRecord[]; onUpdate
       experience_years: job.experience_years || job.required_experience || "",
       salary_min: job.salary_min || "",
       salary_max: job.salary_max || "",
-      status: job.status || "active",
-      last_date: job.last_date || job.deadline || "",
+      status: normalizeJobStatus(job.status),
+      last_date: normalizeDateValue(job.last_date || job.deadline),
       description: job.description || "",
       requirements: job.requirements || ""
     });
@@ -1314,7 +1342,7 @@ function JobsSection({ rows, onUpdate, readOnly }: { rows: AnyRecord[]; onUpdate
                   </select>
                   <Input value={draft.salary_min || ""} onChange={(event) => setDraft((current) => ({ ...current, salary_min: event.target.value }))} placeholder="Min salary" />
                   <Input value={draft.salary_max || ""} onChange={(event) => setDraft((current) => ({ ...current, salary_max: event.target.value }))} placeholder="Max salary" />
-                  <Input value={draft.last_date || ""} onChange={(event) => setDraft((current) => ({ ...current, last_date: event.target.value }))} placeholder="Application deadline" />
+                  <Input value={draft.last_date || ""} onChange={(event) => setDraft((current) => ({ ...current, last_date: event.target.value }))} placeholder="Application deadline" type="date" />
                 </div>
                 <textarea value={draft.description || ""} onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))} placeholder="Description" className="mt-3 min-h-28 w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-semibold outline-none focus:border-primary dark:border-white/10 dark:bg-slate-900" />
                 <textarea value={draft.requirements || ""} onChange={(event) => setDraft((current) => ({ ...current, requirements: event.target.value }))} placeholder="Requirements" className="mt-3 min-h-28 w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-semibold outline-none focus:border-primary dark:border-white/10 dark:bg-slate-900" />

@@ -1,4 +1,5 @@
 import type { Job } from "@/types";
+import { normalizeJobStatus } from "@/lib/jobUpdate";
 
 export function mapSupabaseJob(row: any): Job {
   const skills = Array.isArray(row.required_skills_array)
@@ -26,7 +27,7 @@ export function mapSupabaseJob(row: any): Job {
     deadline: row.last_date || row.deadline || "",
     bannerUrl: row.banner_url || null,
     employerPhotoUrl: row.employer_photo_url || row.photo_url || row.company_logo_url || null,
-    status: row.status || "active",
+    status: normalizeJobStatus(row.status) as Job["status"],
     skills,
     description: row.description || "Job description will be shared by the employer.",
     requirements: row.requirements || "Requirements will be shared by the employer.",

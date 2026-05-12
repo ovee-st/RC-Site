@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import Card from "@/components/ui/Card";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import type { Job } from "@/types";
+import { normalizeJobStatus } from "@/lib/jobUpdate";
 
 function mapSupabaseJob(row: any): Job {
   const skills = Array.isArray(row.required_skills_array)
@@ -40,7 +41,7 @@ function mapSupabaseJob(row: any): Job {
     deadline: row.last_date || row.deadline || "",
     bannerUrl: row.banner_url || null,
     employerPhotoUrl: row.employer_photo_url || row.photo_url || row.company_logo_url || null,
-    status: row.status || "active",
+    status: normalizeJobStatus(row.status) as Job["status"],
     skills,
     description: row.description || "Job description will be shared by the employer.",
     requirements: row.requirements || "Requirements will be shared by the employer.",
@@ -94,7 +95,7 @@ export default function JobList({ headerAction, showArchived = false }: { header
 
   const rankedJobs = useMemo(() => jobs
     .filter((job) => {
-      const effectiveStatus = isExpired(job.deadline) ? "archived" : (job.status || "active");
+      const effectiveStatus = isExpired(job.deadline) ? "archived" : normalizeJobStatus(job.status);
       const visibleStatus = role === "employer"
         ? showArchived
           ? effectiveStatus === "archived"
@@ -117,8 +118,8 @@ export default function JobList({ headerAction, showArchived = false }: { header
     .sort((a, b) => b.matchScore - a.matchScore),
   [jobs, filters, role, showArchived]);
 
-  const openCount = jobs.filter((job) => (job.status || "active") === "active" && !isExpired(job.deadline)).length;
-  const archivedCount = jobs.filter((job) => job.status === "archived" || isExpired(job.deadline)).length;
+  const openCount = jobs.filter((job) => normalizeJobStatus(job.status) === "active" && !isExpired(job.deadline)).length;
+  const archivedCount = jobs.filter((job) => normalizeJobStatus(job.status) === "archived" || isExpired(job.deadline)).length;
 
   useEffect(() => {
     if (selectedJob && !rankedJobs.some((job) => job.id === selectedJob.id)) {
