@@ -12,6 +12,9 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/cn";
 
+const SITE_LOGO_LIGHT = "/mxvl-logo.png";
+const SITE_LOGO_DARK = "/mxvl-logo-dark.png";
+
 const navItemsByRole = {
   guest: [
   { label: "Home", href: "/" },
@@ -225,7 +228,8 @@ export default function Navbar() {
         <div className={cn("flex min-w-0 flex-1 items-center", isAdminNavigation ? "gap-5" : "gap-8")}>
           <Link href="/" className="flex shrink-0 items-center gap-3">
             <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-full border border-gray-200 bg-white p-1 shadow-secondary ring-1 ring-black/5 dark:border-white/20 dark:bg-white dark:ring-white/20">
-              <Image src="/mx-logo.png" alt="MX Venture Lab logo" width={36} height={36} className="h-full w-full object-contain" priority />
+              <Image src={SITE_LOGO_LIGHT} alt="MX Venture Lab logo" width={36} height={36} className="h-full w-full object-contain dark:hidden" priority />
+              <Image src={SITE_LOGO_DARK} alt="MX Venture Lab logo" width={36} height={36} className="hidden h-full w-full object-contain dark:block" priority />
             </div>
             <span className="whitespace-nowrap text-sm font-black tracking-tight text-text-main dark:text-white">MX Venture Lab</span>
           </Link>
