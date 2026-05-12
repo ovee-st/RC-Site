@@ -1,5 +1,6 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { ensureRoleRecord } from "@/lib/authUserSync";
 
 const ADMIN_ROLES = new Set(["admin"]);
 const PLATFORM_ROLES = new Set(["admin", "viewer", "employer", "employee", "candidate"]);
@@ -14,7 +15,8 @@ export async function POST(request: Request) {
   const serviceRoleKey =
     process.env.SUPABASE_SERVICE_ROLE_KEY ||
     process.env.SUPABASE_SERVICE_KEY ||
-    process.env.SUPABASE_SECRET_KEY;
+    process.env.SUPABASE_SECRET_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE;
 
   if (!supabaseUrl || !serviceRoleKey) {
     return NextResponse.json({ error: "Admin service role is not configured on this deployment." }, { status: 500 });
@@ -92,6 +94,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: profileError.message }, { status: 400 });
   }
 
+  await ensureRoleRecord(adminClient, profile || {
+    id: userId,
+    email: resolvedEmail,
+    full_name: resolvedName,
+    name: resolvedName,
+    role
+  });
+
   if (role === "employee") {
     const { error: employeeError } = await adminClient.from("employees").upsert({
       user_id: userId,
@@ -110,3 +120,5 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ ok: true, profile });
 }
+
+

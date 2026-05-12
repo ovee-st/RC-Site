@@ -571,8 +571,25 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
 
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setNotice(payload.error || "Could not update role.");
-        return;
+        const canFallbackToProfileUpdate = response.status === 500 && String(payload.error || "").toLowerCase().includes("service role");
+
+        if (!canFallbackToProfileUpdate) {
+          setNotice(payload.error || "Could not update role.");
+          return;
+        }
+
+        const { error: profileUpdateError } = await supabase
+          .from("profiles")
+          .update({
+            role: nextRole,
+            plan: nextRole === "admin" || nextRole === "viewer" || nextRole === "employee" ? "Internal" : profile.plan || "Basic"
+          })
+          .eq("id", profile.id);
+
+        if (profileUpdateError) {
+          setNotice(profileUpdateError.message || "Could not update role.");
+          return;
+        }
       }
     }
 

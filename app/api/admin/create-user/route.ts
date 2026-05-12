@@ -6,7 +6,11 @@ const INTERNAL_ROLES = new Set(["admin", "viewer", "employee"]);
 
 export async function POST(request: Request) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const serviceRoleKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_SERVICE_KEY ||
+    process.env.SUPABASE_SECRET_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE;
 
   if (!supabaseUrl || !serviceRoleKey) {
     return NextResponse.json({ error: "Admin service role is not configured on this deployment." }, { status: 500 });
