@@ -797,7 +797,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.16),transparent_32%),linear-gradient(180deg,#f8fafc,#eef2ff)] px-4 py-6 dark:bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.20),transparent_32%),linear-gradient(180deg,#020617,#0f172a)] sm:px-6">
       <div className="mx-auto flex max-w-[1440px] gap-6">
         <aside className={cn(
-          "fixed inset-y-4 left-4 z-40 w-72 rounded-3xl border border-white/60 bg-white/88 p-4 shadow-elevated backdrop-blur-2xl transition lg:sticky lg:top-20 lg:block lg:h-[calc(100vh-7rem)] dark:border-white/10 dark:bg-slate-950/80",
+          "fixed inset-y-4 left-4 z-40 flex w-72 flex-col overflow-hidden rounded-3xl border border-white/60 bg-white/88 p-4 shadow-elevated backdrop-blur-2xl transition lg:sticky lg:top-20 lg:flex lg:h-[calc(100vh-7rem)] dark:border-white/10 dark:bg-slate-950/80",
           sidebarOpen ? "translate-x-0" : "-translate-x-[115%] lg:translate-x-0"
         )}>
           <div className="flex items-center gap-3 rounded-2xl bg-gradient-to-br from-slate-950 to-primary p-4 text-white">
@@ -809,7 +809,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
             </div>
           </div>
 
-          <nav className="mt-5 grid gap-2">
+          <nav className="mt-5 grid min-h-0 flex-1 gap-2 overflow-y-auto pr-1">
             {navItems.map((item) => {
               const Icon = item.icon;
               const active = item.key === "dashboard" ? pathname === "/admin" : pathname === item.href;
