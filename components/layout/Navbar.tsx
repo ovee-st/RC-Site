@@ -95,8 +95,8 @@ export default function Navbar() {
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
   const { user, role, loading } = useAuth();
   const currentRole = role as string | null;
-  const profileHref = currentRole === "admin" || currentRole === "viewer" ? "/admin" : currentRole === "employee" ? "/employee" : currentRole === "employer" ? "/employer#profile" : "/candidate?view=profile";
-  const accountHref = currentRole === "admin" || currentRole === "viewer" ? "/admin/users" : currentRole === "employee" ? "/employee" : currentRole === "employer" ? "/employer#account-settings" : "/candidate?view=profile#account-settings";
+  const profileHref = currentRole === "admin" || currentRole === "viewer" ? "/admin/profile" : currentRole === "employee" ? "/employee/profile" : currentRole === "employer" ? "/employer#profile" : "/candidate?view=profile";
+  const accountHref = currentRole === "admin" || currentRole === "viewer" ? "/admin/account" : currentRole === "employee" ? "/employee/profile" : currentRole === "employer" ? "/employer#account-settings" : "/candidate?view=profile#account-settings";
   const displayName = user?.user_metadata?.name || user?.user_metadata?.full_name || user?.name || "MX User";
   const avatarSrc = profileAvatar || user?.avatar || user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null;
   const verified = Boolean(user?.user_metadata?.verified) || String(user?.user_metadata?.plan || "").toLowerCase() === "pro";
