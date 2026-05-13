@@ -51,6 +51,8 @@ type CandidateRow = {
   about?: string;
   profile?: string;
   photo_url?: string;
+  avatar_url?: string;
+  profile_photo_url?: string;
   avatar?: string;
   location?: string;
   linkedin_url?: string;
@@ -123,7 +125,7 @@ function mapCandidateRow(row: CandidateRow): RegisteredCandidate {
     experience: row.career_level || "Any Level",
     skills: skills.length ? skills : ["Admin", "Excel", "Communication"],
     profile: row.about || row.profile || "Registered candidate profile from MX Venture Lab.",
-    avatar: row.photo_url || row.avatar,
+    avatar: row.photo_url || row.avatar_url || row.profile_photo_url || row.avatar,
     linkedin_url: row.linkedin_url || "",
     location: row.location || "Bangladesh"
   };

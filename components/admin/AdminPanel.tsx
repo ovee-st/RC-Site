@@ -1227,33 +1227,35 @@ function CandidatesSection({
   }
 
   return (
-    <div className="grid gap-5">
+    <div className="grid gap-4">
       {candidates.map((candidate) => {
         const recordKey = candidate.id || candidate.user_id || candidate.email;
         const history = applications.filter((app) => app.candidate_id === candidate.user_id || app.candidate_id === candidate.id);
         const skills = Array.isArray(candidate.skills) ? candidate.skills : String(candidate.skills || "Admin, Excel").split(",").map((skill) => skill.trim()).filter(Boolean);
         const editing = editingId === recordKey;
         return (
-          <Card key={recordKey} className="rounded-3xl p-5">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-              <AdminAvatar row={candidate} className="h-14 w-14" />
+          <Card key={recordKey} className="rounded-3xl p-4">
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+              <div className="flex min-w-0 gap-3">
+              <AdminAvatar row={candidate} className="h-12 w-12" />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="truncate text-xl font-black text-text-main dark:text-white">{getDisplayName(candidate)}</h3>
+                  <h3 className="truncate text-lg font-black text-text-main dark:text-white">{getDisplayName(candidate)}</h3>
                   {isVerifiedRecord(candidate) ? <VerifiedBadge /> : null}
                 </div>
                 <p className="text-sm font-semibold text-text-muted">{getEmail(candidate)}</p>
-                <p className="mt-2 text-sm font-bold text-text-muted">{candidate.career_level || candidate.experience_level || "Career level not set"} ? {candidate.category || "No category"}</p>
+                <p className="mt-1 text-sm font-bold text-text-muted">{candidate.career_level || candidate.experience_level || "Career level not set"} - {candidate.category || "No category"}</p>
               </div>
-              <div className="flex flex-wrap gap-2">
+              </div>
+              <div className="flex flex-wrap items-center gap-2 lg:justify-end">
                 <Badge variant="match-score">AI {candidate.match_score || 86}%</Badge>
                 <Button variant="secondary" className="gap-2 px-3 py-2" onClick={() => startEdit(candidate)}><Edit3 className="h-4 w-4" />Edit details</Button>
                 <Button variant="ghost" className="px-3 py-2 text-danger" disabled={readOnly} onClick={() => onDelete("candidates", candidate.id || candidate.user_id)}><Trash2 className="h-4 w-4" /></Button>
               </div>
             </div>
-            <div className="mt-4 flex flex-wrap gap-2">{skills.slice(0, 8).map((skill) => <Badge key={skill}>{skill}</Badge>)}</div>
+            <div className="mt-3 flex flex-wrap gap-2">{skills.slice(0, 6).map((skill) => <Badge key={skill}>{skill}</Badge>)}</div>
             {editing ? (
-              <div className="mt-5 rounded-3xl border border-border bg-bg p-4 dark:border-white/10 dark:bg-white/5">
+              <div className="mt-4 rounded-3xl border border-border bg-bg p-4 dark:border-white/10 dark:bg-white/5">
                 <div className="grid gap-3 md:grid-cols-2">
                   <Input value={draft.name || ""} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value, full_name: event.target.value }))} placeholder="Candidate name" />
                   <Input value={draft.email || ""} onChange={(event) => setDraft((current) => ({ ...current, email: event.target.value }))} placeholder="Email" />
@@ -1267,7 +1269,7 @@ function CandidatesSection({
                     <option value="Pro">Pro</option>
                   </select>
                 </div>
-                <textarea value={draft.about || ""} onChange={(event) => setDraft((current) => ({ ...current, about: event.target.value }))} placeholder="About candidate" className="mt-3 min-h-28 w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-semibold outline-none focus:border-primary dark:border-white/10 dark:bg-slate-900" />
+                <textarea value={draft.about || ""} onChange={(event) => setDraft((current) => ({ ...current, about: event.target.value }))} placeholder="About candidate" className="mt-3 min-h-24 w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-semibold outline-none focus:border-primary dark:border-white/10 dark:bg-slate-900" />
                 <label className="mt-3 flex items-center gap-2 text-sm font-bold text-text-muted">
                   <input type="checkbox" checked={Boolean(draft.verified)} onChange={(event) => setDraft((current) => ({ ...current, verified: event.target.checked }))} />
                   Verified candidate badge
@@ -1283,7 +1285,7 @@ function CandidatesSection({
                 </div>
               </div>
             ) : null}
-            <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_1fr_220px]">
+            <div className="mt-4 grid gap-2 sm:grid-cols-[1fr_1fr_210px]">
               <Button variant="secondary" className="px-3 py-2">Download ATS CV</Button>
               <Button variant="secondary" className="px-3 py-2">Customized CV</Button>
               <div className="grid grid-cols-2 gap-2">
@@ -1292,9 +1294,9 @@ function CandidatesSection({
                 ))}
               </div>
             </div>
-            <div className="mt-5 rounded-2xl bg-bg p-4 dark:bg-white/5">
+            <div className="mt-3 rounded-2xl bg-bg px-4 py-3 dark:bg-white/5">
               <p className="type-label">Activity timeline</p>
-              <p className="mt-2 text-sm font-semibold text-text-muted">{history.length || 0} applications tracked ? Last profile update {formatDate(candidate.updated_at || candidate.created_at)}</p>
+              <p className="mt-1 text-sm font-semibold text-text-muted">{history.length || 0} applications tracked - Last profile update {formatDate(candidate.updated_at || candidate.created_at)}</p>
             </div>
           </Card>
         );

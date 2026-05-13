@@ -149,8 +149,8 @@ export async function syncAuthUsersToProfiles(client: SupabaseClient) {
       name: fullName,
       role,
       username,
-      avatar_url: existing.avatar_url || metadata.avatar_url || metadata.picture || null,
-      photo_url: existing.photo_url || metadata.photo_url || metadata.picture || null,
+      avatar_url: existing.avatar_url || metadata.avatar_url || metadata.photo_url || metadata.profile_photo_url || metadata.picture || null,
+      photo_url: existing.photo_url || metadata.photo_url || metadata.avatar_url || metadata.profile_photo_url || metadata.picture || null,
       plan: existing.plan || metadata.plan || (role === "admin" || role === "viewer" || role === "employee" ? "Internal" : "Basic"),
       verified: existing.verified ?? metadata.verified ?? false,
       updated_at: new Date().toISOString()
@@ -232,7 +232,18 @@ export function mergeRowsWithProfiles(rows: AnyRecord[], profiles: AnyRecord[], 
       const normalizedKey = String(key).toLowerCase();
       const fallback = role === "candidate" ? candidateFromProfile(profile) : employerFromProfile(profile);
       const existing = map.get(normalizedKey);
-      map.set(normalizedKey, existing ? { ...fallback, ...existing, source: existing.source || "table" } : fallback);
+      const fallbackRecord = fallback as AnyRecord;
+      map.set(normalizedKey, existing ? {
+        ...fallbackRecord,
+        ...existing,
+        avatar_url: existing.avatar_url || fallbackRecord.avatar_url || fallbackRecord.photo_url || fallbackRecord.profile_photo_url || fallbackRecord.logo_url || null,
+        photo_url: existing.photo_url || fallbackRecord.photo_url || fallbackRecord.avatar_url || fallbackRecord.profile_photo_url || fallbackRecord.logo_url || null,
+        profile_photo_url: existing.profile_photo_url || fallbackRecord.profile_photo_url || fallbackRecord.avatar_url || fallbackRecord.photo_url || null,
+        avatar: existing.avatar || fallbackRecord.avatar || fallbackRecord.avatar_url || fallbackRecord.photo_url || null,
+        logo_url: existing.logo_url || fallbackRecord.logo_url || fallbackRecord.avatar_url || fallbackRecord.photo_url || null,
+        company_logo_url: existing.company_logo_url || fallbackRecord.company_logo_url || fallbackRecord.logo_url || fallbackRecord.avatar_url || fallbackRecord.photo_url || null,
+        source: existing.source || "table"
+      } : fallbackRecord);
     });
 
   return Array.from(map.values());
