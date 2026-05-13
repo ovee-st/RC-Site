@@ -667,10 +667,10 @@ export default function CandidateDashboard() {
               <Card className="p-5 shadow-soft">
                 <Badge variant="primary" className="type-label text-primary">Resume Builder</Badge>
                 <h2 className="type-h2 mt-3">Professional CV Generator</h2>
-                <p className="type-body mt-2">Generate ATS and designed CV versions from your profile data.</p>
+                <p className="type-body mt-2">Generate ATS and customized CV versions from your profile data.</p>
                 <div className="mt-6 flex flex-wrap gap-3">
                   <LinkButton href="#" className="rounded-lg">Download ATS CV</LinkButton>
-                  <LinkButton href="#" variant="secondary" className="rounded-lg">Download Designed CV</LinkButton>
+                  <LinkButton href="#" variant="secondary" className="rounded-lg">Download Customized CV</LinkButton>
                 </div>
               </Card>
             ) : null}

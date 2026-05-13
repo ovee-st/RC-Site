@@ -1270,7 +1270,7 @@ function CandidatesSection({
             ) : null}
             <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_1fr_220px]">
               <Button variant="secondary" className="px-3 py-2">Download ATS CV</Button>
-              <Button variant="secondary" className="px-3 py-2">Designed CV</Button>
+              <Button variant="secondary" className="px-3 py-2">Customized CV</Button>
               <div className="grid grid-cols-2 gap-2">
                 {["Basic", "Pro"].map((plan) => (
                   <Button key={plan} variant={String(candidate.plan || "Basic") === plan ? "primary" : "secondary"} className="px-3 py-2" disabled={readOnly} onClick={() => onPlanChange(candidate, plan as "Basic" | "Pro")}>{plan}</Button>
