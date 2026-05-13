@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { type FormEvent, useState } from "react";
 import { Brain, CheckCircle2, KanbanSquare, ShieldCheck } from "lucide-react";
 import Card from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -103,7 +103,8 @@ export default function LoginPage() {
     window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
   };
 
-  const submit = async () => {
+  const submit = async (event?: FormEvent<HTMLFormElement>) => {
+    event?.preventDefault();
     setMessage("");
     if (!email || !password) return setMessage("Email and password are required.");
     setLoading(true);
@@ -209,13 +210,13 @@ export default function LoginPage() {
               </Button>
             ))}
           </div>
-          <div className="mt-6 grid gap-3">
+          <form className="mt-6 grid gap-3" onSubmit={submit}>
             {mode === "signup" ? <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Full name" /> : null}
             <Input value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Email" />
             <Input value={password} onChange={(event) => setPassword(event.target.value)} type="password" placeholder="Password" />
-            <Button onClick={submit} disabled={loading} className="mt-1 w-full">{loading ? "Please wait..." : mode === "login" ? "Login" : "Create Account"}</Button>
+            <Button type="submit" disabled={loading} className="mt-1 w-full">{loading ? "Please wait..." : mode === "login" ? "Login" : "Create Account"}</Button>
             {message ? <p className="type-body rounded-md bg-danger/10 px-4 py-3 font-semibold text-danger dark:text-red-300">{message}</p> : null}
-          </div>
+          </form>
         </Card>
       </div>
     </PageContainer>
