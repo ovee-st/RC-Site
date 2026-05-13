@@ -300,6 +300,387 @@ function TextArea({ className, ...props }: React.TextareaHTMLAttributes<HTMLText
   );
 }
 
+function escapeHtml(value?: string | number | null) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function getResumeFilename(name?: string | null) {
+  const cleanName = (name || "Candidate")
+    .replace(/[<>:"/\\|?*\x00-\x1F]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return `Resume_of_${cleanName || "Candidate"}`;
+}
+
+function renderSkillList(skills: string[]) {
+  return skills.map((skill) => `<span>${escapeHtml(skill)}</span>`).join("");
+}
+
+function renderExperienceList(experience: CandidateProfileState["experience"]) {
+  return experience
+    .map(
+      (item) => `
+        <article class="entry">
+          <div class="entry-head">
+            <div>
+              <h3>${escapeHtml(item.role)}</h3>
+              <p>${escapeHtml(item.company)}</p>
+            </div>
+            <strong>${escapeHtml(item.period)}</strong>
+          </div>
+          <p class="entry-copy">${escapeHtml(item.description)}</p>
+        </article>
+      `
+    )
+    .join("");
+}
+
+function renderEducationList(education: CandidateProfileState["education"]) {
+  return education
+    .map(
+      (item) => `
+        <article class="entry compact">
+          <div class="entry-head">
+            <div>
+              <h3>${escapeHtml(item.degree)}</h3>
+              <p>${escapeHtml(item.institution)}</p>
+            </div>
+            <strong>${escapeHtml(item.year)}</strong>
+          </div>
+        </article>
+      `
+    )
+    .join("");
+}
+
+function renderCertificationList(certifications: CandidateProfileState["certifications"]) {
+  return certifications
+    .map(
+      (item) => `
+        <article class="entry compact">
+          <div class="entry-head">
+            <div>
+              <h3>${escapeHtml(item.name)}</h3>
+              <p>${escapeHtml(item.organization)}</p>
+            </div>
+            <strong>${escapeHtml(item.year)}</strong>
+          </div>
+        </article>
+      `
+    )
+    .join("");
+}
+
+function buildCustomizedResumeHtml(profile: CandidateProfileState, email?: string | null) {
+  const filename = getResumeFilename(profile.name);
+  const initials = getInitials(profile.name);
+  const avatarMarkup = profile.avatar
+    ? `<img src="${escapeHtml(profile.avatar)}" alt="${escapeHtml(profile.name)}" />`
+    : `<div class="avatar-initials">${escapeHtml(initials)}</div>`;
+
+  return `<!doctype html>
+  <html lang="en">
+    <head>
+      <meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <title>${escapeHtml(filename)}</title>
+      <style>
+        @page { size: A4; margin: 0; }
+        * { box-sizing: border-box; }
+        body {
+          margin: 0;
+          background: #eef2f7;
+          color: #111827;
+          font-family: Arial, Helvetica, sans-serif;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        .resume-shell {
+          width: 210mm;
+          min-height: 297mm;
+          margin: 24px auto;
+          background: #ffffff;
+          display: grid;
+          grid-template-columns: 74mm 1fr;
+          box-shadow: 0 24px 70px rgba(15, 23, 42, 0.18);
+        }
+        aside {
+          background: linear-gradient(180deg, #151923 0%, #202938 100%);
+          color: #ffffff;
+          padding: 34px 28px;
+        }
+        .avatar {
+          width: 118px;
+          height: 118px;
+          border-radius: 999px;
+          overflow: hidden;
+          border: 4px solid rgba(255,255,255,0.9);
+          background: linear-gradient(135deg, #2563eb, #16a34a);
+          display: grid;
+          place-items: center;
+          margin-bottom: 26px;
+        }
+        .avatar img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        .avatar-initials {
+          font-size: 34px;
+          font-weight: 900;
+          letter-spacing: -0.06em;
+        }
+        .side-section {
+          border-top: 1px solid rgba(255,255,255,0.18);
+          padding-top: 20px;
+          margin-top: 22px;
+        }
+        .side-section h2 {
+          margin: 0 0 12px;
+          color: #ffffff;
+          font-size: 13px;
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
+        }
+        .contact-line, .side-copy {
+          margin: 0 0 9px;
+          color: rgba(255,255,255,0.78);
+          font-size: 12px;
+          line-height: 1.55;
+          overflow-wrap: anywhere;
+        }
+        .side-skills {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 7px;
+        }
+        .side-skills span {
+          border: 1px solid rgba(255,255,255,0.22);
+          border-radius: 999px;
+          padding: 5px 9px;
+          color: #ffffff;
+          font-size: 11px;
+          font-weight: 700;
+        }
+        main {
+          padding: 42px 42px 38px;
+        }
+        .brand-line {
+          width: 64px;
+          height: 5px;
+          border-radius: 999px;
+          background: #ef233c;
+          margin-bottom: 22px;
+        }
+        h1 {
+          margin: 0;
+          color: #111827;
+          font-size: 40px;
+          line-height: 0.98;
+          letter-spacing: -0.055em;
+          text-transform: uppercase;
+        }
+        .title {
+          margin: 10px 0 0;
+          color: #ef233c;
+          font-size: 15px;
+          font-weight: 800;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+        .summary {
+          margin: 26px 0;
+          color: #4b5563;
+          font-size: 13px;
+          line-height: 1.8;
+        }
+        .section {
+          margin-top: 25px;
+        }
+        .section-title {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 14px;
+        }
+        .section-title h2 {
+          margin: 0;
+          font-size: 15px;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+        }
+        .section-title:after {
+          content: "";
+          flex: 1;
+          height: 1px;
+          background: #e5e7eb;
+        }
+        .entry {
+          border-left: 3px solid #ef233c;
+          padding-left: 16px;
+          margin-bottom: 18px;
+        }
+        .entry.compact {
+          margin-bottom: 12px;
+        }
+        .entry-head {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 16px;
+        }
+        .entry h3 {
+          margin: 0;
+          font-size: 15px;
+          color: #111827;
+        }
+        .entry p {
+          margin: 4px 0 0;
+          color: #64748b;
+          font-size: 12px;
+        }
+        .entry strong {
+          flex: 0 0 auto;
+          color: #64748b;
+          font-size: 11px;
+          line-height: 1.45;
+          text-align: right;
+          max-width: 150px;
+        }
+        .entry-copy {
+          color: #4b5563 !important;
+          font-size: 12px !important;
+          line-height: 1.7;
+        }
+        .print-help {
+          position: fixed;
+          right: 20px;
+          bottom: 20px;
+          border: 0;
+          border-radius: 999px;
+          background: #2563eb;
+          color: #ffffff;
+          padding: 12px 18px;
+          font-weight: 800;
+          box-shadow: 0 14px 40px rgba(37, 99, 235, 0.35);
+        }
+        @media print {
+          body { background: #ffffff; }
+          .resume-shell { margin: 0; box-shadow: none; }
+          .print-help { display: none; }
+        }
+      </style>
+    </head>
+    <body>
+      <section class="resume-shell">
+        <aside>
+          <div class="avatar">${avatarMarkup}</div>
+          <div class="side-section" style="border-top:0;margin-top:0;padding-top:0;">
+            <h2>Contact</h2>
+            ${email ? `<p class="contact-line">${escapeHtml(email)}</p>` : ""}
+            <p class="contact-line">${escapeHtml(profile.location)}</p>
+          </div>
+          <div class="side-section">
+            <h2>Core Skills</h2>
+            <div class="side-skills">${renderSkillList(profile.skills)}</div>
+          </div>
+          <div class="side-section">
+            <h2>Profile</h2>
+            <p class="side-copy">${escapeHtml(profile.title)}</p>
+          </div>
+        </aside>
+        <main>
+          <div class="brand-line"></div>
+          <h1>${escapeHtml(profile.name)}</h1>
+          <p class="title">${escapeHtml(profile.title)}</p>
+          <p class="summary">${escapeHtml(profile.about)}</p>
+          <section class="section">
+            <div class="section-title"><h2>Experience</h2></div>
+            ${renderExperienceList(profile.experience)}
+          </section>
+          <section class="section">
+            <div class="section-title"><h2>Education</h2></div>
+            ${renderEducationList(profile.education)}
+          </section>
+          <section class="section">
+            <div class="section-title"><h2>Certifications</h2></div>
+            ${renderCertificationList(profile.certifications)}
+          </section>
+        </main>
+      </section>
+      <button class="print-help" onclick="window.print()">Save as PDF</button>
+    </body>
+  </html>`;
+}
+
+function buildAtsResumeHtml(profile: CandidateProfileState, email?: string | null) {
+  const filename = getResumeFilename(profile.name);
+
+  return `<!doctype html>
+  <html lang="en">
+    <head>
+      <meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <title>${escapeHtml(filename)}</title>
+      <style>
+        @page { size: A4; margin: 18mm; }
+        body { color:#111827; font-family: Arial, Helvetica, sans-serif; line-height:1.55; }
+        h1 { margin:0; font-size:28px; }
+        h2 { margin:24px 0 8px; border-bottom:1px solid #d1d5db; font-size:15px; text-transform:uppercase; letter-spacing:.08em; }
+        p { margin:4px 0; font-size:12px; }
+        ul { margin:6px 0 0 18px; padding:0; font-size:12px; }
+        .meta { color:#4b5563; }
+        .print-help { position:fixed; right:20px; bottom:20px; border:0; border-radius:999px; background:#2563eb; color:#fff; padding:12px 18px; font-weight:800; }
+        @media print { .print-help { display:none; } }
+      </style>
+    </head>
+    <body>
+      <h1>${escapeHtml(profile.name)}</h1>
+      <p class="meta">${escapeHtml(profile.title)}${email ? ` | ${escapeHtml(email)}` : ""} | ${escapeHtml(profile.location)}</p>
+      <h2>Summary</h2>
+      <p>${escapeHtml(profile.about)}</p>
+      <h2>Skills</h2>
+      <p>${escapeHtml(profile.skills.join(", "))}</p>
+      <h2>Experience</h2>
+      ${profile.experience.map((item) => `<p><strong>${escapeHtml(item.role)}</strong> - ${escapeHtml(item.company)} (${escapeHtml(item.period)})</p><p>${escapeHtml(item.description)}</p>`).join("")}
+      <h2>Education</h2>
+      ${profile.education.map((item) => `<p><strong>${escapeHtml(item.degree)}</strong> - ${escapeHtml(item.institution)}, ${escapeHtml(item.year)}</p>`).join("")}
+      <h2>Certifications</h2>
+      ${profile.certifications.map((item) => `<p><strong>${escapeHtml(item.name)}</strong> - ${escapeHtml(item.organization)}, ${escapeHtml(item.year)}</p>`).join("")}
+      <button class="print-help" onclick="window.print()">Save as PDF</button>
+    </body>
+  </html>`;
+}
+
+function openResumeDocument(html: string, filename: string) {
+  const resumeWindow = window.open("", "_blank", "width=980,height=1100");
+
+  if (!resumeWindow) {
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${filename}.html`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    return;
+  }
+
+  resumeWindow.document.open();
+  resumeWindow.document.write(html);
+  resumeWindow.document.close();
+  resumeWindow.focus();
+  window.setTimeout(() => resumeWindow.print(), 600);
+}
+
 export default function CandidateDashboard() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -402,6 +783,16 @@ export default function CandidateDashboard() {
     window.localStorage.removeItem(MOCK_USER_KEY);
     window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
     router.push("/");
+  };
+
+  const downloadAtsCv = () => {
+    const filename = getResumeFilename(profile.name);
+    openResumeDocument(buildAtsResumeHtml(profile, user?.email), filename);
+  };
+
+  const downloadCustomizedCv = () => {
+    const filename = getResumeFilename(profile.name);
+    openResumeDocument(buildCustomizedResumeHtml(profile, user?.email), filename);
   };
 
   return (
@@ -669,9 +1060,12 @@ export default function CandidateDashboard() {
                 <h2 className="type-h2 mt-3">Professional CV Generator</h2>
                 <p className="type-body mt-2">Generate ATS and customized CV versions from your profile data.</p>
                 <div className="mt-6 flex flex-wrap gap-3">
-                  <LinkButton href="#" className="rounded-lg">Download ATS CV</LinkButton>
-                  <LinkButton href="#" variant="secondary" className="rounded-lg">Download Customized CV</LinkButton>
+                  <Button type="button" onClick={downloadAtsCv} className="rounded-lg">Download ATS CV</Button>
+                  <Button type="button" onClick={downloadCustomizedCv} variant="secondary" className="rounded-lg">Download Customized CV</Button>
                 </div>
+                <p className="mt-3 text-xs font-semibold text-text-muted">
+                  Customized CV opens as a print-ready resume titled {getResumeFilename(profile.name)}.
+                </p>
               </Card>
             ) : null}
           </main>
