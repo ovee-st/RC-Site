@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -101,6 +101,8 @@ const emptyState: AdminState = {
   coupons: [],
   transactions: []
 };
+
+const ADMIN_NOTIFICATION_STORAGE_KEY = "rc-admin-cleared-notifications";
 
 const sectionMeta: Record<AdminSection, { title: string; description: string }> = {
   dashboard: {
@@ -290,8 +292,19 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
   const [roleFilter, setRoleFilter] = useState("all");
   const [notice, setNotice] = useState<string | null>(null);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [clearedNotificationIds, setClearedNotificationIds] = useState<string[]>([]);
+  const [clearedNotificationIds, setClearedNotificationIds] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+
+    try {
+      const saved = window.localStorage.getItem(ADMIN_NOTIFICATION_STORAGE_KEY);
+      const parsed = saved ? JSON.parse(saved) : [];
+      return Array.isArray(parsed) ? parsed.filter((id) => typeof id === "string") : [];
+    } catch {
+      return [];
+    }
+  });
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const notificationMenuRef = useRef<HTMLDivElement | null>(null);
   const readOnly = role === "viewer";
   const canAccessAdmin = role === "admin" || role === "viewer";
 
@@ -299,6 +312,38 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
     if (loading) return;
     if (!user || !canAccessAdmin) router.replace("/");
   }, [canAccessAdmin, loading, router, user]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      window.localStorage.setItem(ADMIN_NOTIFICATION_STORAGE_KEY, JSON.stringify(clearedNotificationIds));
+    } catch {
+      // Ignore storage failures so notification rendering never blocks the admin panel.
+    }
+  }, [clearedNotificationIds]);
+
+  useEffect(() => {
+    if (!notificationsOpen) return;
+
+    const handlePointerDown = (event: globalThis.MouseEvent) => {
+      const target = event.target as Node | null;
+      if (target && notificationMenuRef.current?.contains(target)) return;
+      setNotificationsOpen(false);
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setNotificationsOpen(false);
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [notificationsOpen]);
 
   useEffect(() => {
     let active = true;
@@ -453,6 +498,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
       visibleAdminNotifications.forEach((item) => next.add(item.id));
       return Array.from(next);
     });
+    setNotificationsOpen(false);
   }
 
   async function updateRecord(table: string, id: string, patch: AnyRecord) {
@@ -806,7 +852,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
                   <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
                   <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search users, companies, transactions..." className="rounded-2xl pl-11" />
                 </div>
-                <div className="relative">
+                <div ref={notificationMenuRef} className="relative">
                   <button
                     type="button"
                     onClick={() => setNotificationsOpen((value) => !value)}

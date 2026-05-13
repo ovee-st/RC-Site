@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CheckCircle2, LogOut, Menu, Settings, UserRound, X } from "lucide-react";
-import { type MouseEvent, useEffect, useState } from "react";
+import { type MouseEvent as ReactMouseEvent, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LinkButton } from "@/components/ui/Button";
 import GlobalSearch from "@/components/search/GlobalSearch";
@@ -92,6 +92,7 @@ export default function Navbar() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [profileAvatar, setProfileAvatar] = useState<string | null>(null);
+  const profileMenuRef = useRef<HTMLDivElement | null>(null);
   const { user, role, loading } = useAuth();
   const currentRole = role as string | null;
   const profileHref = currentRole === "admin" || currentRole === "viewer" ? "/admin" : currentRole === "employee" ? "/employee" : currentRole === "employer" ? "/employer#profile" : "/candidate?view=profile";
@@ -133,6 +134,28 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
+    if (!profileOpen) return;
+
+    const handlePointerDown = (event: globalThis.MouseEvent) => {
+      const target = event.target as Node | null;
+      if (target && profileMenuRef.current?.contains(target)) return;
+      setProfileOpen(false);
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setProfileOpen(false);
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [profileOpen]);
+
+  useEffect(() => {
     const loadProfileAvatar = () => {
       if (typeof window === "undefined") return;
 
@@ -167,7 +190,7 @@ export default function Navbar() {
     }
   };
 
-  const openEmployerPanel = (panel: "profile" | "account") => (event: MouseEvent<HTMLAnchorElement>) => {
+  const openEmployerPanel = (panel: "profile" | "account") => (event: ReactMouseEvent<HTMLAnchorElement>) => {
     if (role !== "employer") {
       setProfileOpen(false);
       return;
@@ -269,7 +292,7 @@ export default function Navbar() {
             <LinkButton href="/login" className="whitespace-nowrap rounded-full px-5 py-2">Login</LinkButton>
           ) : null}
           {!loading && user ? (
-            <div className="relative">
+            <div ref={profileMenuRef} className="relative">
               <button
                 type="button"
                 className="flex cursor-pointer items-center gap-2 rounded-full px-2 py-1.5 transition hover:bg-blue-50 dark:hover:bg-white/5"
