@@ -20,12 +20,11 @@ import StatsCards from "@/components/dashboard/StatsCards";
 import AIInsights from "@/components/dashboard/AIInsights";
 import ApplicationPipeline from "@/components/dashboard/ApplicationPipeline";
 import ResumeSection from "@/components/dashboard/ResumeSection";
-import AssessmentSection from "@/components/dashboard/AssessmentSection";
 import InterviewSection from "@/components/dashboard/InterviewSection";
 import NotificationsPanel from "@/components/dashboard/NotificationsPanel";
 import AnalyticsPanel from "@/components/dashboard/AnalyticsPanel";
 import JobRecommendations from "@/components/dashboard/JobRecommendations";
-import type { CandidateAnalytics, CandidateDocument, CandidateNotification, CandidateProfile, InterviewEvent, SkillAssessment } from "@/types/candidate";
+import type { CandidateAnalytics, CandidateDocument, CandidateNotification, CandidateProfile, InterviewEvent } from "@/types/candidate";
 import type { CandidateApplication, JobRecommendation } from "@/types/application";
 
 type CandidateTab = "home" | "profile" | "jobs" | "applied" | "resume";
@@ -141,12 +140,6 @@ const dashboardApplications: CandidateApplication[] = [
 const dashboardDocuments: CandidateDocument[] = [
   { id: "doc-1", name: "ATS-CV.pdf", type: "Resume", url: "#", uploadedAt: "2026-05-02", score: 84 },
   { id: "doc-2", name: "HR-Operations-Certificate.pdf", type: "Certification", url: "#", uploadedAt: "2026-04-22", score: 91 }
-];
-
-const dashboardAssessments: SkillAssessment[] = [
-  { id: "assess-1", title: "Admin Operations MCQ", category: "Operations", score: 88, level: "Advanced", status: "Completed", summary: "Strong documentation, coordination, and workflow control." },
-  { id: "assess-2", title: "Excel Reporting Challenge", category: "Data", score: 82, level: "Upper Intermediate", status: "Completed", summary: "Good spreadsheet structure and reporting discipline." },
-  { id: "assess-3", title: "Communication Scenario Test", category: "Communication", score: 76, level: "Recommended", status: "Recommended", summary: "Recommended to improve recruiter-facing communication signals." }
 ];
 
 const dashboardInterviews: InterviewEvent[] = [
@@ -1064,10 +1057,7 @@ export default function CandidateDashboard() {
                   <JobRecommendations jobs={dashboardRecommendedJobs} />
                 </div>
 
-                <div className="grid gap-6 xl:grid-cols-2">
-                  <AssessmentSection assessments={dashboardAssessments} />
-                  <InterviewSection interviews={dashboardInterviews} />
-                </div>
+                <InterviewSection interviews={dashboardInterviews} />
 
                 <div className="grid gap-6 xl:grid-cols-2">
                   <NotificationsPanel notifications={dashboardNotifications} />
