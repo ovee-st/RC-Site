@@ -34,7 +34,7 @@ export default function MessageInput({ disabled, placeholder = "Write a message.
         }}
         placeholder={placeholder}
         disabled={disabled}
-        className="min-h-16 w-full resize-none bg-transparent px-2 py-2 text-sm font-semibold outline-none disabled:opacity-60"
+        className="min-h-16 w-full resize-none bg-transparent px-2 py-2 text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-500 disabled:opacity-60 dark:text-white dark:placeholder:text-slate-400"
       />
       {file ? (
         <div className="mb-2 flex items-center justify-between rounded-xl bg-primary/8 px-3 py-2 text-xs font-bold text-primary">
