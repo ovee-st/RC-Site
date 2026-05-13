@@ -174,7 +174,13 @@ export default function LiveChatDashboard({ mode = "employee", compact = false }
                         <p className="type-label">Linked ticket</p>
                         <p className="mt-1 text-sm font-bold text-text-main dark:text-white">{selected.ticket_id || "Ticket pending"}</p>
                       </div>
-                      <Button variant="secondary" onClick={() => acceptChat(selected.id)} disabled={selected.status !== "WAITING"}>Accept / own chat</Button>
+                      {selected.status === "WAITING" ? (
+                        <Button variant="secondary" onClick={() => acceptChat(selected.id)}>Accept / own chat</Button>
+                      ) : (
+                        <div className="rounded-2xl border border-border bg-white px-4 py-3 text-sm font-bold text-text-muted dark:border-white/10 dark:bg-slate-900 dark:text-slate-300">
+                          {selected.status === "ENDED" ? "Chat ended" : "Chat is active"}
+                        </div>
+                      )}
                     </>
                   ) : null;
                 })()}

@@ -63,6 +63,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 
   if (action === "accept") {
     if (role !== "employee" && role !== "admin") return NextResponse.json({ error: "Only support agents can accept chats." }, { status: 403 });
+    if (session?.status === "ENDED") return NextResponse.json({ error: "Ended chats cannot be accepted." }, { status: 400 });
     patch.employee_id = role === "employee" ? context.user.id : body.employee_id || context.user.id;
     patch.status = "ACTIVE";
   } else if (action === "end") {

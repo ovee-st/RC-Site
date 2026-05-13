@@ -160,7 +160,13 @@ export default function ChatWindow({ sessionId, mode = "user", onSessionChange }
         {activeSession.status === "WAITING" ? <TypingIndicator label="Waiting for an available support agent" /> : null}
       </div>
       <div className="border-t border-border p-3 dark:border-white/10">
-        <MessageInput disabled={ended} onSend={sendMessage} placeholder={ended ? "This chat has ended." : String(role) === "employee" || String(role) === "admin" ? "Reply to customer..." : "Message support..."} />
+        {ended ? (
+          <div className="rounded-2xl border border-border bg-slate-50 px-4 py-3 text-sm font-bold text-text-muted dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+            This chat has ended. The conversation is kept here as a read-only transcript.
+          </div>
+        ) : (
+          <MessageInput onSend={sendMessage} placeholder={String(role) === "employee" || String(role) === "admin" ? "Reply to customer..." : "Message support..."} />
+        )}
       </div>
     </div>
   );

@@ -360,7 +360,7 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6">
+    <div className="mx-auto w-full max-w-7xl overflow-x-hidden px-4 py-8 sm:px-6">
       <div className="mb-6 grid gap-4 rounded-[2rem] border border-white/60 bg-white/82 p-5 shadow-elevated backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/75 lg:grid-cols-[1fr_auto]">
         <div>
           <Badge variant="primary" className="type-label">{isAgent ? "Employee Support Desk" : "Support Center"}</Badge>
@@ -396,7 +396,7 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
         </div>
       ) : null}
 
-      <div className="grid min-w-0 gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
+      <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
         <div className="grid min-w-0 gap-5">
           {!isAgent ? (
             <Card className="rounded-3xl p-5">
@@ -449,7 +449,7 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
             </Card>
           ) : null}
 
-          <Card className="rounded-3xl p-0">
+          <Card className="overflow-hidden rounded-3xl p-0">
             <div className="border-b border-border p-5 dark:border-white/10">
               <p className="type-label text-primary">Ticket queue</p>
               <h2 className="mt-1 text-xl font-black text-text-main dark:text-white">{isAgent ? "Assigned and open tickets" : "Your tickets"}</h2>
@@ -464,7 +464,7 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
                     onClick={() => selectTicket(ticket.id)}
                     className={cn(
                       "mb-3 w-full rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-hover",
-                      active ? "border-primary bg-primary/5 shadow-primary dark:bg-primary/10" : "border-border bg-white dark:border-white/10 dark:bg-slate-900"
+                      active ? "border-primary bg-primary/5 shadow-soft dark:bg-primary/10" : "border-border bg-white dark:border-white/10 dark:bg-slate-900"
                     )}
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -492,7 +492,7 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
           </Card>
         </div>
 
-        <div className="grid min-w-0 gap-6">
+        <div className="grid min-w-0 gap-6 overflow-hidden">
           {isAgent ? (
             <Card className="min-w-0 overflow-hidden rounded-3xl p-4">
               <div className="mb-4 flex items-center justify-between gap-3">
@@ -503,7 +503,7 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
                 <p className="text-xs font-bold text-text-muted">Drag cards to update status</p>
               </div>
               <DragDropContext onDragEnd={onDragEnd}>
-                <div className="flex max-w-full gap-3 overflow-x-auto pb-2">
+                <div className="flex max-w-full gap-3 overflow-x-auto overscroll-x-contain pb-2">
                   {ticketStatuses.map((status) => {
                     const StatusIcon = statusIcon(status);
                     const statusTickets = tickets.filter((ticket) => ticket.status === status);
@@ -514,14 +514,14 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
                             ref={provided.innerRef}
                             {...provided.droppableProps}
                             className={cn(
-                              "min-h-[220px] w-[220px] shrink-0 rounded-2xl border border-border bg-bg p-3 transition dark:border-white/10 dark:bg-white/5 2xl:w-[232px]",
+                              "min-h-[210px] w-[176px] shrink-0 rounded-2xl border border-border bg-bg p-3 transition dark:border-white/10 dark:bg-white/5 sm:w-[190px] 2xl:w-[204px]",
                               snapshot.isDraggingOver && "border-primary bg-primary/5"
                             )}
                           >
                             <div className="mb-3 flex items-center justify-between gap-2">
-                              <h3 className="flex items-center gap-2 text-sm font-black text-text-main dark:text-white">
+                              <h3 className="flex min-w-0 items-center gap-2 text-xs font-black text-text-main dark:text-white">
                                 <StatusIcon className="h-4 w-4 text-primary" />
-                                {formatTicketStatus(status)}
+                                <span className="truncate">{formatTicketStatus(status)}</span>
                               </h3>
                               <Badge>{statusTickets.length}</Badge>
                             </div>
@@ -539,7 +539,7 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
                                     >
                                       <p className="text-xs font-black text-primary">{ticket.ticket_number}</p>
                                       <p className="mt-1 line-clamp-2 text-sm font-black text-text-main dark:text-white">{ticket.subject}</p>
-                                      <p className="mt-2 text-xs font-bold text-text-muted">{ticket.priority} - {ticket.username}</p>
+                                      <p className="mt-2 truncate text-xs font-bold text-text-muted">{ticket.priority} - {ticket.username}</p>
                                     </button>
                                   )}
                                 </Draggable>

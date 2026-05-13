@@ -22,7 +22,10 @@ export default function ChatWidget() {
   const [open, setOpen] = useState(false);
 
   const canUseChat = Boolean(user && (role === "candidate" || role === "employer"));
-  const activeSession = useMemo(() => sessions.find((session) => session.id === activeSessionId) || sessions.find((session) => session.status !== "ENDED") || null, [activeSessionId, sessions]);
+  const activeSession = useMemo(() => {
+    const selected = sessions.find((session) => session.id === activeSessionId && session.status !== "ENDED");
+    return selected || sessions.find((session) => session.status !== "ENDED") || null;
+  }, [activeSessionId, sessions]);
 
   useLiveChatRealtime({
     channelKey: `widget-${user?.id || "guest"}`,
