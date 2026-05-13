@@ -629,30 +629,206 @@ function buildAtsResumeHtml(profile: CandidateProfileState, email?: string | nul
       <meta name="viewport" content="width=device-width, initial-scale=1" />
       <title>${escapeHtml(filename)}</title>
       <style>
-        @page { size: A4; margin: 18mm; }
-        body { color:#111827; font-family: Arial, Helvetica, sans-serif; line-height:1.55; }
-        h1 { margin:0; font-size:28px; }
-        h2 { margin:24px 0 8px; border-bottom:1px solid #d1d5db; font-size:15px; text-transform:uppercase; letter-spacing:.08em; }
-        p { margin:4px 0; font-size:12px; }
-        ul { margin:6px 0 0 18px; padding:0; font-size:12px; }
-        .meta { color:#4b5563; }
-        .print-help { position:fixed; right:20px; bottom:20px; border:0; border-radius:999px; background:#2563eb; color:#fff; padding:12px 18px; font-weight:800; }
-        @media print { .print-help { display:none; } }
+        @page { size: A4; margin: 14mm 16mm; }
+        * { box-sizing: border-box; }
+        body {
+          margin: 0;
+          background: #f3f4f6;
+          color: #111827;
+          font-family: "Times New Roman", Georgia, serif;
+          line-height: 1.42;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        .ats-page {
+          width: 210mm;
+          min-height: 297mm;
+          margin: 24px auto;
+          background: #ffffff;
+          padding: 16mm 17mm;
+          box-shadow: 0 24px 70px rgba(15, 23, 42, 0.14);
+        }
+        header {
+          text-align: center;
+          border-bottom: 2px solid #111827;
+          padding-bottom: 10px;
+          margin-bottom: 14px;
+        }
+        h1 {
+          margin: 0;
+          color: #111827;
+          font-family: Arial, Helvetica, sans-serif;
+          font-size: 25px;
+          line-height: 1.05;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+        .headline {
+          margin: 7px 0 0;
+          color: #374151;
+          font-family: Arial, Helvetica, sans-serif;
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+        .contact {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 4px 10px;
+          margin: 8px auto 0;
+          color: #374151;
+          font-family: Arial, Helvetica, sans-serif;
+          font-size: 10.5px;
+        }
+        section {
+          margin-top: 13px;
+        }
+        h2 {
+          margin: 0 0 7px;
+          border-bottom: 1px solid #111827;
+          color: #111827;
+          font-family: Arial, Helvetica, sans-serif;
+          font-size: 12px;
+          font-weight: 800;
+          letter-spacing: 0.12em;
+          line-height: 1.5;
+          text-transform: uppercase;
+        }
+        p {
+          margin: 0 0 7px;
+          color: #1f2937;
+          font-size: 11.5px;
+        }
+        .summary {
+          text-align: justify;
+        }
+        .skills {
+          font-size: 11.5px;
+          font-weight: 700;
+        }
+        .entry {
+          margin-bottom: 10px;
+          break-inside: avoid;
+        }
+        .entry-head {
+          display: flex;
+          align-items: baseline;
+          justify-content: space-between;
+          gap: 16px;
+          margin-bottom: 3px;
+        }
+        .entry-title {
+          margin: 0;
+          color: #111827;
+          font-size: 12px;
+          font-weight: 800;
+        }
+        .entry-company {
+          margin: 0;
+          color: #374151;
+          font-size: 11.5px;
+          font-style: italic;
+          font-weight: 700;
+        }
+        .entry-period {
+          flex: 0 0 auto;
+          color: #374151;
+          font-size: 10.5px;
+          font-weight: 700;
+          text-align: right;
+        }
+        .entry-copy {
+          margin: 3px 0 0;
+          text-align: justify;
+        }
+        .two-col {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 18px;
+        }
+        .print-help {
+          position: fixed;
+          right: 20px;
+          bottom: 20px;
+          border: 0;
+          border-radius: 999px;
+          background: #2563eb;
+          color: #ffffff;
+          padding: 12px 18px;
+          font-family: Arial, Helvetica, sans-serif;
+          font-weight: 800;
+          box-shadow: 0 14px 40px rgba(37, 99, 235, 0.35);
+        }
+        @media print {
+          body { background: #ffffff; }
+          .ats-page { margin: 0; width: auto; min-height: auto; padding: 0; box-shadow: none; }
+          .print-help { display: none; }
+        }
       </style>
     </head>
     <body>
-      <h1>${escapeHtml(profile.name)}</h1>
-      <p class="meta">${escapeHtml(profile.title)}${email ? ` | ${escapeHtml(email)}` : ""} | ${escapeHtml(profile.location)}</p>
-      <h2>Summary</h2>
-      <p>${escapeHtml(profile.about)}</p>
-      <h2>Skills</h2>
-      <p>${escapeHtml(profile.skills.join(", "))}</p>
-      <h2>Experience</h2>
-      ${profile.experience.map((item) => `<p><strong>${escapeHtml(item.role)}</strong> - ${escapeHtml(item.company)} (${escapeHtml(item.period)})</p><p>${escapeHtml(item.description)}</p>`).join("")}
-      <h2>Education</h2>
-      ${profile.education.map((item) => `<p><strong>${escapeHtml(item.degree)}</strong> - ${escapeHtml(item.institution)}, ${escapeHtml(item.year)}</p>`).join("")}
-      <h2>Certifications</h2>
-      ${profile.certifications.map((item) => `<p><strong>${escapeHtml(item.name)}</strong> - ${escapeHtml(item.organization)}, ${escapeHtml(item.year)}</p>`).join("")}
+      <main class="ats-page">
+        <header>
+          <h1>${escapeHtml(profile.name)}</h1>
+          <p class="headline">${escapeHtml(profile.title)}</p>
+          <div class="contact">
+            ${email ? `<span>${escapeHtml(email)}</span><span>|</span>` : ""}
+            <span>${escapeHtml(profile.location)}</span>
+          </div>
+        </header>
+
+        <section>
+          <h2>Career Summary</h2>
+          <p class="summary">${escapeHtml(profile.about)}</p>
+        </section>
+
+        <section>
+          <h2>Core Competencies</h2>
+          <p class="skills">${escapeHtml(profile.skills.join(" | "))}</p>
+        </section>
+
+        <section>
+          <h2>Professional Experience</h2>
+          ${profile.experience.map((item) => `
+            <article class="entry">
+              <div class="entry-head">
+                <div>
+                  <p class="entry-title">${escapeHtml(item.role)}</p>
+                  <p class="entry-company">${escapeHtml(item.company)}</p>
+                </div>
+                <span class="entry-period">${escapeHtml(item.period)}</span>
+              </div>
+              <p class="entry-copy">${escapeHtml(item.description)}</p>
+            </article>
+          `).join("")}
+        </section>
+
+        <div class="two-col">
+          <section>
+            <h2>Education</h2>
+            ${profile.education.map((item) => `
+              <article class="entry">
+                <p class="entry-title">${escapeHtml(item.degree)}</p>
+                <p>${escapeHtml(item.institution)}</p>
+                <p>${escapeHtml(item.year)}</p>
+              </article>
+            `).join("")}
+          </section>
+
+          <section>
+            <h2>Training & Certifications</h2>
+            ${profile.certifications.map((item) => `
+              <article class="entry">
+                <p class="entry-title">${escapeHtml(item.name)}</p>
+                <p>${escapeHtml(item.organization)}</p>
+                <p>${escapeHtml(item.year)}</p>
+              </article>
+            `).join("")}
+          </section>
+        </div>
+      </main>
       <button class="print-help" onclick="window.print()">Save as PDF</button>
     </body>
   </html>`;
