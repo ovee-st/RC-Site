@@ -50,6 +50,13 @@ import { Button, LinkButton } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import { mergeRowsWithProfiles } from "@/lib/authUserSync";
 import { normalizeDateValue, normalizeJobPatch, normalizeJobStatus } from "@/lib/jobUpdate";
+import {
+  buildAtsResumeHtml,
+  buildCustomizedResumeHtml,
+  getResumeFilename,
+  openResumeDocument,
+  type ResumeProfile
+} from "@/lib/resumeDocuments";
 
 type AdminSection =
   | "dashboard"
@@ -194,6 +201,30 @@ function getDisplayName(row: AnyRecord) {
 
 function getEmail(row: AnyRecord) {
   return row.email || row.user_email || row.contact_email || "No email";
+}
+function createResumeProfile(candidate: AnyRecord, skills: string[]): ResumeProfile {
+  return {
+    name: getDisplayName(candidate),
+    title: candidate.title || candidate.designation || candidate.career_level || candidate.experience_level || candidate.category || "Candidate",
+    email: getEmail(candidate),
+    phone: candidate.phone || candidate.mobile || candidate.phone_number || "",
+    location: candidate.location || candidate.address || "",
+    avatar: candidate.avatar_url || candidate.photo_url || candidate.profile_image_url || candidate.image_url || "",
+    about: candidate.about || candidate.bio || candidate.summary || "",
+    skills,
+    experience: candidate.experience || candidate.experiences || candidate.work_experience || "",
+    education: candidate.education || candidate.educations || "",
+    certifications: candidate.certifications || candidate.certificate || ""
+  };
+}
+
+function downloadCandidateResume(candidate: AnyRecord, skills: string[], variant: "ats" | "customized") {
+  const profile = createResumeProfile(candidate, skills);
+  const filename = getResumeFilename(profile.name);
+  const html = variant === "ats"
+    ? buildAtsResumeHtml(profile, getEmail(candidate))
+    : buildCustomizedResumeHtml(profile, getEmail(candidate));
+  openResumeDocument(html, filename);
 }
 
 function isVerifiedRecord(row: AnyRecord) {
@@ -1286,8 +1317,8 @@ function CandidatesSection({
               </div>
             ) : null}
             <div className="mt-4 grid gap-2 sm:grid-cols-[1fr_1fr_210px]">
-              <Button variant="secondary" className="px-3 py-2">Download ATS CV</Button>
-              <Button variant="secondary" className="px-3 py-2">Customized CV</Button>
+              <Button variant="secondary" className="px-3 py-2" onClick={() => downloadCandidateResume(candidate, skills, "ats")}>Download ATS CV</Button>
+              <Button variant="secondary" className="px-3 py-2" onClick={() => downloadCandidateResume(candidate, skills, "customized")}>Customized CV</Button>
               <div className="grid grid-cols-2 gap-2">
                 {["Basic", "Pro"].map((plan) => (
                   <Button key={plan} variant={String(candidate.plan || "Basic") === plan ? "primary" : "secondary"} className="px-3 py-2" disabled={readOnly} onClick={() => onPlanChange(candidate, plan as "Basic" | "Pro")}>{plan}</Button>
