@@ -288,36 +288,65 @@ function resolveAvatarImage(row: AnyRecord) {
 }
 
 function profileIdentityKeys(row: AnyRecord) {
-  return [row.id, row.user_id, row.profile_id, row.email, row.user_email]
+  return [row.id, row.user_id, row.profile_id, row.email, row.user_email, row.username]
     .filter(Boolean)
     .map((value) => String(value).toLowerCase());
 }
 
-function enrichProfilesWithVisibleImages(profiles: AnyRecord[], candidates: AnyRecord[], employers: AnyRecord[]) {
+function fillAvatarFields(row: AnyRecord, image: string) {
+  return {
+    ...row,
+    avatar_url: row.avatar_url || image,
+    photo_url: row.photo_url || image,
+    profile_photo_url: row.profile_photo_url || image,
+    avatar: row.avatar || image,
+    logo_url: row.logo_url || image,
+    company_logo_url: row.company_logo_url || image,
+    company_photo_url: row.company_photo_url || image
+  };
+}
+
+function createVisibleImageMap(rows: AnyRecord[]) {
   const imageByKey = new Map<string, string>();
 
-  [...candidates, ...employers].forEach((row) => {
+  rows.forEach((row) => {
     const image = resolveAvatarImage(row);
     if (!image) return;
     profileIdentityKeys(row).forEach((key) => imageByKey.set(key, image));
   });
 
-  return profiles.map((profile) => {
-    const existingImage = resolveAvatarImage(profile);
-    const relatedImage = profileIdentityKeys(profile).map((key) => imageByKey.get(key)).find(Boolean);
-    const image = existingImage || relatedImage || null;
-    if (!image) return profile;
+  return imageByKey;
+}
 
-    return {
-      ...profile,
-      avatar_url: profile.avatar_url || image,
-      photo_url: profile.photo_url || image,
-      profile_photo_url: profile.profile_photo_url || image,
-      avatar: profile.avatar || image,
-      logo_url: profile.logo_url || image,
-      company_logo_url: profile.company_logo_url || image
-    };
+function enrichRowsWithVisibleImages(rows: AnyRecord[], relatedRows: AnyRecord[] = []) {
+  const imageByKey = createVisibleImageMap([...rows, ...relatedRows]);
+
+  return rows.map((row) => {
+    const existingImage = resolveAvatarImage(row);
+    const relatedImage = profileIdentityKeys(row).map((key) => imageByKey.get(key)).find(Boolean);
+    const image = existingImage || relatedImage || null;
+    return image ? fillAvatarFields(row, image) : row;
   });
+}
+
+function normalizeAdminCollections(collections: {
+  profiles: AnyRecord[];
+  candidates: AnyRecord[];
+  employers: AnyRecord[];
+  employees: AnyRecord[];
+}) {
+  const relatedRows = [
+    ...collections.profiles,
+    ...collections.candidates,
+    ...collections.employers,
+    ...collections.employees
+  ];
+  const profiles = enrichRowsWithVisibleImages(collections.profiles, relatedRows);
+  const candidates = mergeRowsWithProfiles(enrichRowsWithVisibleImages(collections.candidates, relatedRows), profiles, "candidate");
+  const employers = mergeRowsWithProfiles(enrichRowsWithVisibleImages(collections.employers, relatedRows), profiles, "employer");
+  const employees = enrichRowsWithVisibleImages(collections.employees, relatedRows);
+
+  return { profiles, candidates, employers, employees };
 }
 
 function AdminAvatar({ row, className }: { row: AnyRecord; className?: string }) {
@@ -432,13 +461,18 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
 
       if (!active) return;
 
-      const baseProfiles = enrichProfilesWithVisibleImages(profiles.length ? profiles : fallbackProfiles, candidates, employers);
+      const normalizedInitialData = normalizeAdminCollections({
+        profiles: profiles.length ? profiles : fallbackProfiles,
+        candidates,
+        employers,
+        employees
+      });
 
       setAdminData({
-        profiles: baseProfiles,
-        candidates: mergeRowsWithProfiles(candidates, baseProfiles, "candidate"),
-        employers: mergeRowsWithProfiles(employers, baseProfiles, "employer"),
-        employees,
+        profiles: normalizedInitialData.profiles,
+        candidates: normalizedInitialData.candidates,
+        employers: normalizedInitialData.employers,
+        employees: normalizedInitialData.employees,
         jobs,
         applications,
         contactRequests: contactRequests.length ? contactRequests : fallbackContacts,
@@ -460,20 +494,18 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
         if (!active || !response?.ok) return;
 
         const payload = await response.json().catch(() => ({}));
-        const syncedProfilesRaw = Array.isArray(payload.profiles) && payload.profiles.length ? payload.profiles : baseProfiles;
+        const syncedProfilesRaw = Array.isArray(payload.profiles) && payload.profiles.length ? payload.profiles : normalizedInitialData.profiles;
         const syncedCandidates = Array.isArray(payload.candidates) ? payload.candidates : [];
         const syncedEmployers = Array.isArray(payload.employers) ? payload.employers : [];
-        const syncedProfiles = enrichProfilesWithVisibleImages(
-          syncedProfilesRaw,
-          syncedCandidates.length ? syncedCandidates : candidates,
-          syncedEmployers.length ? syncedEmployers : employers
-        );
 
         setAdminData((current) => ({
           ...current,
-          profiles: syncedProfiles,
-          candidates: syncedCandidates.length ? syncedCandidates : current.candidates,
-          employers: syncedEmployers.length ? syncedEmployers : current.employers
+          ...normalizeAdminCollections({
+            profiles: syncedProfilesRaw,
+            candidates: syncedCandidates.length ? syncedCandidates : current.candidates,
+            employers: syncedEmployers.length ? syncedEmployers : current.employers,
+            employees: current.employees
+          })
         }));
       }
     }
@@ -1555,12 +1587,7 @@ function EmployeesSection({ rows, onUpdate, onDelete, readOnly }: { rows: AnyRec
         <Card key={employee.id || employee.user_id || employee.email} className="rounded-3xl p-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="flex min-w-0 gap-4">
-              <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-primary to-success text-sm font-black text-white">
-                {resolveAvatarImage(employee) ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={resolveAvatarImage(employee)} alt={employee.full_name || employee.email} className="h-full w-full object-cover" />
-                ) : getInitials(employee.full_name || employee.email)}
-              </div>
+              <AdminAvatar row={employee} className="h-14 w-14 text-sm" />
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="text-lg font-black text-text-main dark:text-white">{employee.full_name || "Support employee"}</h3>

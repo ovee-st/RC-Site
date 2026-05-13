@@ -6,26 +6,83 @@ const VALID_ROLES = new Set(["candidate", "employer", "employee", "admin", "view
 
 export function getBestAvatarUrl(row?: AnyRecord | null) {
   if (!row) return null;
-  const metadata = row.user_metadata || row.raw_user_meta_data || {};
-  return (
-    row.avatar_url ||
-    row.photo_url ||
-    row.profile_photo_url ||
-    row.profile_image_url ||
-    row.image_url ||
-    row.avatar ||
-    row.logo_url ||
-    row.company_logo_url ||
-    metadata.avatar_url ||
-    metadata.photo_url ||
-    metadata.profile_photo_url ||
-    metadata.picture ||
-    null
+  const metadata = row.user_metadata || row.raw_user_meta_data || row.metadata || {};
+  const nestedProfile = row.profile || row.profiles || {};
+  const nestedCandidate = row.candidate || row.candidates || {};
+  const nestedEmployer = row.employer || row.employers || {};
+
+  const firstImageValue = (...values: unknown[]) => {
+    for (const value of values) {
+      if (typeof value !== "string") continue;
+      const image = value.trim();
+      if (!image) continue;
+      if (
+        image.startsWith("data:image/") ||
+        image.startsWith("/") ||
+        /^https?:\/\//i.test(image) ||
+        /supabase\.co\/storage\/v1\/object/i.test(image)
+      ) {
+        return image;
+      }
+    }
+    return null;
+  };
+
+  const explicitImage = firstImageValue(
+    row.avatar_url,
+    row.photo_url,
+    row.profile_photo_url,
+    row.profile_image_url,
+    row.profile_image,
+    row.profile_picture,
+    row.picture_url,
+    row.picture,
+    row.image_url,
+    row.image,
+    row.photo,
+    row.avatar,
+    row.logo_url,
+    row.logo,
+    row.company_logo_url,
+    row.company_photo_url,
+    row.company_avatar_url,
+    row.company_profile_photo_url,
+    row.brand_logo_url,
+    row.thumbnail_url,
+    metadata.avatar_url,
+    metadata.photo_url,
+    metadata.profile_photo_url,
+    metadata.profile_image_url,
+    metadata.picture,
+    metadata.picture_url,
+    nestedProfile.avatar_url,
+    nestedProfile.photo_url,
+    nestedProfile.profile_photo_url,
+    nestedProfile.profile_image_url,
+    nestedCandidate.avatar_url,
+    nestedCandidate.photo_url,
+    nestedCandidate.profile_photo_url,
+    nestedCandidate.avatar,
+    nestedEmployer.avatar_url,
+    nestedEmployer.photo_url,
+    nestedEmployer.profile_photo_url,
+    nestedEmployer.logo_url,
+    nestedEmployer.company_logo_url
   );
+
+  if (explicitImage) return explicitImage;
+
+  for (const [key, value] of Object.entries(row)) {
+    if (!/(avatar|photo|image|picture|logo|thumbnail)/i.test(key)) continue;
+    const inferredImage = firstImageValue(value);
+    if (inferredImage) return inferredImage;
+  }
+
+  return null;
 }
 
 function identityKeys(row: AnyRecord) {
-  return [row.id, row.user_id, row.profile_id, row.email, row.user_email]
+  return [row.id, row.user_id, row.profile_id, row.email, row.user_email, row.username]
     .filter(Boolean)
     .map((value) => String(value).toLowerCase());
 }
