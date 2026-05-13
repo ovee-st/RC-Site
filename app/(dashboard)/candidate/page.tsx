@@ -190,7 +190,18 @@ function getInitials(name?: string | null) {
 function getDefaultProfile(user: ReturnType<typeof useAuth>["user"]): CandidateProfileState {
   const candidate = demoCandidates[0];
   const name = user?.user_metadata?.name || user?.user_metadata?.full_name || user?.name || candidate.name;
-  const avatar = user?.avatar || user?.user_metadata?.avatar_url || user?.user_metadata?.picture || candidate.avatar || null;
+  const userRecord = user as any;
+  const metadata = userRecord?.user_metadata || {};
+  const avatar =
+    user?.avatar ||
+    userRecord?.photo_url ||
+    userRecord?.avatar_url ||
+    metadata.avatar_url ||
+    metadata.photo_url ||
+    metadata.profile_photo_url ||
+    metadata.picture ||
+    candidate.avatar ||
+    null;
 
   return {
     name,
@@ -291,6 +302,40 @@ function TextArea({ className, ...props }: React.TextareaHTMLAttributes<HTMLText
       {...props}
     />
   );
+}
+
+async function syncCandidateProfile(nextProfile: CandidateProfileState, user: ReturnType<typeof useAuth>["user"]) {
+  if (!isSupabaseConfigured || !user?.id) return;
+
+  const avatarUrl = nextProfile.avatar || null;
+  const profilePatch = {
+    full_name: nextProfile.name,
+    name: nextProfile.name,
+    avatar_url: avatarUrl,
+    photo_url: avatarUrl
+  };
+
+  await supabase.from("profiles").update(profilePatch).eq("id", user.id);
+
+  const candidatePatch = {
+    user_id: user.id,
+    full_name: nextProfile.name,
+    name: nextProfile.name,
+    title: nextProfile.title,
+    location: nextProfile.location,
+    about: nextProfile.about,
+    skills: nextProfile.skills,
+    skills_array: nextProfile.skills,
+    photo_url: avatarUrl,
+    avatar: avatarUrl,
+    category: demoCandidates[0]?.category || "HR & Admin",
+    career_level: demoCandidates[0]?.experience || "Mid Level"
+  };
+
+  const { error } = await supabase.from("candidates").upsert(candidatePatch, { onConflict: "user_id" });
+  if (error) {
+    await supabase.from("candidates").update(candidatePatch).eq("user_id", user.id);
+  }
 }
 
 function escapeHtml(value?: string | number | null) {
@@ -910,10 +955,15 @@ export default function CandidateDashboard() {
         name: nextProfile.name,
         full_name: nextProfile.name,
         avatar_url: nextProfile.avatar,
+        photo_url: nextProfile.avatar,
+        profile_photo_url: nextProfile.avatar,
         role: "candidate"
       }
     }));
     window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
+    void syncCandidateProfile(nextProfile, user).then(() => {
+      window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
+    });
   };
 
   const openEditor = (section: EditableSection) => {
@@ -926,8 +976,9 @@ export default function CandidateDashboard() {
     setEditing(null);
   };
 
-  const saveEditor = () => {
+  const saveEditor = async () => {
     persistProfile(draft);
+    await syncCandidateProfile(draft, user);
     setEditing(null);
     setActiveTab("profile");
     router.replace("/candidate?view=profile");

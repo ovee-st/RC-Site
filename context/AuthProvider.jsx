@@ -43,7 +43,19 @@ function normalizeUser(authUser, profile, fallbackUser) {
       username: profile?.username || metadata.username || fallbackUser?.username,
       user_metadata: { ...fallbackUser?.user_metadata, ...metadata }
     }),
-    avatar: profile?.avatar_url || profile?.photo_url || metadata.avatar_url || metadata.picture || fallbackUser?.avatar || null
+    avatar:
+      profile?.avatar_url ||
+      profile?.photo_url ||
+      metadata.avatar_url ||
+      metadata.photo_url ||
+      metadata.profile_photo_url ||
+      metadata.logo_url ||
+      metadata.company_logo_url ||
+      metadata.picture ||
+      fallbackUser?.avatar ||
+      fallbackUser?.user_metadata?.avatar_url ||
+      fallbackUser?.user_metadata?.photo_url ||
+      null
   };
 }
 
@@ -101,12 +113,13 @@ function applyUserDefaults(user) {
     return {
       ...user,
       name: candidate.name,
-      avatar: user.avatar || candidate.avatar || null,
+      avatar: user.avatar || user.user_metadata?.photo_url || user.user_metadata?.avatar_url || candidate.avatar || null,
       user_metadata: {
         ...user.user_metadata,
         name: candidate.name,
         full_name: candidate.name,
-        avatar_url: user.avatar || candidate.avatar || user.user_metadata?.avatar_url,
+        avatar_url: user.avatar || user.user_metadata?.photo_url || candidate.avatar || user.user_metadata?.avatar_url,
+        photo_url: user.avatar || user.user_metadata?.photo_url || candidate.avatar,
         username: getStableUsername(user),
         role
       }

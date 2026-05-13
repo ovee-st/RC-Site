@@ -189,7 +189,24 @@ export default function EmployerCandidates() {
           return;
         }
 
-        const supabaseCandidates = data.map(mapCandidateRow);
+        const profileIds = data.map((row) => row.user_id).filter(Boolean);
+        let profileAvatars = new Map<string, string | null>();
+
+        if (profileIds.length) {
+          const { data: profiles } = await supabase
+            .from("profiles")
+            .select("id, avatar_url, photo_url")
+            .in("id", profileIds);
+
+          profileAvatars = new Map(
+            (profiles || []).map((profile) => [profile.id, profile.avatar_url || profile.photo_url || null])
+          );
+        }
+
+        const supabaseCandidates = data.map((row) => mapCandidateRow({
+          ...row,
+          photo_url: row.photo_url || profileAvatars.get(row.user_id) || null
+        }));
         const localNames = new Set(localCandidates.map((candidate) => candidate.name.toLowerCase()));
         const merged = [
           ...localCandidates,

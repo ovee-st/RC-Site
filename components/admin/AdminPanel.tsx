@@ -252,9 +252,24 @@ function AdminStatCard({ label, value, detail, icon: Icon, accent }: { label: st
   );
 }
 
+function resolveAvatarImage(row: AnyRecord) {
+  return (
+    row.avatar_url ||
+    row.photo_url ||
+    row.profile_photo_url ||
+    row.avatar ||
+    row.logo_url ||
+    row.company_logo_url ||
+    row.user_metadata?.avatar_url ||
+    row.user_metadata?.photo_url ||
+    row.user_metadata?.picture ||
+    null
+  );
+}
+
 function AdminAvatar({ row, className }: { row: AnyRecord; className?: string }) {
   const name = getDisplayName(row);
-  const image = row.avatar_url || row.photo_url || row.logo_url || row.company_logo_url;
+  const image = resolveAvatarImage(row);
 
   return (
     <div className={cn("grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-primary to-success text-xs font-black text-white ring-2 ring-white shadow-soft", className)}>
@@ -1481,9 +1496,9 @@ function EmployeesSection({ rows, onUpdate, onDelete, readOnly }: { rows: AnyRec
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="flex min-w-0 gap-4">
               <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-primary to-success text-sm font-black text-white">
-                {employee.avatar_url ? (
+                {resolveAvatarImage(employee) ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={employee.avatar_url} alt={employee.full_name || employee.email} className="h-full w-full object-cover" />
+                  <img src={resolveAvatarImage(employee)} alt={employee.full_name || employee.email} className="h-full w-full object-cover" />
                 ) : getInitials(employee.full_name || employee.email)}
               </div>
               <div className="min-w-0">

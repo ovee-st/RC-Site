@@ -98,7 +98,20 @@ export default function Navbar() {
   const profileHref = currentRole === "admin" || currentRole === "viewer" ? "/admin/profile" : currentRole === "employee" ? "/employee/profile" : currentRole === "employer" ? "/employer#profile" : "/candidate?view=profile";
   const accountHref = currentRole === "admin" || currentRole === "viewer" ? "/admin/account" : currentRole === "employee" ? "/employee/profile" : currentRole === "employer" ? "/employer#account-settings" : "/candidate?view=profile#account-settings";
   const displayName = user?.user_metadata?.name || user?.user_metadata?.full_name || user?.name || "MX User";
-  const avatarSrc = profileAvatar || user?.avatar || user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null;
+  const userRecord = user as any;
+  const metadata = userRecord?.user_metadata || {};
+  const avatarSrc =
+    profileAvatar ||
+    user?.avatar ||
+    userRecord?.photo_url ||
+    userRecord?.avatar_url ||
+    metadata.avatar_url ||
+    metadata.photo_url ||
+    metadata.profile_photo_url ||
+    metadata.logo_url ||
+    metadata.company_logo_url ||
+    metadata.picture ||
+    null;
   const verified = Boolean(user?.user_metadata?.verified) || String(user?.user_metadata?.plan || "").toLowerCase() === "pro";
   const isLogoAvatar = Boolean(avatarSrc && /mx-logo|mx[\\/_-]?venture|MX\.png/i.test(avatarSrc));
   const initials = getInitials(displayName);
@@ -163,7 +176,15 @@ export default function Navbar() {
         const key = role === "employer" ? EMPLOYER_PROFILE_KEY : CANDIDATE_PROFILE_KEY;
         const savedProfile = window.localStorage.getItem(key);
         const parsedProfile = savedProfile ? JSON.parse(savedProfile) : null;
-        setProfileAvatar(parsedProfile?.photo_url || parsedProfile?.avatar || null);
+        setProfileAvatar(
+          parsedProfile?.photo_url ||
+            parsedProfile?.avatar ||
+            parsedProfile?.avatar_url ||
+            parsedProfile?.profile_photo_url ||
+            parsedProfile?.logo_url ||
+            parsedProfile?.company_logo_url ||
+            null
+        );
       } catch {
         setProfileAvatar(null);
       }
