@@ -46,13 +46,19 @@ export default function JobPreview({ mode = "panel" }: { mode?: "panel" | "modal
       }
 
       if (event.key.toLowerCase() === "a") {
+        if (!user || role !== "candidate") {
+          const next = `/jobs?job=${selectedJob.id}`;
+          window.location.href = `/login?next=${encodeURIComponent(next)}`;
+          return;
+        }
+
         setAppliedJobs((current) => ({ ...current, [selectedJob.id]: true }));
       }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [selectedJob]);
+  }, [role, selectedJob, user]);
 
   if (!selectedJob) {
     return (
@@ -75,11 +81,22 @@ export default function JobPreview({ mode = "panel" }: { mode?: "panel" | "modal
   const deadline = selectedJob.deadline ? new Date(selectedJob.deadline).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "Not specified";
   const match = matchCandidateToJob(demoCandidates[0], selectedJob);
   const showCandidateAI = Boolean(user) && role === "candidate";
+  const canApply = Boolean(user) && role === "candidate";
+  const applyLabel = !user ? "Login to Apply" : canApply ? (applied ? "Applied" : "Apply Now") : "Candidate Login Required";
   const closePreview = () => {
     if (typeof window !== "undefined" && window.location.search.includes("job=")) {
       window.history.replaceState(null, "", "/jobs");
     }
     setSelectedJob(null);
+  };
+  const handleApply = () => {
+    if (!user || role !== "candidate") {
+      const next = `/jobs?job=${selectedJob.id}`;
+      window.location.href = `/login?next=${encodeURIComponent(next)}`;
+      return;
+    }
+
+    setAppliedJobs((current) => ({ ...current, [selectedJob.id]: true }));
   };
 
   return (
@@ -218,10 +235,10 @@ export default function JobPreview({ mode = "panel" }: { mode?: "panel" | "modal
             <Button
               variant={applied ? "success" : "primary"}
               className="gap-2 py-3"
-              onClick={() => setAppliedJobs((current) => ({ ...current, [selectedJob.id]: true }))}
+              onClick={handleApply}
             >
               {applied ? <Check size={16} /> : <Send size={16} />}
-              {applied ? "Applied" : "Apply Now"}
+              {applyLabel}
               <span className="hidden rounded-md border border-white/30 px-1.5 py-0.5 text-[10px] sm:inline">A</span>
             </Button>
           </div>

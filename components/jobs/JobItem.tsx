@@ -68,7 +68,7 @@ function postTimeLabel(createdAt?: string) {
 
 export default function JobItem({ job, matchScore }: { job: Job; matchScore: number }) {
   const { selectedJob, setSelectedJob, updateJob } = useJobStore();
-  const { role } = useAuth();
+  const { user, role } = useAuth();
   const [saved, setSaved] = useState(false);
   const [applied, setApplied] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -90,6 +90,15 @@ export default function JobItem({ job, matchScore }: { job: Job; matchScore: num
   const archived = normalizeJobStatus(job.status) === "archived" || isExpired(job.deadline);
   const hired = job.status === "hired";
   const employerPhotoUrl = job.employerPhotoUrl || localEmployerPhoto;
+  const handleApply = () => {
+    if (!user || role !== "candidate") {
+      window.location.href = `/login?next=${encodeURIComponent(`/jobs?job=${job.id}`)}`;
+      return;
+    }
+
+    setSelectedJob(job);
+    setApplied(true);
+  };
 
   useEffect(() => {
     try {
@@ -294,8 +303,7 @@ export default function JobItem({ job, matchScore }: { job: Job; matchScore: num
                     className="gap-1.5 px-4 py-2"
                     onClick={(event) => {
                       event.stopPropagation();
-                      setSelectedJob(job);
-                      setApplied(true);
+                      handleApply();
                     }}
                   >
                     {applied ? <Check size={14} /> : <Send size={14} />}
