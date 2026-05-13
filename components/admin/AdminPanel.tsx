@@ -305,26 +305,6 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
 
     async function loadAdminData() {
       setDataLoading(true);
-      let syncedCandidates: AnyRecord[] = [];
-      let syncedEmployers: AnyRecord[] = [];
-
-      if (isSupabaseConfigured) {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const token = sessionData?.session?.access_token;
-        if (token) {
-          const response = await fetch("/api/admin/sync-auth-users", {
-            method: "POST",
-            headers: { Authorization: `Bearer ${token}` }
-          }).catch(() => null);
-
-          if (response?.ok) {
-            const payload = await response.json().catch(() => ({}));
-            syncedCandidates = Array.isArray(payload.candidates) ? payload.candidates : [];
-            syncedEmployers = Array.isArray(payload.employers) ? payload.employers : [];
-          }
-        }
-      }
-
       const [profiles, candidates, employers, employees, jobs, applications, contactRequests, coupons, transactions] = await Promise.all([
         safeSelect("profiles"),
         safeSelect("candidates"),
@@ -339,10 +319,12 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
 
       if (!active) return;
 
+      const baseProfiles = profiles.length ? profiles : fallbackProfiles;
+
       setAdminData({
-        profiles: profiles.length ? profiles : fallbackProfiles,
-        candidates: syncedCandidates.length ? syncedCandidates : mergeRowsWithProfiles(candidates, profiles.length ? profiles : fallbackProfiles, "candidate"),
-        employers: syncedEmployers.length ? syncedEmployers : mergeRowsWithProfiles(employers, profiles.length ? profiles : fallbackProfiles, "employer"),
+        profiles: baseProfiles,
+        candidates: mergeRowsWithProfiles(candidates, baseProfiles, "candidate"),
+        employers: mergeRowsWithProfiles(employers, baseProfiles, "employer"),
         employees,
         jobs,
         applications,
@@ -351,6 +333,31 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
         transactions: transactions.length ? transactions : fallbackTransactions
       });
       setDataLoading(false);
+
+      if (isSupabaseConfigured && ["users", "candidates", "employers", "dashboard"].includes(section)) {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+        if (!token) return;
+
+        const response = await fetch("/api/admin/sync-auth-users", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` }
+        }).catch(() => null);
+
+        if (!active || !response?.ok) return;
+
+        const payload = await response.json().catch(() => ({}));
+        const syncedProfiles = Array.isArray(payload.profiles) && payload.profiles.length ? payload.profiles : baseProfiles;
+        const syncedCandidates = Array.isArray(payload.candidates) ? payload.candidates : [];
+        const syncedEmployers = Array.isArray(payload.employers) ? payload.employers : [];
+
+        setAdminData((current) => ({
+          ...current,
+          profiles: syncedProfiles,
+          candidates: syncedCandidates.length ? syncedCandidates : current.candidates,
+          employers: syncedEmployers.length ? syncedEmployers : current.employers
+        }));
+      }
     }
 
     if (!loading && canAccessAdmin) loadAdminData();
@@ -358,7 +365,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
     return () => {
       active = false;
     };
-  }, [canAccessAdmin, loading]);
+  }, [canAccessAdmin, loading, section]);
 
   const analytics = useMemo(() => {
     const activeJobs = adminData.jobs.filter((job) => (job.status || "active") === "active").length;
@@ -633,10 +640,54 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
       setNotice("Viewer accounts can inspect admin data, but cannot delete records.");
       return;
     }
+    if (!window.confirm("Delete this record permanently? This cannot be undone.")) return;
+
     if (isSupabaseConfigured) {
-      await supabase.from(table).delete().eq("id", id);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const response = await fetch("/api/admin/delete-record", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(sessionData.session?.access_token ? { Authorization: `Bearer ${sessionData.session.access_token}` } : {})
+        },
+        body: JSON.stringify({ table, id })
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setNotice(payload.error || "Could not delete record.");
+        return;
+      }
     }
-    setNotice("Record deleted or queued for deletion.");
+
+    const stateKey = ({
+      profiles: "profiles",
+      candidates: "candidates",
+      employers: "employers",
+      employees: "employees",
+      jobs: "jobs",
+      contact_requests: "contactRequests",
+      coupons: "coupons",
+      transactions: "transactions"
+    } as Record<string, keyof AdminState>)[table];
+
+    if (stateKey) {
+      setAdminData((current) => ({
+        ...current,
+        [stateKey]: current[stateKey].filter((row) => row.id !== id && row.user_id !== id)
+      }));
+    }
+
+    if (table === "profiles") {
+      setAdminData((current) => ({
+        ...current,
+        candidates: current.candidates.filter((row) => row.id !== id && row.user_id !== id),
+        employers: current.employers.filter((row) => row.id !== id && row.user_id !== id),
+        employees: current.employees.filter((row) => row.id !== id && row.user_id !== id)
+      }));
+    }
+
+    setNotice("Record deleted.");
   }
 
   async function generateCoupon() {
@@ -835,10 +886,10 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
             <>
               {section === "dashboard" ? <DashboardSection analytics={analytics} chartData={chartData} revenueData={revenueData} data={adminData} /> : null}
               {section === "users" ? <UsersSection rows={filteredProfiles} query={query} roleFilter={roleFilter} setRoleFilter={setRoleFilter} onUpdate={updateRecord} onRoleChange={updateUserRole} onDelete={deleteRecord} readOnly={readOnly} onNotice={setNotice} /> : null}
-              {section === "candidates" ? <CandidatesSection rows={adminData.candidates} profiles={adminData.profiles} applications={adminData.applications} onUpdate={updateRecord} onPlanChange={updateCandidatePlan} readOnly={readOnly} /> : null}
-              {section === "employers" ? <EmployersSection rows={adminData.employers} jobs={adminData.jobs} onUpdate={updateRecord} readOnly={readOnly} /> : null}
+              {section === "candidates" ? <CandidatesSection rows={adminData.candidates} profiles={adminData.profiles} applications={adminData.applications} onUpdate={updateRecord} onPlanChange={updateCandidatePlan} onDelete={deleteRecord} readOnly={readOnly} /> : null}
+              {section === "employers" ? <EmployersSection rows={adminData.employers} jobs={adminData.jobs} onUpdate={updateRecord} onDelete={deleteRecord} readOnly={readOnly} /> : null}
               {section === "jobs" ? <JobsSection rows={adminData.jobs} onUpdate={updateRecord} readOnly={readOnly} /> : null}
-              {section === "employees" ? <EmployeesSection rows={adminData.employees} onUpdate={updateRecord} readOnly={readOnly} /> : null}
+              {section === "employees" ? <EmployeesSection rows={adminData.employees} onUpdate={updateRecord} onDelete={deleteRecord} readOnly={readOnly} /> : null}
               {section === "contact-requests" ? <ContactRequestsSection rows={adminData.contactRequests} onUpdate={updateRecord} onDelete={deleteRecord} /> : null}
               {section === "coupons" ? <CouponsSection rows={adminData.coupons} onCreate={createCoupon} onGenerate={generateCoupon} onUpdate={updateRecord} onDelete={deleteRecord} readOnly={readOnly} /> : null}
               {section === "transactions" ? <TransactionsSection rows={adminData.transactions} /> : null}
@@ -1082,6 +1133,7 @@ function CandidatesSection({
   applications,
   onUpdate,
   onPlanChange,
+  onDelete,
   readOnly
 }: {
   rows: AnyRecord[];
@@ -1089,6 +1141,7 @@ function CandidatesSection({
   applications: AnyRecord[];
   onUpdate: (table: string, id: string, patch: AnyRecord) => void;
   onPlanChange: (candidate: AnyRecord, nextPlan: "Basic" | "Pro") => void;
+  onDelete: (table: string, id: string) => void;
   readOnly: boolean;
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -1134,6 +1187,7 @@ function CandidatesSection({
               <div className="flex flex-wrap gap-2">
                 <Badge variant="match-score">AI {candidate.match_score || 86}%</Badge>
                 <Button variant="secondary" className="gap-2 px-3 py-2" onClick={() => startEdit(candidate)}><Edit3 className="h-4 w-4" />Edit details</Button>
+                <Button variant="ghost" className="px-3 py-2 text-danger" disabled={readOnly} onClick={() => onDelete("candidates", candidate.id || candidate.user_id)}><Trash2 className="h-4 w-4" /></Button>
               </div>
             </div>
             <div className="mt-4 flex flex-wrap gap-2">{skills.slice(0, 8).map((skill) => <Badge key={skill}>{skill}</Badge>)}</div>
@@ -1188,7 +1242,7 @@ function CandidatesSection({
   );
 }
 
-function EmployersSection({ rows, jobs, onUpdate, readOnly }: { rows: AnyRecord[]; jobs: AnyRecord[]; onUpdate: (table: string, id: string, patch: AnyRecord) => void; readOnly: boolean }) {
+function EmployersSection({ rows, jobs, onUpdate, onDelete, readOnly }: { rows: AnyRecord[]; jobs: AnyRecord[]; onUpdate: (table: string, id: string, patch: AnyRecord) => void; onDelete: (table: string, id: string) => void; readOnly: boolean }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<AnyRecord>({});
 
@@ -1264,6 +1318,7 @@ function EmployersSection({ rows, jobs, onUpdate, readOnly }: { rows: AnyRecord[
               <Button variant="primary" disabled={readOnly} onClick={() => onUpdate("employers", employer.id, { verified: true })}>Verify employer</Button>
               <Button variant="secondary" disabled={readOnly} onClick={() => onUpdate("employers", employer.id, { suspended: !employer.suspended })}>Suspend</Button>
               <Button variant="secondary" className="gap-2" onClick={() => startEdit(employer)}><Edit3 className="h-4 w-4" />Edit company info</Button>
+              <Button variant="ghost" className="gap-2 text-danger" disabled={readOnly} onClick={() => onDelete("employers", employer.id || employer.user_id)}><Trash2 className="h-4 w-4" />Delete</Button>
             </div>
           </Card>
         );
@@ -1359,7 +1414,7 @@ function JobsSection({ rows, onUpdate, readOnly }: { rows: AnyRecord[]; onUpdate
   );
 }
 
-function EmployeesSection({ rows, onUpdate, readOnly }: { rows: AnyRecord[]; onUpdate: (table: string, id: string, patch: AnyRecord) => void; readOnly: boolean }) {
+function EmployeesSection({ rows, onUpdate, onDelete, readOnly }: { rows: AnyRecord[]; onUpdate: (table: string, id: string, patch: AnyRecord) => void; onDelete: (table: string, id: string) => void; readOnly: boolean }) {
   const activeEmployees = rows.filter((employee) => employee.is_active !== false);
 
   return (
@@ -1408,6 +1463,15 @@ function EmployeesSection({ rows, onUpdate, readOnly }: { rows: AnyRecord[]; onU
                 onClick={() => onUpdate("employees", employee.id || employee.user_id, { department: employee.department === "Support" ? "Support Manager" : "Support" })}
               >
                 Toggle department
+              </Button>
+              <Button
+                variant="ghost"
+                className="text-danger"
+                disabled={readOnly}
+                onClick={() => onDelete("employees", employee.id || employee.user_id)}
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete
               </Button>
             </div>
           </div>
