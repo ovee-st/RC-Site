@@ -797,11 +797,11 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.16),transparent_32%),linear-gradient(180deg,#f8fafc,#eef2ff)] px-4 py-6 dark:bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.20),transparent_32%),linear-gradient(180deg,#020617,#0f172a)] sm:px-6">
       <div className="mx-auto flex max-w-[1440px] gap-6">
         <aside className={cn(
-          "fixed inset-y-4 left-4 z-40 flex w-72 flex-col overflow-hidden rounded-3xl border border-white/60 bg-white/88 p-4 shadow-elevated backdrop-blur-2xl transition lg:sticky lg:top-20 lg:flex lg:h-[calc(100vh-7rem)] dark:border-white/10 dark:bg-slate-950/80",
+          "fixed inset-y-4 left-4 z-40 flex w-72 flex-col rounded-3xl border border-white/60 bg-white/88 p-4 shadow-elevated backdrop-blur-2xl transition lg:sticky lg:top-20 lg:flex lg:h-[calc(100vh-7rem)] dark:border-white/10 dark:bg-slate-950/80",
           sidebarOpen ? "translate-x-0" : "-translate-x-[115%] lg:translate-x-0"
         )}>
-          <div className="flex items-center gap-3 rounded-2xl bg-gradient-to-br from-slate-950 to-primary p-4 text-white">
-            <div className="grid h-11 w-11 place-items-center rounded-full bg-white/15">
+          <div className="flex items-center gap-3 rounded-2xl bg-gradient-to-br from-slate-950 to-primary p-3 text-white">
+            <div className="grid h-10 w-10 place-items-center rounded-full bg-white/15">
               <ShieldCheck className="h-5 w-5" />
             </div>
             <div>
@@ -809,7 +809,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
             </div>
           </div>
 
-          <nav className="mt-5 grid min-h-0 flex-1 gap-2 overflow-y-auto pr-1">
+          <nav className="mt-4 grid gap-1.5">
             {navItems.map((item) => {
               const Icon = item.icon;
               const active = item.key === "dashboard" ? pathname === "/admin" : pathname === item.href;
@@ -819,11 +819,11 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
                   href={item.href}
                   onClick={() => setSidebarOpen(false)}
                   className={cn(
-                    "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-black text-text-muted transition hover:bg-primary/5 hover:text-primary dark:text-slate-300 dark:hover:bg-white/5",
+                    "flex items-center gap-3 rounded-2xl px-4 py-2.5 text-sm font-black text-text-muted transition hover:bg-primary/5 hover:text-primary dark:text-slate-300 dark:hover:bg-white/5",
                     active && "bg-primary text-white shadow-primary hover:bg-primary hover:text-white"
                   )}
                 >
-                  <span className={cn("grid h-8 w-8 place-items-center rounded-full bg-slate-100 text-text-muted dark:bg-white/10 dark:text-slate-300", active && "bg-white/20 text-white")}>
+                  <span className={cn("grid h-7 w-7 place-items-center rounded-full bg-slate-100 text-text-muted dark:bg-white/10 dark:text-slate-300", active && "bg-white/20 text-white")}>
                     <Icon className="h-4 w-4" />
                   </span>
                   {item.label}
