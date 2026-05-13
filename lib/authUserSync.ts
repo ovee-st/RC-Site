@@ -4,6 +4,45 @@ type AnyRecord = Record<string, any>;
 
 const VALID_ROLES = new Set(["candidate", "employer", "employee", "admin", "viewer"]);
 
+export function getBestAvatarUrl(row?: AnyRecord | null) {
+  if (!row) return null;
+  const metadata = row.user_metadata || row.raw_user_meta_data || {};
+  return (
+    row.avatar_url ||
+    row.photo_url ||
+    row.profile_photo_url ||
+    row.profile_image_url ||
+    row.image_url ||
+    row.avatar ||
+    row.logo_url ||
+    row.company_logo_url ||
+    metadata.avatar_url ||
+    metadata.photo_url ||
+    metadata.profile_photo_url ||
+    metadata.picture ||
+    null
+  );
+}
+
+function identityKeys(row: AnyRecord) {
+  return [row.id, row.user_id, row.profile_id, row.email, row.user_email]
+    .filter(Boolean)
+    .map((value) => String(value).toLowerCase());
+}
+
+function withResolvedAvatar(row: AnyRecord, fallback?: AnyRecord) {
+  const avatar = getBestAvatarUrl(row) || getBestAvatarUrl(fallback);
+  return {
+    ...row,
+    avatar_url: row.avatar_url || avatar || null,
+    photo_url: row.photo_url || avatar || null,
+    profile_photo_url: row.profile_photo_url || avatar || null,
+    avatar: row.avatar || avatar || null,
+    logo_url: row.logo_url || avatar || null,
+    company_logo_url: row.company_logo_url || avatar || null
+  };
+}
+
 export function normalizePlatformRole(value?: string | null) {
   const normalized = String(value || "").trim().toLowerCase();
   if (normalized === "admin_viewer" || normalized === "admin-viewer" || normalized === "admin (viewer)") return "viewer";
@@ -149,8 +188,8 @@ export async function syncAuthUsersToProfiles(client: SupabaseClient) {
       name: fullName,
       role,
       username,
-      avatar_url: existing.avatar_url || metadata.avatar_url || metadata.photo_url || metadata.profile_photo_url || metadata.picture || null,
-      photo_url: existing.photo_url || metadata.photo_url || metadata.avatar_url || metadata.profile_photo_url || metadata.picture || null,
+      avatar_url: getBestAvatarUrl(existing) || metadata.avatar_url || metadata.photo_url || metadata.profile_photo_url || metadata.picture || null,
+      photo_url: existing.photo_url || getBestAvatarUrl(existing) || metadata.photo_url || metadata.avatar_url || metadata.profile_photo_url || metadata.picture || null,
       plan: existing.plan || metadata.plan || (role === "admin" || role === "viewer" || role === "employee" ? "Internal" : "Basic"),
       verified: existing.verified ?? metadata.verified ?? false,
       updated_at: new Date().toISOString()
@@ -177,8 +216,8 @@ export function candidateFromProfile(profile: AnyRecord) {
     category: profile.category || "No category",
     skills: Array.isArray(profile.skills) ? profile.skills : [],
     about: profile.about || profile.bio || "",
-    photo_url: profile.photo_url || profile.avatar_url || null,
-    avatar: profile.avatar_url || profile.photo_url || null,
+    photo_url: getBestAvatarUrl(profile),
+    avatar: getBestAvatarUrl(profile),
     location: profile.location || "Bangladesh",
     linkedin_url: profile.linkedin_url || "",
     plan: profile.plan || "Basic",
@@ -205,9 +244,9 @@ export function employerFromProfile(profile: AnyRecord) {
     industry: profile.industry || "Industry not set",
     company_size: profile.company_size || "",
     about: profile.about || "",
-    profile_photo_url: profile.profile_photo_url || profile.avatar_url || profile.photo_url || null,
-    avatar_url: profile.avatar_url || profile.photo_url || null,
-    logo_url: profile.logo_url || profile.avatar_url || profile.photo_url || null,
+    profile_photo_url: getBestAvatarUrl(profile),
+    avatar_url: getBestAvatarUrl(profile),
+    logo_url: getBestAvatarUrl(profile),
     plan: profile.plan || "Basic",
     verified: Boolean(profile.verified),
     created_at: profile.created_at,
@@ -220,33 +259,36 @@ export function mergeRowsWithProfiles(rows: AnyRecord[], profiles: AnyRecord[], 
   const map = new Map<string, AnyRecord>();
 
   rows.forEach((row) => {
-    const key = row.user_id || row.id || row.email;
-    if (key) map.set(String(key).toLowerCase(), row);
+    const hydratedRow = withResolvedAvatar(row);
+    identityKeys(hydratedRow).forEach((key) => map.set(key, hydratedRow));
   });
 
   profiles
     .filter((profile) => normalizePlatformRole(profile.role) === role)
     .forEach((profile) => {
-      const key = profile.id || profile.email;
-      if (!key) return;
-      const normalizedKey = String(key).toLowerCase();
+      const keys = identityKeys(profile);
+      if (!keys.length) return;
       const fallback = role === "candidate" ? candidateFromProfile(profile) : employerFromProfile(profile);
-      const existing = map.get(normalizedKey);
-      const fallbackRecord = fallback as AnyRecord;
-      map.set(normalizedKey, existing ? {
+      const existing = keys.map((key) => map.get(key)).find(Boolean);
+      const fallbackRecord = withResolvedAvatar(fallback as AnyRecord, profile);
+      const merged = existing ? withResolvedAvatar({
         ...fallbackRecord,
         ...existing,
-        avatar_url: existing.avatar_url || fallbackRecord.avatar_url || fallbackRecord.photo_url || fallbackRecord.profile_photo_url || fallbackRecord.logo_url || null,
-        photo_url: existing.photo_url || fallbackRecord.photo_url || fallbackRecord.avatar_url || fallbackRecord.profile_photo_url || fallbackRecord.logo_url || null,
-        profile_photo_url: existing.profile_photo_url || fallbackRecord.profile_photo_url || fallbackRecord.avatar_url || fallbackRecord.photo_url || null,
-        avatar: existing.avatar || fallbackRecord.avatar || fallbackRecord.avatar_url || fallbackRecord.photo_url || null,
-        logo_url: existing.logo_url || fallbackRecord.logo_url || fallbackRecord.avatar_url || fallbackRecord.photo_url || null,
-        company_logo_url: existing.company_logo_url || fallbackRecord.company_logo_url || fallbackRecord.logo_url || fallbackRecord.avatar_url || fallbackRecord.photo_url || null,
         source: existing.source || "table"
-      } : fallbackRecord);
+      }, fallbackRecord) : fallbackRecord;
+
+      keys.forEach((key) => map.set(key, merged));
     });
 
-  return Array.from(map.values());
+  const seen = new Set<string>();
+  return Array.from(map.values()).filter((row) => {
+    const primaryKey = row.user_id || row.id || row.email;
+    if (!primaryKey) return true;
+    const normalized = String(primaryKey).toLowerCase();
+    if (seen.has(normalized)) return false;
+    seen.add(normalized);
+    return true;
+  });
 }
 
 export async function ensureRoleRecord(client: SupabaseClient, profile: AnyRecord) {

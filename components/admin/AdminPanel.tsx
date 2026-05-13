@@ -48,7 +48,7 @@ import Badge from "@/components/ui/Badge";
 import Input from "@/components/ui/Input";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
-import { mergeRowsWithProfiles } from "@/lib/authUserSync";
+import { getBestAvatarUrl, mergeRowsWithProfiles } from "@/lib/authUserSync";
 import { normalizeDateValue, normalizeJobPatch, normalizeJobStatus } from "@/lib/jobUpdate";
 import {
   buildAtsResumeHtml,
@@ -284,18 +284,40 @@ function AdminStatCard({ label, value, detail, icon: Icon, accent }: { label: st
 }
 
 function resolveAvatarImage(row: AnyRecord) {
-  return (
-    row.avatar_url ||
-    row.photo_url ||
-    row.profile_photo_url ||
-    row.avatar ||
-    row.logo_url ||
-    row.company_logo_url ||
-    row.user_metadata?.avatar_url ||
-    row.user_metadata?.photo_url ||
-    row.user_metadata?.picture ||
-    null
-  );
+  return getBestAvatarUrl(row);
+}
+
+function profileIdentityKeys(row: AnyRecord) {
+  return [row.id, row.user_id, row.profile_id, row.email, row.user_email]
+    .filter(Boolean)
+    .map((value) => String(value).toLowerCase());
+}
+
+function enrichProfilesWithVisibleImages(profiles: AnyRecord[], candidates: AnyRecord[], employers: AnyRecord[]) {
+  const imageByKey = new Map<string, string>();
+
+  [...candidates, ...employers].forEach((row) => {
+    const image = resolveAvatarImage(row);
+    if (!image) return;
+    profileIdentityKeys(row).forEach((key) => imageByKey.set(key, image));
+  });
+
+  return profiles.map((profile) => {
+    const existingImage = resolveAvatarImage(profile);
+    const relatedImage = profileIdentityKeys(profile).map((key) => imageByKey.get(key)).find(Boolean);
+    const image = existingImage || relatedImage || null;
+    if (!image) return profile;
+
+    return {
+      ...profile,
+      avatar_url: profile.avatar_url || image,
+      photo_url: profile.photo_url || image,
+      profile_photo_url: profile.profile_photo_url || image,
+      avatar: profile.avatar || image,
+      logo_url: profile.logo_url || image,
+      company_logo_url: profile.company_logo_url || image
+    };
+  });
 }
 
 function AdminAvatar({ row, className }: { row: AnyRecord; className?: string }) {
@@ -410,7 +432,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
 
       if (!active) return;
 
-      const baseProfiles = profiles.length ? profiles : fallbackProfiles;
+      const baseProfiles = enrichProfilesWithVisibleImages(profiles.length ? profiles : fallbackProfiles, candidates, employers);
 
       setAdminData({
         profiles: baseProfiles,
@@ -438,9 +460,14 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
         if (!active || !response?.ok) return;
 
         const payload = await response.json().catch(() => ({}));
-        const syncedProfiles = Array.isArray(payload.profiles) && payload.profiles.length ? payload.profiles : baseProfiles;
+        const syncedProfilesRaw = Array.isArray(payload.profiles) && payload.profiles.length ? payload.profiles : baseProfiles;
         const syncedCandidates = Array.isArray(payload.candidates) ? payload.candidates : [];
         const syncedEmployers = Array.isArray(payload.employers) ? payload.employers : [];
+        const syncedProfiles = enrichProfilesWithVisibleImages(
+          syncedProfilesRaw,
+          syncedCandidates.length ? syncedCandidates : candidates,
+          syncedEmployers.length ? syncedEmployers : employers
+        );
 
         setAdminData((current) => ({
           ...current,
