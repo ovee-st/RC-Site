@@ -1,6 +1,7 @@
 ﻿import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabaseServer";
 import { canViewLiveChat } from "@/lib/liveChat";
+import { isSupportStaffRole } from "@/lib/supportRoles";
 
 async function getRequester(request: Request) {
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
@@ -67,7 +68,7 @@ export async function POST(request: Request, { params }: RouteContext) {
   if (session?.status === "ENDED") return NextResponse.json({ error: "This chat has ended." }, { status: 400 });
 
   const senderRole = String(context.profile?.role || "candidate");
-  const agentReply = senderRole === "employee" || senderRole === "admin" || senderRole === "viewer";
+  const agentReply = isSupportStaffRole(senderRole);
   if (agentReply && session?.status === "WAITING") {
     await context.adminClient
       .from("live_chat_sessions")

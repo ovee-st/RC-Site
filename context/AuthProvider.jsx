@@ -113,7 +113,17 @@ function getMockUser() {
 }
 
 function normalizeRole(value) {
-  return value === "employer" || value === "candidate" || value === "employee" || value === "admin" || value === "viewer" ? value : null;
+  return [
+    "candidate",
+    "employer",
+    "employee",
+    "support_agent",
+    "support_senior",
+    "support_manager",
+    "admin",
+    "super_admin",
+    "viewer"
+  ].includes(value) ? value : null;
 }
 
 function applyUserDefaults(user) {

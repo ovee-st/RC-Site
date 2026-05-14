@@ -1,8 +1,8 @@
 ﻿import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const ADMIN_ROLES = new Set(["admin"]);
-const INTERNAL_ROLES = new Set(["admin", "viewer", "employee"]);
+const ADMIN_ROLES = new Set(["admin", "super_admin"]);
+const INTERNAL_ROLES = new Set(["admin", "super_admin", "viewer", "employee", "support_agent", "support_senior", "support_manager"]);
 
 export async function POST(request: Request) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: profileError.message }, { status: 400 });
   }
 
-  if (role === "employee") {
+  if (role === "employee" || role === "support_agent" || role === "support_senior" || role === "support_manager") {
     const employeePayload = {
       id: created.user.id,
       user_id: created.user.id,
@@ -91,7 +91,7 @@ export async function POST(request: Request) {
       permissions: body.permissions || ["tickets:read", "tickets:update", "messages:create"],
       active: true,
       is_active: true,
-      role: "employee"
+      role
     };
 
     const employeeWrite = await adminClient.from("employees").upsert(employeePayload, { onConflict: "id" });

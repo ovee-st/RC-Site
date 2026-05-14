@@ -1,4 +1,5 @@
 import type { LiveChatSession, LiveChatStatus } from "@/types/liveChat";
+import { canViewAllSupport, isSupportStaffRole } from "@/lib/supportRoles";
 
 export const liveChatStatuses: LiveChatStatus[] = ["WAITING", "ACTIVE", "ENDED"];
 
@@ -13,12 +14,12 @@ export function liveChatStatusTone(status?: string | null) {
 }
 
 export function canManageLiveChat(role?: string | null) {
-  return role === "employee" || role === "admin";
+  return isSupportStaffRole(role);
 }
 
 export function canViewLiveChat(role?: string | null, userId?: string | null, session?: Pick<LiveChatSession, "user_id" | "employee_id"> | null) {
   if (!role || !userId || !session) return false;
-  if (role === "admin" || role === "viewer") return true;
-  if (role === "employee") return !session.employee_id || session.employee_id === userId;
+  if (canViewAllSupport(role)) return true;
+  if (isSupportStaffRole(role)) return !session.employee_id || session.employee_id === userId;
   return session.user_id === userId;
 }

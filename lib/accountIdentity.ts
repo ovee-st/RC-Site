@@ -21,7 +21,13 @@ export function createStableUsername(name?: string | null, email?: string | null
 }
 
 export function createRoleUsername(role?: string | null, sequence?: number | null, name?: string | null, email?: string | null, id?: string | null) {
-  const normalizedRole = role === "employer" ? "employer" : role === "employee" ? "employee" : role === "admin" ? "admin" : "candidate";
+  const normalizedRole = role === "employer"
+    ? "employer"
+    : role === "employee" || role === "support_agent" || role === "support_senior" || role === "support_manager"
+      ? "employee"
+      : role === "admin" || role === "super_admin" || role === "viewer"
+        ? "admin"
+        : "candidate";
   if (typeof sequence === "number" && Number.isFinite(sequence) && sequence > 0) {
     return `${normalizedRole}_${String(sequence).padStart(6, "0")}`;
   }

@@ -1,4 +1,5 @@
 import type { SupportTicket, SupportTicketPriority, SupportTicketStatus, SupportUserRole, TicketMessage } from "@/types/support";
+import { canViewAllSupport, isSupportStaffRole } from "@/lib/supportRoles";
 
 export const ticketStatuses: SupportTicketStatus[] = ["OPEN", "IN_PROGRESS", "WAITING_USER", "ESCALATED", "RESOLVED", "CLOSED"];
 
@@ -34,13 +35,13 @@ export function getTicketTone(status: SupportTicketStatus | string) {
 
 export function canSeeTicket(role?: string | null, userId?: string | null, ticket?: Pick<SupportTicket, "user_id" | "assigned_employee_id"> | null) {
   if (!ticket || !role) return false;
-  if (role === "admin") return true;
-  if (role === "employee") return !ticket.assigned_employee_id || ticket.assigned_employee_id === userId;
+  if (canViewAllSupport(role)) return true;
+  if (isSupportStaffRole(role)) return !ticket.assigned_employee_id || ticket.assigned_employee_id === userId;
   return ticket.user_id === userId;
 }
 
 export function canEditTicket(role?: string | null) {
-  return role === "admin" || role === "employee";
+  return isSupportStaffRole(role);
 }
 
 export const demoSupportTickets: SupportTicket[] = [
@@ -100,7 +101,20 @@ export const demoTicketMessages: TicketMessage[] = [
 ];
 
 export function normalizeSupportRole(role?: string | null): SupportUserRole {
-  return role === "employer" || role === "employee" || role === "admin" ? role : "candidate";
+  if (
+    role === "employer" ||
+    role === "employee" ||
+    role === "support_agent" ||
+    role === "support_senior" ||
+    role === "support_manager" ||
+    role === "admin" ||
+    role === "super_admin" ||
+    role === "viewer"
+  ) {
+    return role;
+  }
+
+  return "candidate";
 }
 
 export function normalizeTicketUserRole(role?: string | null): "candidate" | "employer" {

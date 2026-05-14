@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabaseServer";
 import { makeTicketNumber, normalizeTicketUserRole } from "@/lib/support";
 
-const AGENT_ROLES = new Set(["admin", "employee"]);
+const AGENT_ROLES = new Set(["admin", "super_admin", "viewer", "employee", "support_agent", "support_senior", "support_manager"]);
 
 async function getRequester(request: Request) {
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
@@ -30,7 +30,7 @@ export async function GET(request: Request) {
 
   if (!AGENT_ROLES.has(role)) {
     query = query.eq("user_id", context.user.id);
-  } else if (role === "employee") {
+  } else if (role === "employee" || role === "support_agent") {
     query = query.or(`assigned_employee_id.is.null,assigned_employee_id.eq.${context.user.id}`);
   }
 

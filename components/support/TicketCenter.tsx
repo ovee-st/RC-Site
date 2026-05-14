@@ -37,6 +37,7 @@ import Badge from "@/components/ui/Badge";
 import Input from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
+import { isSupportStaffRole } from "@/lib/supportRoles";
 
 type TicketCenterProps = {
   mode: "user" | "employee" | "admin";
@@ -145,7 +146,7 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
 
       if (!isAgent) {
         query = query.eq("user_id", user.id);
-      } else if (mode === "employee") {
+      } else if (mode === "employee" && (roleValue === "employee" || roleValue === "support_agent")) {
         query = query.or(`assigned_employee_id.is.null,assigned_employee_id.eq.${user.id}`);
       }
 
@@ -371,7 +372,7 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
     );
   }
 
-  if ((mode === "employee" && roleValue !== "employee" && roleValue !== "admin") || (mode === "admin" && roleValue !== "admin" && roleValue !== "viewer")) {
+  if ((mode === "employee" && !isSupportStaffRole(roleValue)) || (mode === "admin" && roleValue !== "admin" && roleValue !== "super_admin" && roleValue !== "viewer")) {
     return (
       <main className="grid min-h-[70vh] place-items-center px-6">
         <Card className="max-w-md rounded-3xl p-8 text-center">

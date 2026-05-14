@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabaseServer";
 import { canSeeTicket, normalizeSupportRole } from "@/lib/support";
+import { isSupportStaffRole } from "@/lib/supportRoles";
 
 async function getRequester(request: Request) {
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
@@ -42,7 +43,7 @@ export async function GET(request: Request, { params }: RouteContext) {
     .eq("ticket_id", ticketId)
     .order("created_at", { ascending: true });
 
-  if (context.profile?.role !== "admin" && context.profile?.role !== "employee") {
+  if (!isSupportStaffRole(context.profile?.role)) {
     query = query.eq("internal_note", false);
   }
 
@@ -71,7 +72,7 @@ export async function POST(request: Request, { params }: RouteContext) {
   }
 
   const senderRole = normalizeSupportRole(context.profile?.role);
-  const internalNote = Boolean(body.internal_note && (senderRole === "admin" || senderRole === "employee"));
+  const internalNote = Boolean(body.internal_note && isSupportStaffRole(senderRole));
 
   const messagePayload = {
     ticket_id: ticketId,

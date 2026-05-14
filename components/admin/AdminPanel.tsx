@@ -70,13 +70,17 @@ type AdminSection =
   | "transactions";
 
 type AnyRecord = Record<string, any>;
-type PlatformRole = "admin" | "viewer" | "employer" | "employee" | "candidate";
+type PlatformRole = "admin" | "super_admin" | "viewer" | "employer" | "employee" | "support_agent" | "support_senior" | "support_manager" | "candidate";
 
 const platformRoles: { value: PlatformRole; label: string }[] = [
   { value: "admin", label: "Admin" },
+  { value: "super_admin", label: "Super Admin" },
   { value: "viewer", label: "Admin (Viewer)" },
   { value: "employer", label: "Employer" },
   { value: "employee", label: "Employee" },
+  { value: "support_agent", label: "Support Agent" },
+  { value: "support_senior", label: "Support Senior" },
+  { value: "support_manager", label: "Support Manager" },
   { value: "candidate", label: "Candidate" }
 ];
 
@@ -768,7 +772,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
           .from("profiles")
           .update({
             role: nextRole,
-            plan: nextRole === "admin" || nextRole === "viewer" || nextRole === "employee" ? "Internal" : profile.plan || "Basic"
+            plan: nextRole === "admin" || nextRole === "super_admin" || nextRole === "viewer" || nextRole === "employee" || nextRole === "support_agent" || nextRole === "support_senior" || nextRole === "support_manager" ? "Internal" : profile.plan || "Basic"
           })
           .eq("id", profile.id);
 
@@ -1199,7 +1203,7 @@ function UsersSection({
           <div>
             <p className="type-label text-primary">Internal access</p>
             <h2 className="mt-2 text-xl font-black text-text-main dark:text-white">Add internal user</h2>
-            <p className="type-body mt-1">Create Admin, Admin (Viewer), or Employee access. Candidate and Employer roles are managed in the user table below.</p>
+            <p className="type-body mt-1">Create Admin, Admin (Viewer), Employee, or dedicated support staff access. Candidate and Employer roles are managed in the user table below.</p>
           </div>
           {readOnly ? <Badge variant="neutral">Read only</Badge> : null}
         </div>
@@ -1209,8 +1213,12 @@ function UsersSection({
           <Input value={newUser.password} onChange={(event) => setNewUser((current) => ({ ...current, password: event.target.value }))} placeholder="Password" type="password" disabled={readOnly} />
                 <select value={newUser.role} onChange={(event) => setNewUser((current) => ({ ...current, role: event.target.value }))} disabled={readOnly} className="rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-bold dark:border-white/10 dark:bg-slate-900">
                   <option value="admin">Admin</option>
+                  <option value="super_admin">Super Admin</option>
                   <option value="viewer">Admin (Viewer)</option>
                   <option value="employee">Employee</option>
+                  <option value="support_agent">Support Agent</option>
+                  <option value="support_senior">Support Senior</option>
+                  <option value="support_manager">Support Manager</option>
                 </select>
           <Button onClick={createInternalUser} disabled={creating || readOnly}>{creating ? "Creating..." : "Add user"}</Button>
         </div>

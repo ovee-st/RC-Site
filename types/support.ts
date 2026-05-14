@@ -1,4 +1,4 @@
-export type SupportUserRole = "candidate" | "employer" | "employee" | "admin";
+export type SupportUserRole = "candidate" | "employer" | "employee" | "support_agent" | "support_senior" | "support_manager" | "admin" | "super_admin" | "viewer";
 
 export type SupportTicketStatus =
   | "OPEN"
