@@ -87,6 +87,22 @@ function identityKeys(row: AnyRecord) {
     .map((value) => String(value).toLowerCase());
 }
 
+function createAvatarLookup(rows: AnyRecord[]) {
+  const lookup = new Map<string, string>();
+
+  rows.forEach((row) => {
+    const image = getBestAvatarUrl(row);
+    if (!image) return;
+    identityKeys(row).forEach((key) => lookup.set(key, image));
+  });
+
+  return lookup;
+}
+
+function findAvatarByIdentity(lookup: Map<string, string>, row: AnyRecord) {
+  return identityKeys(row).map((key) => lookup.get(key)).find(Boolean) || null;
+}
+
 function withResolvedAvatar(row: AnyRecord, fallback?: AnyRecord) {
   const avatar = getBestAvatarUrl(row) || getBestAvatarUrl(fallback);
   return {
@@ -96,8 +112,25 @@ function withResolvedAvatar(row: AnyRecord, fallback?: AnyRecord) {
     profile_photo_url: row.profile_photo_url || avatar || null,
     avatar: row.avatar || avatar || null,
     logo_url: row.logo_url || avatar || null,
-    company_logo_url: row.company_logo_url || avatar || null
+    company_logo_url: row.company_logo_url || avatar || null,
+    company_photo_url: row.company_photo_url || avatar || null
   };
+}
+
+function removeBlankAvatarWrites(row: AnyRecord) {
+  const imageKeys = [
+    "avatar_url",
+    "photo_url",
+    "profile_photo_url",
+    "avatar",
+    "logo_url",
+    "company_logo_url",
+    "company_photo_url"
+  ];
+
+  return Object.fromEntries(
+    Object.entries(row).filter(([key, value]) => !imageKeys.includes(key) || Boolean(value))
+  );
 }
 
 export function normalizePlatformRole(value?: string | null) {
@@ -222,12 +255,20 @@ export async function syncAuthUsersToProfiles(client: SupabaseClient) {
   if (!users.length) return { users, profiles: [] as AnyRecord[] };
 
   const ids = users.map((user) => user.id);
-  const { data: existingProfiles } = await client
-    .from("profiles")
-    .select("*")
-    .in("id", ids);
+  const [{ data: existingProfiles }, { data: candidateRows }, { data: employerRows }, { data: employeeRows }] = await Promise.all([
+    client.from("profiles").select("*").in("id", ids),
+    client.from("candidates").select("*").in("user_id", ids),
+    client.from("employers").select("*").in("user_id", ids),
+    client.from("employees").select("*").in("id", ids)
+  ]);
 
   const existingById = new Map((existingProfiles || []).map((profile: AnyRecord) => [profile.id, profile]));
+  const avatarLookup = createAvatarLookup([
+    ...(existingProfiles || []),
+    ...(candidateRows || []),
+    ...(employerRows || []),
+    ...(employeeRows || [])
+  ]);
   const rows = users.map((authUser) => {
     const existing = existingById.get(authUser.id) || {};
     const metadata = authUser.user_metadata || {};
@@ -237,6 +278,14 @@ export async function syncAuthUsersToProfiles(client: SupabaseClient) {
       "candidate";
     const fullName = existing.full_name || existing.name || getAuthDisplayName(authUser);
     const username = existing.username || metadata.username || createProfileUsername(role, authUser.email, fullName, authUser.id);
+    const relatedAvatar = findAvatarByIdentity(avatarLookup, {
+      ...existing,
+      id: authUser.id,
+      user_id: authUser.id,
+      email: authUser.email || existing.email,
+      username
+    });
+    const avatar = getBestAvatarUrl(existing) || relatedAvatar || metadata.avatar_url || metadata.photo_url || metadata.profile_photo_url || metadata.picture || null;
 
     return {
       id: authUser.id,
@@ -245,8 +294,8 @@ export async function syncAuthUsersToProfiles(client: SupabaseClient) {
       name: fullName,
       role,
       username,
-      avatar_url: getBestAvatarUrl(existing) || metadata.avatar_url || metadata.photo_url || metadata.profile_photo_url || metadata.picture || null,
-      photo_url: existing.photo_url || getBestAvatarUrl(existing) || metadata.photo_url || metadata.avatar_url || metadata.profile_photo_url || metadata.picture || null,
+      avatar_url: avatar,
+      photo_url: avatar,
       plan: existing.plan || metadata.plan || (role === "admin" || role === "viewer" || role === "employee" ? "Internal" : "Basic"),
       verified: existing.verified ?? metadata.verified ?? false,
       updated_at: new Date().toISOString()
@@ -355,10 +404,11 @@ export async function ensureRoleRecord(client: SupabaseClient, profile: AnyRecor
   const table = role === "candidate" ? "candidates" : "employers";
   const payload = role === "candidate" ? candidateFromProfile(profile) : employerFromProfile(profile);
   const { source: _source, id: _id, ...writePayload } = payload;
+  const safePayload = removeBlankAvatarWrites(writePayload);
 
-  const update = await safeUpdateBy(client, table, "user_id", profile.id, writePayload);
+  const update = await safeUpdateBy(client, table, "user_id", profile.id, safePayload);
   if (update.error && /column|schema cache/i.test(String(update.error.message))) return;
   if (!update.error && update.count && update.count > 0) return;
 
-  await safeInsert(client, table, { id: profile.id, ...writePayload });
+  await safeInsert(client, table, { id: profile.id, ...safePayload });
 }
