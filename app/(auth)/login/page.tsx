@@ -20,7 +20,7 @@ const features = [
   { icon: ShieldCheck, label: "Secure profiles" }
 ];
 
-type LoginRole = "candidate" | "employer";
+type LoginRole = "candidate" | "employer" | "support_manager";
 type ResolvedRole = LoginRole | "employee" | "support_agent" | "support_senior" | "support_manager" | "admin" | "super_admin" | "viewer";
 
 const resolvedRoles: ResolvedRole[] = ["candidate", "employer", "employee", "support_agent", "support_senior", "support_manager", "admin", "super_admin", "viewer"];
@@ -81,7 +81,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { setUser } = useUserStore();
   const [mode, setMode] = useState<"login" | "signup">("login");
-  const [role, setRole] = useState<"candidate" | "employer">("candidate");
+  const [role, setRole] = useState<LoginRole>("candidate");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("MX User");
@@ -201,8 +201,8 @@ export default function LoginPage() {
             <h2 className="type-h2">{mode === "login" ? "Welcome back" : "Create account"}</h2>
             <p className="type-body mt-2">{mode === "login" ? "Access your hiring workspace." : "Start building your profile or hiring team."}</p>
           </div>
-          <div className="mt-6 grid grid-cols-2 gap-3 rounded-lg bg-bg p-1 dark:bg-white/5">
-            {(["candidate", "employer"] as const).map((item) => (
+          <div className="mt-6 grid grid-cols-3 gap-3 rounded-lg bg-bg p-1 dark:bg-white/5">
+            {(["candidate", "employer", "support_manager"] as const).map((item) => (
               <Button
                 key={item}
                 type="button"
@@ -210,7 +210,7 @@ export default function LoginPage() {
                 onClick={() => setRole(item)}
                 className={cn("py-3 shadow-none", role === item && "bg-primary text-white shadow-soft")}
               >
-                {item === "candidate" ? "Candidate" : "Employer"}
+                {item === "candidate" ? "Candidate" : item === "employer" ? "Employer" : "Support"}
               </Button>
             ))}
           </div>
