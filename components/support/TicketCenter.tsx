@@ -59,7 +59,7 @@ const emptyDraft: TicketDraft = {
 };
 
 function getInitials(name?: string | null) {
-  return (name || "RC")
+  return (name || "MXVL")
     .split(" ")
     .filter(Boolean)
     .slice(0, 2)
@@ -122,7 +122,7 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
   const isAgent = mode === "employee" || mode === "admin";
   const currentRole = normalizeSupportRole(roleValue);
   const userMetadata = (user?.user_metadata || {}) as Record<string, unknown>;
-  const displayName = user?.name || user?.user_metadata?.full_name || user?.email || "RC user";
+  const displayName = user?.name || user?.user_metadata?.full_name || user?.email || "MXVL User";
   const username = user?.username || String(userMetadata.username || "") || `${currentRole}_${String(user?.id || "000000").slice(0, 6)}`;
   const selectedTicket = tickets.find((ticket) => ticket.id === selectedTicketId) || null;
   const selectedMessages = selectedTicket ? messagesByTicket[selectedTicket.id] || [] : [];
@@ -221,7 +221,7 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
     const attachment_urls = await uploadTicketFiles(draft.files, id);
     const ticket: Omit<SupportTicket, "created_at"> & { created_at?: string } = {
       id,
-      ticket_number: `RC-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 899999)}`,
+      ticket_number: `MXVL-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 899999)}`,
       user_id: user.id,
       user_role: currentRole === "employer" ? "employer" : "candidate",
       username,
@@ -377,7 +377,7 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
         <Card className="max-w-md rounded-3xl p-8 text-center">
           <ShieldCheck className="mx-auto h-8 w-8 text-primary" />
           <h1 className="mt-4 text-2xl font-black text-text-main dark:text-white">Access restricted</h1>
-          <p className="mt-2 text-sm font-semibold text-text-muted">This support workspace is only available to authorized RC team members.</p>
+          <p className="mt-2 text-sm font-semibold text-text-muted">This support workspace is only available to authorized MXVL team members.</p>
         </Card>
       </main>
     );
@@ -389,7 +389,7 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
         <div>
           <Badge variant="primary" className="type-label">{isAgent ? "Employee Support Desk" : "Support Center"}</Badge>
           <h1 className="mt-3 text-3xl font-black tracking-tight text-text-main dark:text-white sm:text-4xl">
-            {isAgent ? "Resolve tickets with context, speed, and care." : "Get help from the RC support team."}
+            {isAgent ? "Resolve tickets with context, speed, and care." : "Get help from the Live Support team."}
           </h1>
           <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-text-muted">
             Realtime ticket tracking, threaded replies, internal notes, assignments, and compact ticket movement built for fast support work.
@@ -721,4 +721,5 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
     </div>
   );
 }
+
 

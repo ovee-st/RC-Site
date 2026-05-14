@@ -21,7 +21,7 @@ export function formatTicketStatus(status: SupportTicketStatus | string) {
 
 export function makeTicketNumber(sequence?: number) {
   const value = sequence || Math.floor(100000 + Math.random() * 899999);
-  return `RC-${new Date().getFullYear()}-${value}`;
+  return `MXVL-${new Date().getFullYear()}-${value}`;
 }
 
 export function getTicketTone(status: SupportTicketStatus | string) {
@@ -46,7 +46,7 @@ export function canEditTicket(role?: string | null) {
 export const demoSupportTickets: SupportTicket[] = [
   {
     id: "support-demo-1",
-    ticket_number: "RC-2026-100241",
+    ticket_number: "MXVL-2026-100241",
     user_id: "candidate-demo",
     user_role: "candidate",
     username: "candidate_000245",
@@ -61,7 +61,7 @@ export const demoSupportTickets: SupportTicket[] = [
   },
   {
     id: "support-demo-2",
-    ticket_number: "RC-2026-100242",
+    ticket_number: "MXVL-2026-100242",
     user_id: "employer-demo",
     user_role: "employer",
     username: "employer_000081",
@@ -106,3 +106,4 @@ export function normalizeSupportRole(role?: string | null): SupportUserRole {
 export function normalizeTicketUserRole(role?: string | null): "candidate" | "employer" {
   return role === "employer" ? "employer" : "candidate";
 }
+

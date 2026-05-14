@@ -146,7 +146,7 @@ export default function ChatWindow({ sessionId, mode = "user", onSessionChange }
       <div className="flex items-center justify-between gap-3 border-b border-border bg-white/80 p-3 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/80">
         <div>
           <p className="type-label text-primary">Live Chat</p>
-          <h3 className="text-base font-black text-text-main dark:text-white">{mode === "user" ? "RC Support" : activeSession.username || "Customer"}</h3>
+          <h3 className="text-base font-black text-text-main dark:text-white">{mode === "user" ? "Live Support" : activeSession.username || "Customer"}</h3>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant={displayStatus === "ACTIVE" ? "success" : displayStatus === "ENDED" ? "neutral" : "primary"}>{formatLiveChatStatus(displayStatus)}</Badge>
@@ -173,6 +173,7 @@ export default function ChatWindow({ sessionId, mode = "user", onSessionChange }
     </div>
   );
 }
+
 
 
 

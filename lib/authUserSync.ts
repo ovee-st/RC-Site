@@ -147,7 +147,7 @@ export function getAuthDisplayName(user: User | AnyRecord) {
     metadata.name ||
     metadata.company_name ||
     rawUser.email?.split("@")[0] ||
-    "RC User"
+    "MXVL User"
   );
 }
 
@@ -412,3 +412,4 @@ export async function ensureRoleRecord(client: SupabaseClient, profile: AnyRecor
 
   await safeInsert(client, table, { id: profile.id, ...safePayload });
 }
+

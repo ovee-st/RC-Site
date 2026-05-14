@@ -1,9 +1,9 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import AccountSettings from "@/components/account/AccountSettings";
 
 export const metadata: Metadata = {
-  title: "Admin Account Settings | RC",
-  description: "Update RC admin email and password."
+  title: "Admin Account Settings | MXVL",
+  description: "Update MXVL Admin email and password."
 };
 
 export default function AdminAccountPage() {
@@ -15,3 +15,4 @@ export default function AdminAccountPage() {
     </main>
   );
 }
+

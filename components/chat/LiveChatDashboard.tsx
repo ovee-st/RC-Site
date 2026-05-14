@@ -110,7 +110,7 @@ export default function LiveChatDashboard({ mode = "employee", compact = false }
         <Card className="max-w-md rounded-3xl p-8 text-center">
           <ShieldCheck className="mx-auto h-8 w-8 text-primary" />
           <h1 className="mt-4 text-2xl font-black text-text-main dark:text-white">Access restricted</h1>
-          <p className="mt-2 text-sm font-semibold text-text-muted">Live chat is only available to RC support employees and admins.</p>
+          <p className="mt-2 text-sm font-semibold text-text-muted">Live chat is only available to Live Support employees and admins.</p>
         </Card>
       </main>
     );
@@ -176,7 +176,7 @@ export default function LiveChatDashboard({ mode = "employee", compact = false }
                   return selected ? (
                     <>
                       <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-primary to-success text-sm font-black text-white">
-                        {(selected.username || "RC").slice(0, 2).toUpperCase()}
+                        {(selected.username || "MXVL").slice(0, 2).toUpperCase()}
                       </div>
                       <div>
                         <h3 className="text-lg font-black text-text-main dark:text-white">{selected.username || "Customer"}</h3>
@@ -206,5 +206,6 @@ export default function LiveChatDashboard({ mode = "employee", compact = false }
     </section>
   );
 }
+
 
 

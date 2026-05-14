@@ -50,7 +50,7 @@ export async function POST(request: Request) {
   const userId = String(body.user_id || "").trim();
   const role = String(body.role || "").trim();
   const email = String(body.email || "").trim().toLowerCase();
-  const fullName = String(body.full_name || body.name || email.split("@")[0] || "RC User").trim();
+  const fullName = String(body.full_name || body.name || email.split("@")[0] || "MXVL User").trim();
 
   if (!userId || !PLATFORM_ROLES.has(role)) {
     return NextResponse.json({ error: "Valid user id and role are required." }, { status: 400 });
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
     .maybeSingle();
 
   const resolvedEmail = email || String(existingProfile?.email || "").toLowerCase();
-  const resolvedName = fullName || existingProfile?.full_name || existingProfile?.name || "RC User";
+  const resolvedName = fullName || existingProfile?.full_name || existingProfile?.name || "MXVL User";
 
   const { error: authUpdateError } = await adminClient.auth.admin.updateUserById(userId, {
     user_metadata: {
@@ -120,5 +120,6 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ ok: true, profile });
 }
+
 
 

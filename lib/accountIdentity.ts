@@ -27,7 +27,7 @@ export function createRoleUsername(role?: string | null, sequence?: number | nul
   }
 
   const stable = createStableUsername(name, email, id).replace(/\./g, "-");
-  return `rc-${stable}`;
+  return `MXVL-${stable}`;
 }
 
 export function isValidUsername(username?: string | null) {
@@ -49,3 +49,4 @@ export function getStableUsername(user?: {
     || user?.user_metadata?.username
     || createStableUsername(user?.name || user?.user_metadata?.full_name || user?.user_metadata?.name, user?.email, user?.id);
 }
+

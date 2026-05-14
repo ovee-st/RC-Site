@@ -25,7 +25,7 @@ type ResolvedRole = LoginRole | "employee" | "admin" | "viewer";
 function getDefaultProfile(role: ResolvedRole, fallbackName: string) {
   if (role === "admin" || role === "viewer") {
     return {
-      name: fallbackName && fallbackName !== "MX User" ? fallbackName : "RC Admin",
+      name: fallbackName && fallbackName !== "MX User" ? fallbackName : "MXVL Admin",
       avatar: undefined
     };
   }
@@ -222,3 +222,4 @@ export default function LoginPage() {
     </PageContainer>
   );
 }
+

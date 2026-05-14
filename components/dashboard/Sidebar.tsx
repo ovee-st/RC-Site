@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { BarChart3, Bell, Briefcase, CalendarClock, FileText, Home, MessageSquare, Sparkles, UserRound, Zap } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -20,7 +20,7 @@ export default function Sidebar({ activeSection, onNavigate }: { activeSection: 
   return (
     <aside className="sticky top-20 hidden h-[calc(100vh-6rem)] w-72 shrink-0 rounded-3xl border border-border bg-surface/80 p-4 shadow-soft backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/80 lg:block">
       <div className="mb-5 rounded-2xl bg-gradient-to-br from-primary to-blue-500 p-4 text-white shadow-[0_18px_45px_rgba(37,99,235,0.25)]">
-        <p className="text-xs font-black uppercase tracking-[0.24em] text-white/70">RC Candidate</p>
+        <p className="text-xs font-black uppercase tracking-[0.24em] text-white/70">MXVL Candidate</p>
         <h2 className="mt-2 text-xl font-black">Career Command Center</h2>
         <p className="mt-1 text-sm text-white/75">AI-guided hiring workflow</p>
       </div>
@@ -47,3 +47,4 @@ export default function Sidebar({ activeSection, onNavigate }: { activeSection: 
     </aside>
   );
 }
+

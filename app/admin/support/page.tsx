@@ -3,7 +3,7 @@ import LiveChatDashboard from "@/components/chat/LiveChatDashboard";
 import TicketCenter from "@/components/support/TicketCenter";
 
 export const metadata: Metadata = {
-  title: "Support Tickets | RC Admin",
+  title: "Support Tickets | MXVL Admin",
   description: "Admin support ticket and live chat management."
 };
 
@@ -15,3 +15,4 @@ export default function AdminSupportTicketsPage() {
     </div>
   );
 }
+

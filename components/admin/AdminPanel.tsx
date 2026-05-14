@@ -109,7 +109,7 @@ const emptyState: AdminState = {
   transactions: []
 };
 
-const ADMIN_NOTIFICATION_STORAGE_KEY = "rc-admin-cleared-notifications";
+const ADMIN_NOTIFICATION_STORAGE_KEY = "MXVL-admin-cleared-notifications";
 
 const sectionMeta: Record<AdminSection, { title: string; description: string }> = {
   dashboard: {
@@ -164,8 +164,8 @@ const navItems = [
 ] as const;
 
 const fallbackProfiles = [
-  { id: "admin-demo", full_name: "RC Super Admin", email: "admin@mxventurelab.com", role: "admin", plan: "Internal", applications_used: 0, created_at: "2026-05-01" },
-  { id: "viewer-demo", full_name: "RC Viewer", email: "viewer@mxventurelab.com", role: "viewer", plan: "Internal", applications_used: 0, created_at: "2026-05-01" },
+  { id: "admin-demo", full_name: "MXVL Super Admin", email: "admin@mxventurelab.com", role: "admin", plan: "Internal", applications_used: 0, created_at: "2026-05-01" },
+  { id: "viewer-demo", full_name: "MXVL Viewer", email: "viewer@mxventurelab.com", role: "viewer", plan: "Internal", applications_used: 0, created_at: "2026-05-01" },
   { id: "candidate-demo", full_name: "Md Jahid Anwar", email: "candidate.admin@mxventurelab.com", role: "candidate", plan: "Free", applications_used: 3, created_at: "2026-04-20" },
   { id: "employer-demo", full_name: "Ovee", email: "employer.admin@mxventurelab.com", role: "employer", plan: "Growth", applications_used: 8, created_at: "2026-04-18" }
 ];
@@ -181,12 +181,12 @@ const fallbackCoupons = [
 ];
 
 const fallbackTransactions = [
-  { id: "tx-1", user_email: "employer.admin@mxventurelab.com", amount: 4500, payment_method: "Card", coupon_used: "WELCOME20", transaction_id: "RC-2026-001", status: "paid", created_at: "2026-05-04" },
-  { id: "tx-2", user_email: "growth@example.com", amount: 9000, payment_method: "Bkash", coupon_used: "", transaction_id: "RC-2026-002", status: "pending", created_at: "2026-05-05" }
+  { id: "tx-1", user_email: "employer.admin@mxventurelab.com", amount: 4500, payment_method: "Card", coupon_used: "WELCOME20", transaction_id: "MXVL-2026-001", status: "paid", created_at: "2026-05-04" },
+  { id: "tx-2", user_email: "growth@example.com", amount: 9000, payment_method: "Bkash", coupon_used: "", transaction_id: "MXVL-2026-002", status: "pending", created_at: "2026-05-05" }
 ];
 
 function getInitials(name?: string) {
-  return (name || "RC Admin")
+  return (name || "MXVL Admin")
     .split(" ")
     .filter(Boolean)
     .map((part) => part[0])
@@ -571,7 +571,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
       .map((profile) => ({
         id: `profile-${profile.id || profile.email}`,
         title: `New ${profile.role || "user"} registered`,
-        message: `${getDisplayName(profile)} joined RC.`,
+        message: `${getDisplayName(profile)} joined MXVL.`,
         href: profile.role === "employer" ? "/admin/employers" : profile.role === "candidate" ? "/admin/candidates" : "/admin/users",
         icon: Users,
         created_at: profile.created_at
@@ -846,7 +846,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
       setNotice("Viewer accounts can inspect coupons, but cannot generate them.");
       return;
     }
-    const code = `RC${Math.floor(10 + Math.random() * 89)}${Math.random().toString(36).slice(2, 5).toUpperCase()}`;
+    const code = `MXVL${Math.floor(10 + Math.random() * 89)}${Math.random().toString(36).slice(2, 5).toUpperCase()}`;
     const coupon = {
       code,
       discount_percentage: 20,
@@ -1790,7 +1790,7 @@ function TransactionsSection({ rows }: { rows: AnyRecord[] }) {
           <h2 className="text-xl font-black text-text-main dark:text-white">Transaction history</h2>
           <p className="type-body mt-1">Subscription purchases, upgrades, coupon usage, and payment status.</p>
         </div>
-        <Button variant="secondary" className="gap-2" onClick={() => exportCsv("rc-transactions.csv", rows)}><Download className="h-4 w-4" />Export CSV</Button>
+        <Button variant="secondary" className="gap-2" onClick={() => exportCsv("MXVL-transactions.csv", rows)}><Download className="h-4 w-4" />Export CSV</Button>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[840px] text-left">
@@ -1842,9 +1842,9 @@ function SettingsSection({ data }: { data: AdminState }) {
         <p className="type-label text-primary">Exports</p>
         <h2 className="mt-2 text-2xl font-black text-text-main dark:text-white">Download platform data</h2>
         <div className="mt-5 grid gap-3">
-          <Button variant="secondary" className="justify-between" onClick={() => exportCsv("rc-candidates.csv", data.candidates)}>Candidates CSV <Download className="h-4 w-4" /></Button>
-          <Button variant="secondary" className="justify-between" onClick={() => exportCsv("rc-employers.csv", data.employers)}>Employers CSV <Download className="h-4 w-4" /></Button>
-          <Button variant="secondary" className="justify-between" onClick={() => exportCsv("rc-transactions.csv", data.transactions)}>Transactions CSV <Download className="h-4 w-4" /></Button>
+          <Button variant="secondary" className="justify-between" onClick={() => exportCsv("MXVL-candidates.csv", data.candidates)}>Candidates CSV <Download className="h-4 w-4" /></Button>
+          <Button variant="secondary" className="justify-between" onClick={() => exportCsv("MXVL-employers.csv", data.employers)}>Employers CSV <Download className="h-4 w-4" /></Button>
+          <Button variant="secondary" className="justify-between" onClick={() => exportCsv("MXVL-transactions.csv", data.transactions)}>Transactions CSV <Download className="h-4 w-4" /></Button>
         </div>
       </Card>
       <Card className="rounded-3xl p-6 xl:col-span-2">
@@ -1874,3 +1874,4 @@ function EmptyAdminState({ title, message }: { title: string; message: string })
     </Card>
   );
 }
+
