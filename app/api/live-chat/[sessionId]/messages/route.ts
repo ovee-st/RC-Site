@@ -67,6 +67,29 @@ export async function POST(request: Request, { params }: RouteContext) {
   if (session?.status === "ENDED") return NextResponse.json({ error: "This chat has ended." }, { status: 400 });
 
   const senderRole = String(context.profile?.role || "candidate");
+  const agentReply = senderRole === "employee" || senderRole === "admin" || senderRole === "viewer";
+  if (agentReply && session?.status === "WAITING") {
+    await context.adminClient
+      .from("live_chat_sessions")
+      .update({
+        status: "ACTIVE",
+        employee_id: session.employee_id || context.user.id,
+        last_message_at: new Date().toISOString()
+      })
+      .eq("id", sessionId);
+
+    if (session?.ticket_id) {
+      await context.adminClient
+        .from("support_tickets")
+        .update({
+          status: "IN_PROGRESS",
+          assigned_employee_id: session.employee_id || context.user.id,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", session.ticket_id);
+    }
+  }
+
   const { data, error } = await context.adminClient
     .from("live_chat_messages")
     .insert({
@@ -80,6 +103,11 @@ export async function POST(request: Request, { params }: RouteContext) {
     .maybeSingle();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+  await context.adminClient
+    .from("live_chat_sessions")
+    .update({ last_message_at: new Date().toISOString() })
+    .eq("id", sessionId);
 
   if (session?.ticket_id) {
     await context.adminClient.from("ticket_messages").insert({

@@ -138,6 +138,8 @@ export default function ChatWindow({ sessionId, mode = "user", onSessionChange }
 
   const mine = (message: LiveChatMessage) => message.sender_id === user?.id;
   const ended = activeSession.status === "ENDED";
+  const supportHasJoined = activeSession.status === "ACTIVE" || messages.some((message) => ["employee", "admin", "viewer"].includes(String(message.sender_role)));
+  const displayStatus = supportHasJoined && activeSession.status !== "ENDED" ? "ACTIVE" : activeSession.status;
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-soft dark:border-white/10 dark:bg-slate-950">
@@ -147,7 +149,7 @@ export default function ChatWindow({ sessionId, mode = "user", onSessionChange }
           <h3 className="text-base font-black text-text-main dark:text-white">{mode === "user" ? "RC Support" : activeSession.username || "Customer"}</h3>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant={activeSession.status === "ACTIVE" ? "success" : activeSession.status === "ENDED" ? "neutral" : "primary"}>{formatLiveChatStatus(activeSession.status)}</Badge>
+          <Badge variant={displayStatus === "ACTIVE" ? "success" : displayStatus === "ENDED" ? "neutral" : "primary"}>{formatLiveChatStatus(displayStatus)}</Badge>
           {!ended ? (
             <button type="button" onClick={endChat} className="rounded-full p-2 text-text-muted transition hover:bg-red-50 hover:text-red-600" aria-label="End chat">
               <PhoneOff className="h-4 w-4" />
@@ -157,7 +159,7 @@ export default function ChatWindow({ sessionId, mode = "user", onSessionChange }
       </div>
       <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto bg-gradient-to-b from-slate-50 to-white p-3 dark:from-slate-900 dark:to-slate-950">
         {messages.map((message) => <ChatBubble key={message.id} message={message} mine={mine(message)} />)}
-        {activeSession.status === "WAITING" ? <TypingIndicator label="Waiting for an available support agent" /> : null}
+        {displayStatus === "WAITING" ? <TypingIndicator label="Waiting for an available support agent" /> : null}
       </div>
       <div className="border-t border-border p-2.5 dark:border-white/10">
         {ended ? (
