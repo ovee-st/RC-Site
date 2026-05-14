@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { demoCandidates } from "@/lib/demoData";
 import { AUTH_CHANGE_EVENT, MOCK_USER_KEY, getStableUsername } from "@/lib/accountIdentity";
+import { getBestAvatarUrl } from "@/lib/authUserSync";
 
 export const AuthContext = createContext({
   user: null,
@@ -15,6 +16,10 @@ function normalizeUser(authUser, profile, fallbackUser) {
   if (!authUser) return null;
 
   const metadata = authUser.user_metadata || {};
+  const resolvedAvatar =
+    getBestAvatarUrl(profile) ||
+    getBestAvatarUrl(authUser) ||
+    getBestAvatarUrl(fallbackUser);
   const name =
     profile?.full_name ||
     profile?.name ||
@@ -43,19 +48,10 @@ function normalizeUser(authUser, profile, fallbackUser) {
       username: profile?.username || metadata.username || fallbackUser?.username,
       user_metadata: { ...fallbackUser?.user_metadata, ...metadata }
     }),
-    avatar:
-      profile?.avatar_url ||
-      profile?.photo_url ||
-      metadata.avatar_url ||
-      metadata.photo_url ||
-      metadata.profile_photo_url ||
-      metadata.logo_url ||
-      metadata.company_logo_url ||
-      metadata.picture ||
-      fallbackUser?.avatar ||
-      fallbackUser?.user_metadata?.avatar_url ||
-      fallbackUser?.user_metadata?.photo_url ||
-      null
+    avatar: resolvedAvatar || null,
+    avatar_url: resolvedAvatar || null,
+    photo_url: resolvedAvatar || null,
+    profile_photo_url: resolvedAvatar || null
   };
 }
 
@@ -64,11 +60,30 @@ async function loadProfile(authUser) {
 
   const { data } = await supabase
     .from("profiles")
-    .select("role, full_name, name, username, avatar_url, photo_url, verified, plan")
+    .select("*")
     .eq("id", authUser.id)
     .maybeSingle();
 
-  if (data?.role) return data;
+  let profile = data || null;
+
+  const [candidateResult, employerResult] = await Promise.allSettled([
+    supabase.from("candidates").select("*").eq("user_id", authUser.id).maybeSingle(),
+    supabase.from("employers").select("*").eq("user_id", authUser.id).maybeSingle()
+  ]);
+  const candidate = candidateResult.status === "fulfilled" ? candidateResult.value.data : null;
+  const employer = employerResult.status === "fulfilled" ? employerResult.value.data : null;
+
+  if (candidate || employer) {
+    profile = {
+      ...(profile || {}),
+      candidate: candidate || undefined,
+      employer: employer || undefined,
+      avatar_url: getBestAvatarUrl(profile) || getBestAvatarUrl(candidate) || getBestAvatarUrl(employer) || profile?.avatar_url || null,
+      photo_url: getBestAvatarUrl(profile) || getBestAvatarUrl(candidate) || getBestAvatarUrl(employer) || profile?.photo_url || null
+    };
+  }
+
+  if (profile?.role) return profile;
 
   const { data: sessionData } = await supabase.auth.getSession();
   const token = sessionData?.session?.access_token;
@@ -81,9 +96,9 @@ async function loadProfile(authUser) {
     }
   }).catch(() => null);
 
-  if (!response?.ok) return data || null;
+  if (!response?.ok) return profile || null;
   const payload = await response.json().catch(() => ({}));
-  return payload.profile || data || null;
+  return payload.profile || profile || null;
 }
 
 function getMockUser() {
@@ -250,3 +265,4 @@ export function AuthProvider({ children }) {
 export function useAuth() {
   return useContext(AuthContext);
 }
+

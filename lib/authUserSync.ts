@@ -10,23 +10,44 @@ export function getBestAvatarUrl(row?: AnyRecord | null) {
   const nestedProfile = row.profile || row.profiles || {};
   const nestedCandidate = row.candidate || row.candidates || {};
   const nestedEmployer = row.employer || row.employers || {};
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
-  const firstImageValue = (...values: unknown[]) => {
-    for (const value of values) {
-      if (typeof value !== "string") continue;
-      const image = value.trim();
-      if (!image) continue;
-      if (
-        image.startsWith("data:image/") ||
-        image.startsWith("/") ||
-        /^https?:\/\//i.test(image) ||
-        /supabase\.co\/storage\/v1\/object/i.test(image)
-      ) {
-        return image;
-      }
+  const normalizeImageValue = (value: unknown): string | null => {
+    if (Array.isArray(value)) return firstImageValue(...value);
+    if (value && typeof value === "object") return firstImageValue(...Object.values(value as AnyRecord));
+    if (typeof value !== "string") return null;
+
+    const image = value.trim();
+    if (!image) return null;
+
+    if (
+      image.startsWith("data:image/") ||
+      image.startsWith("/") ||
+      /^https?:\/\//i.test(image) ||
+      /supabase\.co\/storage\/v1\/object/i.test(image)
+    ) {
+      return image;
     }
+
+    const looksLikeStoredImage =
+      /\.(png|jpe?g|webp|gif|avif|svg)(\?.*)?$/i.test(image) ||
+      /^(avatars|profile-images|profile_images|profiles|candidates|employers|logos|uploads)\//i.test(image);
+
+    if (looksLikeStoredImage && supabaseUrl) {
+      const cleanPath = image.replace(/^\/+/, "");
+      return `${supabaseUrl.replace(/\/+$/, "")}/storage/v1/object/public/${cleanPath}`;
+    }
+
     return null;
   };
+
+  function firstImageValue(...values: unknown[]) {
+    for (const value of values) {
+      const image = normalizeImageValue(value);
+      if (image) return image;
+    }
+    return null;
+  }
 
   const explicitImage = firstImageValue(
     row.avatar_url,
