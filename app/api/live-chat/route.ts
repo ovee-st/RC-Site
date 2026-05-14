@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabaseServer";
 import { makeTicketNumber, normalizeTicketUserRole } from "@/lib/support";
 
@@ -96,32 +96,10 @@ export async function POST(request: Request) {
   if (existing) return NextResponse.json({ session: existing });
 
   const employeeId = await getAvailableEmployee(context.adminClient);
-  const ticketInsert = {
-    ticket_number: makeTicketNumber(),
-    user_id: context.user.id,
-    user_role: normalizeTicketUserRole(role),
-    username,
-    subject: "Live chat support request",
-    category: "Technical Bug",
-    message: ticketSummary,
-    priority: "MEDIUM",
-    status: employeeId ? "IN_PROGRESS" : "OPEN",
-    assigned_employee_id: employeeId
-  };
-
-  let { data: ticket, error: ticketError } = await context.adminClient.from("support_tickets").insert(ticketInsert).select("*").maybeSingle();
-  if (ticketError && /category/i.test(ticketError.message)) {
-    const { category: _category, ...legacyTicket } = ticketInsert;
-    const retry = await context.adminClient.from("support_tickets").insert(legacyTicket).select("*").maybeSingle();
-    ticket = retry.data;
-    ticketError = retry.error;
-  }
-  if (ticketError) return NextResponse.json({ error: ticketError.message }, { status: 400 });
-
   const { data: session, error: sessionError } = await context.adminClient
     .from("live_chat_sessions")
     .insert({
-      ticket_id: ticket?.id || null,
+      ticket_id: null,
       user_id: context.user.id,
       user_role: normalizeTicketUserRole(role),
       username,
@@ -135,31 +113,62 @@ export async function POST(request: Request) {
   if (sessionError) return NextResponse.json({ error: sessionError.message }, { status: 400 });
 
   if (session?.id) {
-    if (initialMessage) {
-      await context.adminClient.from("live_chat_messages").insert({
-        session_id: session.id,
-        sender_id: context.user.id,
-        sender_role: role,
-        message: initialMessage
-      });
-      await context.adminClient.from("ticket_messages").insert({
-        ticket_id: ticket?.id,
-        sender_id: context.user.id,
-        sender_role: role,
-        message: initialMessage,
-        internal_note: false
-      });
-    }
-    if (employeeId) {
-      await context.adminClient.from("notifications").insert({
-        user_id: employeeId,
-        type: "live_chat",
-        title: "New live chat assigned",
-        message: `${username} started a live support chat.`,
-        is_read: false
-      });
-    }
+    after(async () => {
+      const ticketInsert = {
+        ticket_number: makeTicketNumber(),
+        user_id: context.user.id,
+        user_role: normalizeTicketUserRole(role),
+        username,
+        subject: "Live chat support request",
+        category: "Technical Bug",
+        message: ticketSummary,
+        priority: "MEDIUM",
+        status: employeeId ? "IN_PROGRESS" : "OPEN",
+        assigned_employee_id: employeeId
+      };
+
+      let { data: ticket, error: ticketError } = await context.adminClient.from("support_tickets").insert(ticketInsert).select("*").maybeSingle();
+      if (ticketError && /category/i.test(ticketError.message)) {
+        const { category: _category, ...legacyTicket } = ticketInsert;
+        const retry = await context.adminClient.from("support_tickets").insert(legacyTicket).select("*").maybeSingle();
+        ticket = retry.data;
+        ticketError = retry.error;
+      }
+
+      if (!ticketError && ticket?.id) {
+        await context.adminClient
+          .from("live_chat_sessions")
+          .update({ ticket_id: ticket.id })
+          .eq("id", session.id);
+
+        if (initialMessage) {
+          await context.adminClient.from("live_chat_messages").insert({
+            session_id: session.id,
+            sender_id: context.user.id,
+            sender_role: role,
+            message: initialMessage
+          });
+          await context.adminClient.from("ticket_messages").insert({
+            ticket_id: ticket.id,
+            sender_id: context.user.id,
+            sender_role: role,
+            message: initialMessage,
+            internal_note: false
+          });
+        }
+      }
+
+      if (employeeId) {
+        await context.adminClient.from("notifications").insert({
+          user_id: employeeId,
+          type: "live_chat",
+          title: "New live chat assigned",
+          message: `${username} started a live support chat.`,
+          is_read: false
+        });
+      }
+    });
   }
 
-  return NextResponse.json({ session, ticket });
+  return NextResponse.json({ session, ticket: null });
 }

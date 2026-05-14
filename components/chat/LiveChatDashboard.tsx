@@ -68,6 +68,16 @@ export default function LiveChatDashboard({ mode = "employee", compact = false }
   }), [sessions, user?.id]);
 
   async function acceptChat(sessionId: string) {
+    const current = sessions.find((session) => session.id === sessionId);
+    if (current) {
+      upsertSession({
+        ...current,
+        status: "ACTIVE",
+        employee_id: user?.id || current.employee_id
+      });
+      selectSession(sessionId);
+    }
+
     const headers = await authHeaders();
     const response = await fetch(`/api/live-chat/${sessionId}`, {
       method: "PATCH",
@@ -78,6 +88,8 @@ export default function LiveChatDashboard({ mode = "employee", compact = false }
     if (response.ok && payload.session) {
       upsertSession(payload.session);
       selectSession(payload.session.id);
+    } else if (current) {
+      upsertSession(current);
     }
   }
 

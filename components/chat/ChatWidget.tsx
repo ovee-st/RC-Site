@@ -50,7 +50,7 @@ export default function ChatWidget() {
   if (loading || !canUseChat) return null;
 
   return (
-    <div className="fixed bottom-24 right-5 z-50">
+    <div className="fixed inset-x-2 bottom-20 z-50 sm:inset-x-auto sm:bottom-24 sm:right-5">
       <AnimatePresence>
         {open ? (
           <motion.div
@@ -58,7 +58,7 @@ export default function ChatWidget() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 18, scale: 0.96 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="mb-3 w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-[1.5rem] border border-white/70 bg-white/90 shadow-[0_22px_60px_rgba(15,23,42,0.2)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/92"
+            className="mb-3 w-full overflow-hidden rounded-[1.5rem] border border-white/70 bg-white/95 shadow-[0_22px_60px_rgba(15,23,42,0.2)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/95 sm:w-[360px]"
           >
             <div className="flex items-center justify-between border-b border-border px-4 py-2.5 dark:border-white/10">
               <div>
@@ -69,7 +69,7 @@ export default function ChatWidget() {
                 <Minus className="h-4 w-4" />
               </button>
             </div>
-            <div className="h-[420px] max-h-[62vh] p-2.5">
+            <div className="h-[min(68dvh,430px)] min-h-[360px] p-2.5 sm:h-[420px] sm:max-h-[62vh] sm:min-h-0">
               <ChatWindow sessionId={activeSession?.id || null} mode="user" onSessionChange={(session) => { upsertSession(session); selectSession(session.id); }} />
             </div>
           </motion.div>
@@ -80,7 +80,7 @@ export default function ChatWidget() {
         whileHover={{ y: -2, scale: 1.03 }}
         whileTap={{ scale: 0.96 }}
         onClick={() => setOpen((value) => !value)}
-        className="relative grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-blue-600 to-cyan-500 text-white shadow-elevated"
+        className="relative ml-auto grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-blue-600 to-cyan-500 text-white shadow-elevated sm:ml-0"
         aria-label="Open live chat"
       >
         {open ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
