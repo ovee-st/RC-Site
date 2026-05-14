@@ -1338,7 +1338,6 @@ function CandidatesSection({
               </div>
               </div>
               <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-                <Badge variant="match-score">AI {candidate.match_score || 86}%</Badge>
                 <Button variant="secondary" className="gap-2 px-3 py-2" onClick={() => startEdit(candidate)}><Edit3 className="h-4 w-4" />Edit details</Button>
                 <Button variant="ghost" className="px-3 py-2 text-danger" disabled={readOnly} onClick={() => onDelete("candidates", candidate.id || candidate.user_id)}><Trash2 className="h-4 w-4" /></Button>
               </div>

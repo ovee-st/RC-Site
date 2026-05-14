@@ -196,6 +196,35 @@ export default function EmployerProfile() {
             ...draft
           }, { onConflict: "user_id" })
           .throwOnError();
+        await supabase
+          .from("profiles")
+          .upsert({
+            id: user.id,
+            email: user.email || draft.email || "",
+            full_name: draft.contact_person || draft.company_name,
+            name: draft.contact_person || draft.company_name,
+            company_name: draft.company_name,
+            contact_person: draft.contact_person,
+            role: "employer",
+            avatar_url: draft.photo_url,
+            photo_url: draft.photo_url,
+            profile_photo_url: draft.photo_url,
+            logo_url: draft.photo_url,
+            company_logo_url: draft.photo_url,
+            updated_at: new Date().toISOString()
+          }, { onConflict: "id" })
+          .throwOnError();
+        await supabase.auth.updateUser({
+          data: {
+            name: draft.contact_person || draft.company_name,
+            full_name: draft.contact_person || draft.company_name,
+            company_name: draft.company_name,
+            avatar_url: draft.photo_url,
+            photo_url: draft.photo_url,
+            profile_photo_url: draft.photo_url,
+            role: "employer"
+          }
+        });
       } catch {
         setMessage("Saved locally. Supabase profile table may need the employer columns.");
       }

@@ -309,13 +309,28 @@ async function syncCandidateProfile(nextProfile: CandidateProfileState, user: Re
 
   const avatarUrl = nextProfile.avatar || null;
   const profilePatch = {
+    id: user.id,
+    email: user.email || "",
     full_name: nextProfile.name,
     name: nextProfile.name,
+    role: "candidate",
     avatar_url: avatarUrl,
-    photo_url: avatarUrl
+    photo_url: avatarUrl,
+    profile_photo_url: avatarUrl,
+    updated_at: new Date().toISOString()
   };
 
-  await supabase.from("profiles").update(profilePatch).eq("id", user.id);
+  await supabase.from("profiles").upsert(profilePatch, { onConflict: "id" });
+  await supabase.auth.updateUser({
+    data: {
+      full_name: nextProfile.name,
+      name: nextProfile.name,
+      avatar_url: avatarUrl,
+      photo_url: avatarUrl,
+      profile_photo_url: avatarUrl,
+      role: "candidate"
+    }
+  });
 
   const candidatePatch = {
     user_id: user.id,
