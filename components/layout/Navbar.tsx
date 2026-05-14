@@ -37,6 +37,13 @@ const navItemsByRole = {
     { label: "Tickets", href: "/employee/tickets" },
     { label: "Live Chat", href: "/employee/live-chat" }
   ],
+  support: [
+    { label: "Dashboard", href: "/support" },
+    { label: "Inbox", href: "/support/inbox" },
+    { label: "Tickets", href: "/support/tickets" },
+    { label: "Live Chat", href: "/support/live-chat" },
+    { label: "Analytics", href: "/support/analytics" }
+  ],
   admin: [
     { label: "Admin", href: "/admin" },
     { label: "Users", href: "/admin/users" },
@@ -95,8 +102,9 @@ export default function Navbar() {
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
   const { user, role, loading } = useAuth();
   const currentRole = role as string | null;
-  const profileHref = currentRole === "admin" || currentRole === "viewer" ? "/admin/profile" : currentRole === "employee" ? "/employee/profile" : currentRole === "employer" ? "/employer#profile" : "/candidate?view=profile";
-  const accountHref = currentRole === "admin" || currentRole === "viewer" ? "/admin/account" : currentRole === "employee" ? "/employee/profile" : currentRole === "employer" ? "/employer#account-settings" : "/candidate?view=profile#account-settings";
+  const isSupportRole = currentRole === "support_agent" || currentRole === "support_senior" || currentRole === "support_manager";
+  const profileHref = currentRole === "admin" || currentRole === "viewer" ? "/admin/profile" : currentRole === "employee" || isSupportRole ? "/support/profile" : currentRole === "employer" ? "/employer#profile" : "/candidate?view=profile";
+  const accountHref = currentRole === "admin" || currentRole === "viewer" ? "/admin/account" : currentRole === "employee" || isSupportRole ? "/support/profile" : currentRole === "employer" ? "/employer#account-settings" : "/candidate?view=profile#account-settings";
   const displayName = user?.user_metadata?.name || user?.user_metadata?.full_name || user?.name || "MX User";
   const userRecord = user as any;
   const metadata = userRecord?.user_metadata || {};
@@ -115,8 +123,9 @@ export default function Navbar() {
   const verified = Boolean(user?.user_metadata?.verified) || String(user?.user_metadata?.plan || "").toLowerCase() === "pro";
   const isLogoAvatar = Boolean(avatarSrc && /mx-logo|mx[\\/_-]?venture|MX\.png/i.test(avatarSrc));
   const initials = getInitials(displayName);
-  const resolvedRole = user ? (currentRole === "admin" ? "admin" : currentRole === "viewer" ? "viewer" : currentRole === "employee" ? "employee" : currentRole === "employer" ? "employer" : "candidate") : "guest";
+  const resolvedRole = user ? (currentRole === "admin" ? "admin" : currentRole === "viewer" ? "viewer" : isSupportRole ? "support" : currentRole === "employee" ? "employee" : currentRole === "employer" ? "employer" : "candidate") : "guest";
   const navItems = navItemsByRole[resolvedRole];
+  const homeHref = resolvedRole === "admin" || resolvedRole === "viewer" ? "/admin" : resolvedRole === "support" ? "/support" : resolvedRole === "employee" ? "/employee" : resolvedRole === "employer" ? "/employer" : "/";
   const isAdminNavigation = resolvedRole === "admin" || resolvedRole === "viewer";
 
   const avatar = avatarSrc ? (
@@ -270,7 +279,7 @@ export default function Navbar() {
     >
       <div className={cn("mx-auto flex h-16 max-w-7xl items-center justify-between px-6", isAdminNavigation ? "gap-4" : "gap-10")}>
         <div className={cn("flex min-w-0 flex-1 items-center", isAdminNavigation ? "gap-5" : "gap-8")}>
-          <Link href="/" className="flex shrink-0 items-center gap-3">
+          <Link href={homeHref} className="flex shrink-0 items-center gap-3">
             <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-full border border-gray-200 bg-white p-1 shadow-secondary ring-1 ring-black/5 dark:border-white/20 dark:bg-white dark:ring-white/20">
               <Image src={SITE_LOGO_LIGHT} alt="MX Venture Lab logo" width={36} height={36} className="h-full w-full object-contain dark:hidden" priority />
               <Image src={SITE_LOGO_DARK} alt="MX Venture Lab logo" width={36} height={36} className="hidden h-full w-full object-contain dark:block" priority />
@@ -425,5 +434,6 @@ export default function Navbar() {
     </header>
   );
 }
+
 
 

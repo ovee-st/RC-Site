@@ -4,9 +4,9 @@ export const roleHomeRoutes: Record<Exclude<UserRole, "guest">, string> = {
   candidate: "/",
   employer: "/employer",
   employee: "/employee",
-  support_agent: "/support/dashboard",
-  support_senior: "/support/dashboard",
-  support_manager: "/support/dashboard",
+  support_agent: "/support",
+  support_senior: "/support",
+  support_manager: "/support",
   admin: "/admin",
   super_admin: "/admin",
   viewer: "/admin"
@@ -42,3 +42,4 @@ export function normalizeAppRole(value?: string | null): UserRole {
   }
   return "guest";
 }
+
