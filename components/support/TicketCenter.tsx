@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { DragDropContext, Draggable, Droppable, type DropResult } from "@hello-pangea/dnd";
+import { Fragment, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -116,6 +115,8 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
+  const [moveMenuTicketId, setMoveMenuTicketId] = useState<string | null>(null);
+  const ticketWorkspaceRef = useRef<HTMLDivElement | null>(null);
   const roleValue = role as string | null;
 
   const isAgent = mode === "employee" || mode === "admin";
@@ -123,7 +124,7 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
   const userMetadata = (user?.user_metadata || {}) as Record<string, unknown>;
   const displayName = user?.name || user?.user_metadata?.full_name || user?.email || "RC user";
   const username = user?.username || String(userMetadata.username || "") || `${currentRole}_${String(user?.id || "000000").slice(0, 6)}`;
-  const selectedTicket = tickets.find((ticket) => ticket.id === selectedTicketId) || tickets[0] || null;
+  const selectedTicket = tickets.find((ticket) => ticket.id === selectedTicketId) || null;
   const selectedMessages = selectedTicket ? messagesByTicket[selectedTicket.id] || [] : [];
 
   useEffect(() => {
@@ -169,6 +170,19 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
     onTicketChange: upsertTicket,
     onMessageCreate: addMessage
   });
+
+  useEffect(() => {
+    function handleOutsideClick(event: globalThis.MouseEvent) {
+      if (!ticketWorkspaceRef.current) return;
+      if (!ticketWorkspaceRef.current.contains(event.target as Node)) {
+        selectTicket(null);
+        setMoveMenuTicketId(null);
+      }
+    }
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [selectTicket]);
 
   useEffect(() => {
     let active = true;
@@ -329,11 +343,21 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
     }
   }
 
-  async function onDragEnd(result: DropResult) {
-    if (!result.destination || !canEditTicket(roleValue)) return;
-    const ticketId = result.draggableId;
-    const nextStatus = result.destination.droppableId as SupportTicketStatus;
-    await updateStatus(ticketId, nextStatus);
+  function toggleTicket(ticketId: string) {
+    const nextId = selectedTicketId === ticketId ? null : ticketId;
+    selectTicket(nextId);
+    setMoveMenuTicketId(null);
+  }
+
+  function handleMoveButtonClick(event: ReactMouseEvent<HTMLButtonElement>, ticketId: string) {
+    event.stopPropagation();
+    selectTicket(ticketId);
+    setMoveMenuTicketId((current) => current === ticketId ? null : ticketId);
+  }
+
+  async function moveSelectedTicket(ticketId: string, status: SupportTicketStatus) {
+    await updateStatus(ticketId, status);
+    setMoveMenuTicketId(null);
   }
 
   if (loading || dataLoading) {
@@ -368,7 +392,7 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
             {isAgent ? "Resolve tickets with context, speed, and care." : "Get help from the RC support team."}
           </h1>
           <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-text-muted">
-            Realtime ticket tracking, threaded replies, internal notes, assignments, and a Kanban workflow designed for support teams.
+            Realtime ticket tracking, threaded replies, internal notes, assignments, and compact ticket movement built for fast support work.
           </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-4 lg:min-w-[520px]">
@@ -396,297 +420,305 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
         </div>
       ) : null}
 
-      <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
-        <div className="grid min-w-0 gap-5">
-          {!isAgent ? (
-            <Card className="rounded-3xl p-5">
-              <div className="flex items-start gap-3">
-                <div className="grid h-11 w-11 place-items-center rounded-2xl bg-primary/10 text-primary">
-                  <MessageSquareText className="h-5 w-5" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-black text-text-main dark:text-white">Create a ticket</h2>
-                  <p className="mt-1 text-sm font-semibold text-text-muted">Use your username <span className="text-primary">{username}</span> for tracking.</p>
-                </div>
+      <div
+        ref={ticketWorkspaceRef}
+        className={cn("grid min-w-0 gap-6", !isAgent && "xl:grid-cols-[360px_minmax(0,1fr)]")}
+      >
+        {!isAgent ? (
+          <Card className="rounded-3xl p-5">
+            <div className="flex items-start gap-3">
+              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-primary/10 text-primary">
+                <MessageSquareText className="h-5 w-5" />
               </div>
-              <div className="mt-5 grid gap-3">
-                <Input value={draft.subject} onChange={(event) => setDraft((current) => ({ ...current, subject: event.target.value }))} placeholder="Ticket subject" />
-                <select
-                  value={draft.category}
-                  onChange={(event) => setDraft((current) => ({ ...current, category: event.target.value }))}
-                  className="rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-bold dark:border-white/10 dark:bg-slate-900"
-                >
-                  {ticketCategories.map((category) => <option key={category} value={category}>{category}</option>)}
-                </select>
-                <textarea
-                  value={draft.message}
-                  onChange={(event) => setDraft((current) => ({ ...current, message: event.target.value }))}
-                  placeholder="Describe what happened..."
-                  className="min-h-28 rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-semibold outline-none transition focus:border-primary dark:border-white/10 dark:bg-slate-900"
-                />
-                <select
-                  value={draft.priority}
-                  onChange={(event) => setDraft((current) => ({ ...current, priority: event.target.value as SupportTicketPriority }))}
-                  className="rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-bold dark:border-white/10 dark:bg-slate-900"
-                >
-                  {ticketPriorities.map((priority) => <option key={priority} value={priority}>{priority}</option>)}
-                </select>
-                <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-dashed border-border bg-bg px-4 py-3 text-sm font-bold text-text-muted dark:border-white/10 dark:bg-white/5">
-                  <span className="flex items-center gap-2"><FileUp className="h-4 w-4" />Upload screenshots/files</span>
-                  <input
-                    type="file"
-                    multiple
-                    className="hidden"
-                    onChange={(event) => setDraft((current) => ({ ...current, files: Array.from(event.target.files || []) }))}
-                  />
-                </label>
-                {draft.files.length ? <p className="text-xs font-bold text-text-muted">{draft.files.length} file(s) selected</p> : null}
-                <Button disabled={isCreating || !draft.subject || !draft.message} onClick={createTicket} className="gap-2">
-                  {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                  Submit ticket
-                </Button>
+              <div>
+                <h2 className="text-xl font-black text-text-main dark:text-white">Create a ticket</h2>
+                <p className="mt-1 text-sm font-semibold text-text-muted">Use your username <span className="text-primary">{username}</span> for tracking.</p>
               </div>
-            </Card>
-          ) : null}
-
-          <Card className="overflow-hidden rounded-3xl p-0">
-            <div className="border-b border-border p-5 dark:border-white/10">
-              <p className="type-label text-primary">Ticket queue</p>
-              <h2 className="mt-1 text-xl font-black text-text-main dark:text-white">{isAgent ? "Assigned and open tickets" : "Your tickets"}</h2>
             </div>
-            <div className="max-h-[620px] overflow-y-auto p-3">
-              {tickets.length ? tickets.map((ticket) => {
-                const active = selectedTicket?.id === ticket.id;
-                return (
-                  <button
-                    key={ticket.id}
-                    type="button"
-                    onClick={() => selectTicket(ticket.id)}
-                    className={cn(
-                      "mb-3 w-full rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-hover",
-                      active ? "border-primary bg-primary/5 shadow-soft dark:bg-primary/10" : "border-border bg-white dark:border-white/10 dark:bg-slate-900"
-                    )}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-xs font-black uppercase tracking-wider text-primary">{ticket.ticket_number}</p>
-                        <h3 className="mt-1 line-clamp-2 text-sm font-black text-text-main dark:text-white">{ticket.subject}</h3>
-                        <p className="mt-1 truncate text-xs font-semibold text-text-muted">{ticket.username} - {ticket.user_role} - {ticket.category || "Other"}</p>
-                      </div>
-                      <Badge variant={getTicketTone(ticket.status) as any}>{formatTicketStatus(ticket.status)}</Badge>
-                    </div>
-                    <div className="mt-3 flex flex-wrap items-center gap-2">
-                      <span className={cn("rounded-full border px-2.5 py-1 text-xs font-black", getPriorityClass(ticket.priority))}>{ticket.priority}</span>
-                      {ticket.attachment_urls?.length ? <span className="flex items-center gap-1 text-xs font-bold text-text-muted"><Paperclip className="h-3 w-3" />{ticket.attachment_urls.length}</span> : null}
-                    </div>
-                  </button>
-                );
-              }) : (
+            <div className="mt-5 grid gap-3">
+              <Input value={draft.subject} onChange={(event) => setDraft((current) => ({ ...current, subject: event.target.value }))} placeholder="Ticket subject" />
+              <select
+                value={draft.category}
+                onChange={(event) => setDraft((current) => ({ ...current, category: event.target.value }))}
+                className="rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-bold dark:border-white/10 dark:bg-slate-900"
+              >
+                {ticketCategories.map((category) => <option key={category} value={category}>{category}</option>)}
+              </select>
+              <textarea
+                value={draft.message}
+                onChange={(event) => setDraft((current) => ({ ...current, message: event.target.value }))}
+                placeholder="Describe what happened..."
+                className="min-h-28 rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-semibold outline-none transition focus:border-primary dark:border-white/10 dark:bg-slate-900"
+              />
+              <select
+                value={draft.priority}
+                onChange={(event) => setDraft((current) => ({ ...current, priority: event.target.value as SupportTicketPriority }))}
+                className="rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-bold dark:border-white/10 dark:bg-slate-900"
+              >
+                {ticketPriorities.map((priority) => <option key={priority} value={priority}>{priority}</option>)}
+              </select>
+              <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-dashed border-border bg-bg px-4 py-3 text-sm font-bold text-text-muted dark:border-white/10 dark:bg-white/5">
+                <span className="flex items-center gap-2"><FileUp className="h-4 w-4" />Upload screenshots/files</span>
+                <input
+                  type="file"
+                  multiple
+                  className="hidden"
+                  onChange={(event) => setDraft((current) => ({ ...current, files: Array.from(event.target.files || []) }))}
+                />
+              </label>
+              {draft.files.length ? <p className="text-xs font-bold text-text-muted">{draft.files.length} file(s) selected</p> : null}
+              <Button disabled={isCreating || !draft.subject || !draft.message} onClick={createTicket} className="gap-2">
+                {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                Submit ticket
+              </Button>
+            </div>
+          </Card>
+        ) : null}
+
+        <div className="grid min-w-0 gap-4">
+          <Card className="overflow-hidden rounded-3xl p-0">
+            <div className="flex flex-col gap-3 border-b border-border p-5 dark:border-white/10 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="type-label text-primary">Ticket queue</p>
+                <h2 className="mt-1 text-xl font-black text-text-main dark:text-white">{isAgent ? "Assigned and open tickets" : "Your tickets"}</h2>
+              </div>
+              <p className="text-xs font-bold text-text-muted">Click a row to expand. Use Move to change status.</p>
+            </div>
+
+            {tickets.length ? (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[760px] border-collapse text-left">
+                  <thead className="bg-bg/80 text-xs font-black uppercase tracking-wider text-text-muted dark:bg-white/5">
+                    <tr>
+                      <th className="px-5 py-3">Ticket</th>
+                      <th className="px-5 py-3">Requester</th>
+                      <th className="px-5 py-3">Priority</th>
+                      <th className="px-5 py-3">Status</th>
+                      <th className="px-5 py-3">Updated</th>
+                      <th className="px-5 py-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border dark:divide-white/10">
+                    {tickets.map((ticket) => {
+                      const active = selectedTicket?.id === ticket.id;
+                      const TicketStatusIcon = statusIcon(ticket.status);
+                      return (
+                        <Fragment key={ticket.id}>
+                          <tr
+                            key={ticket.id}
+                            onClick={() => toggleTicket(ticket.id)}
+                            className={cn(
+                              "cursor-pointer transition hover:bg-primary/5 dark:hover:bg-white/5",
+                              active && "bg-primary/5 dark:bg-primary/10"
+                            )}
+                          >
+                            <td className="px-5 py-4 align-top">
+                              <p className="text-xs font-black uppercase tracking-wider text-primary">{ticket.ticket_number}</p>
+                              <h3 className="mt-1 line-clamp-1 text-sm font-black text-text-main dark:text-white">{ticket.subject}</h3>
+                              <p className="mt-1 line-clamp-1 text-xs font-semibold text-text-muted">{ticket.category || "Other"}</p>
+                            </td>
+                            <td className="px-5 py-4 align-top">
+                              <p className="text-sm font-black text-text-main dark:text-white">{ticket.username}</p>
+                              <p className="text-xs font-bold capitalize text-text-muted">{ticket.user_role}</p>
+                            </td>
+                            <td className="px-5 py-4 align-top">
+                              <span className={cn("rounded-full border px-2.5 py-1 text-xs font-black", getPriorityClass(ticket.priority))}>{ticket.priority}</span>
+                            </td>
+                            <td className="px-5 py-4 align-top">
+                              <Badge variant={getTicketTone(ticket.status) as any} className="gap-1.5">
+                                <TicketStatusIcon className="h-3 w-3" />
+                                {formatTicketStatus(ticket.status)}
+                              </Badge>
+                            </td>
+                            <td className="px-5 py-4 align-top text-xs font-bold text-text-muted">
+                              {new Date(ticket.updated_at || ticket.created_at).toLocaleString()}
+                            </td>
+                            <td className="px-5 py-4 align-top">
+                              <div className="flex justify-end gap-2">
+                                {ticket.attachment_urls?.length ? <span className="flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs font-bold text-text-muted dark:border-white/10"><Paperclip className="h-3 w-3" />{ticket.attachment_urls.length}</span> : null}
+                                {isAgent ? (
+                                  <Button variant="secondary" className="px-3 py-2 text-xs" onClick={(event) => handleMoveButtonClick(event, ticket.id)}>
+                                    Move
+                                  </Button>
+                                ) : null}
+                              </div>
+                            </td>
+                          </tr>
+                          {active ? (
+                            <tr key={`${ticket.id}-expanded`} className="bg-primary/5 dark:bg-primary/10">
+                              <td colSpan={6} className="px-5 pb-5">
+                                <div className="grid gap-4 rounded-2xl border border-primary/15 bg-white p-4 shadow-soft dark:border-primary/20 dark:bg-slate-900 lg:grid-cols-[minmax(0,1fr)_280px]">
+                                  <div>
+                                    <p className="text-sm font-semibold leading-6 text-text-muted">{ticket.message}</p>
+                                    <div className="mt-3 flex flex-wrap items-center gap-3">
+                                      <div className="grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-primary to-success text-xs font-black text-white">
+                                        {getInitials(ticket.username)}
+                                      </div>
+                                      <div>
+                                        <p className="text-sm font-black text-text-main dark:text-white">{ticket.username}</p>
+                                        <p className="text-xs font-bold text-text-muted">{ticket.user_role} - Created {new Date(ticket.created_at).toLocaleString()}</p>
+                                      </div>
+                                      {isAgent ? (
+                                        <Button variant="secondary" className="ml-auto gap-2 px-3 py-2" onClick={(event) => { event.stopPropagation(); assignToMe(ticket.id); }}>
+                                          <UserPlus className="h-4 w-4" />
+                                          Assign to me
+                                        </Button>
+                                      ) : null}
+                                    </div>
+                                  </div>
+                                  {isAgent && moveMenuTicketId === ticket.id ? (
+                                    <div className="rounded-2xl border border-border bg-bg p-3 dark:border-white/10 dark:bg-white/5" onClick={(event) => event.stopPropagation()}>
+                                      <p className="type-label text-primary">Move ticket</p>
+                                      <div className="mt-3 grid grid-cols-2 gap-2 lg:grid-cols-1">
+                                        {ticketStatuses.map((status) => (
+                                          <Button
+                                            key={status}
+                                            variant={ticket.status === status ? "primary" : "secondary"}
+                                            className="justify-center px-3 py-2 text-xs"
+                                            onClick={() => moveSelectedTicket(ticket.id, status)}
+                                          >
+                                            {formatTicketStatus(status)}
+                                          </Button>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="rounded-2xl border border-border bg-bg p-3 dark:border-white/10 dark:bg-white/5">
+                                      <p className="type-label text-primary">Thread summary</p>
+                                      <p className="mt-2 text-sm font-black text-text-main dark:text-white">{(messagesByTicket[ticket.id] || []).length} replies</p>
+                                      <p className="mt-1 text-xs font-semibold text-text-muted">Conversation opens below this list.</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          ) : null}
+                        </Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="p-5">
                 <div className="rounded-2xl border border-dashed border-border p-6 text-center dark:border-white/10">
                   <Sparkles className="mx-auto h-6 w-6 text-primary" />
                   <p className="mt-3 text-sm font-black text-text-main dark:text-white">No tickets yet</p>
                   <p className="mt-1 text-xs font-semibold text-text-muted">New support requests will appear here.</p>
                 </div>
-              )}
-            </div>
-          </Card>
-        </div>
-
-        <div className="grid min-w-0 gap-6 overflow-hidden">
-          {isAgent ? (
-            <Card className="min-w-0 overflow-hidden rounded-3xl p-4">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div>
-                  <p className="type-label text-primary">Kanban workflow</p>
-                  <h2 className="mt-1 text-xl font-black text-text-main dark:text-white">Ticket movement</h2>
-                </div>
-                <p className="text-xs font-bold text-text-muted">Drag cards to update status</p>
               </div>
-              <DragDropContext onDragEnd={onDragEnd}>
-                <div className="flex max-w-full gap-3 overflow-x-auto overscroll-x-contain pb-2">
-                  {ticketStatuses.map((status) => {
-                    const StatusIcon = statusIcon(status);
-                    const statusTickets = tickets.filter((ticket) => ticket.status === status);
-                    return (
-                      <Droppable key={status} droppableId={status} isDropDisabled={!canEditTicket(roleValue)}>
-                        {(provided, snapshot) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.droppableProps}
-                            className={cn(
-                              "min-h-[210px] w-[176px] shrink-0 rounded-2xl border border-border bg-bg p-3 transition dark:border-white/10 dark:bg-white/5 sm:w-[190px] 2xl:w-[204px]",
-                              snapshot.isDraggingOver && "border-primary bg-primary/5"
-                            )}
-                          >
-                            <div className="mb-3 flex items-center justify-between gap-2">
-                              <h3 className="flex min-w-0 items-center gap-2 text-xs font-black text-text-main dark:text-white">
-                                <StatusIcon className="h-4 w-4 text-primary" />
-                                <span className="truncate">{formatTicketStatus(status)}</span>
-                              </h3>
-                              <Badge>{statusTickets.length}</Badge>
-                            </div>
-                            <div className="grid gap-2">
-                              {statusTickets.map((ticket, index) => (
-                                <Draggable key={ticket.id} draggableId={ticket.id} index={index} isDragDisabled={!canEditTicket(roleValue)}>
-                                  {(dragProvided) => (
-                                    <button
-                                      type="button"
-                                      ref={dragProvided.innerRef}
-                                      {...dragProvided.draggableProps}
-                                      {...dragProvided.dragHandleProps}
-                                      onClick={() => selectTicket(ticket.id)}
-                                      className="rounded-2xl border border-border bg-white p-3 text-left shadow-soft transition hover:border-primary/30 dark:border-white/10 dark:bg-slate-900"
-                                    >
-                                      <p className="text-xs font-black text-primary">{ticket.ticket_number}</p>
-                                      <p className="mt-1 line-clamp-2 text-sm font-black text-text-main dark:text-white">{ticket.subject}</p>
-                                      <p className="mt-2 truncate text-xs font-bold text-text-muted">{ticket.priority} - {ticket.username}</p>
-                                    </button>
-                                  )}
-                                </Draggable>
-                              ))}
-                              {provided.placeholder}
-                            </div>
-                          </div>
-                        )}
-                      </Droppable>
-                    );
-                  })}
-                </div>
-              </DragDropContext>
-            </Card>
-          ) : null}
+            )}
+          </Card>
 
-          <Card className="min-w-0 overflow-hidden rounded-3xl p-0">
-            {selectedTicket ? (
-              <>
-                <div className="border-b border-border p-5 dark:border-white/10">
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div>
-                      <p className="type-label text-primary">{selectedTicket.ticket_number}</p>
-                      <h2 className="mt-1 text-2xl font-black text-text-main dark:text-white">{selectedTicket.subject}</h2>
-                      <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-text-muted">{selectedTicket.message}</p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Badge variant={getTicketTone(selectedTicket.status) as any}>{formatTicketStatus(selectedTicket.status)}</Badge>
-                      <span className={cn("rounded-full border px-3 py-1 text-xs font-black", getPriorityClass(selectedTicket.priority))}>{selectedTicket.priority}</span>
-                    </div>
+          {selectedTicket ? (
+            <Card className="min-w-0 overflow-hidden rounded-3xl p-0">
+              <div className="border-b border-border p-5 dark:border-white/10">
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                  <div>
+                    <p className="type-label text-primary">{selectedTicket.ticket_number}</p>
+                    <h2 className="mt-1 text-2xl font-black text-text-main dark:text-white">{selectedTicket.subject}</h2>
+                    <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-text-muted">{selectedTicket.message}</p>
                   </div>
-                  <div className="mt-4 flex flex-wrap items-center gap-3">
-                    <div className="grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-primary to-success text-xs font-black text-white">
-                      {getInitials(selectedTicket.username)}
-                    </div>
-                    <div>
-                      <p className="text-sm font-black text-text-main dark:text-white">{selectedTicket.username}</p>
-                      <p className="text-xs font-bold text-text-muted">{selectedTicket.user_role} • Created {new Date(selectedTicket.created_at).toLocaleString()}</p>
-                    </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={getTicketTone(selectedTicket.status) as any}>{formatTicketStatus(selectedTicket.status)}</Badge>
+                    <span className={cn("rounded-full border px-3 py-1 text-xs font-black", getPriorityClass(selectedTicket.priority))}>{selectedTicket.priority}</span>
                     {isAgent ? (
-                      <Button variant="secondary" className="ml-auto gap-2 px-3 py-2" onClick={() => assignToMe(selectedTicket.id)}>
-                        <UserPlus className="h-4 w-4" />
-                        Assign to me
+                      <Button variant="secondary" className="px-3 py-2" onClick={() => setMoveMenuTicketId((current) => current === selectedTicket.id ? null : selectedTicket.id)}>
+                        Move ticket
                       </Button>
                     ) : null}
                   </div>
                 </div>
-
-                <div className="grid gap-4 p-5 lg:grid-cols-[1fr_260px]">
-                  <div className="grid gap-3">
-                    {selectedMessages.length ? selectedMessages.map((message) => (
-                      <div
-                        key={message.id}
-                        className={cn(
-                          "rounded-2xl border p-4",
-                          message.internal_note
-                            ? "border-amber-200 bg-amber-50 dark:border-amber-400/20 dark:bg-amber-500/10"
-                            : "border-border bg-bg dark:border-white/10 dark:bg-white/5"
-                        )}
+                {isAgent && moveMenuTicketId === selectedTicket.id ? (
+                  <div className="mt-4 grid gap-2 rounded-2xl border border-border bg-bg p-3 dark:border-white/10 dark:bg-white/5 sm:grid-cols-3 lg:grid-cols-6">
+                    {ticketStatuses.map((status) => (
+                      <Button
+                        key={status}
+                        variant={selectedTicket.status === status ? "primary" : "secondary"}
+                        className="px-3 py-2 text-xs"
+                        onClick={() => moveSelectedTicket(selectedTicket.id, status)}
                       >
-                        <div className="mb-2 flex items-center justify-between gap-2">
-                          <p className="flex items-center gap-2 text-sm font-black text-text-main dark:text-white">
-                            {message.internal_note ? <StickyNote className="h-4 w-4 text-amber-500" /> : <MessageSquareText className="h-4 w-4 text-primary" />}
-                            {message.sender_role}
-                          </p>
-                          <p className="text-xs font-bold text-text-muted">{new Date(message.created_at).toLocaleString()}</p>
-                        </div>
-                        <p className="text-sm font-semibold leading-6 text-text-muted">{message.message}</p>
-                      </div>
-                    )) : (
-                      <div className="rounded-2xl border border-dashed border-border p-6 text-center dark:border-white/10">
-                        <MessageSquareText className="mx-auto h-6 w-6 text-primary" />
-                        <p className="mt-2 text-sm font-black text-text-main dark:text-white">No replies yet</p>
-                      </div>
-                    )}
+                        {formatTicketStatus(status)}
+                      </Button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
 
-                    <div className="rounded-2xl border border-border bg-white p-3 dark:border-white/10 dark:bg-slate-900">
-                      <textarea
-                        value={reply}
-                        onChange={(event) => setReply(event.target.value)}
-                        placeholder={isAgent ? "Reply to the user or add an internal note..." : "Reply to support..."}
-                        className="min-h-24 w-full resize-none bg-transparent px-2 py-2 text-sm font-semibold outline-none"
-                      />
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        {isAgent ? (
-                          <label className="flex items-center gap-2 text-xs font-bold text-text-muted">
-                            <input type="checkbox" checked={internalNote} onChange={(event) => setInternalNote(event.target.checked)} />
-                            Internal note
-                          </label>
-                        ) : <span />}
-                        <Button onClick={sendReply} disabled={!reply.trim()} className="gap-2">
-                          <Send className="h-4 w-4" />
-                          Send reply
-                        </Button>
+              <div className="grid gap-4 p-5 lg:grid-cols-[1fr_260px]">
+                <div className="grid gap-3">
+                  {selectedMessages.length ? selectedMessages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={cn(
+                        "rounded-2xl border p-4",
+                        message.internal_note
+                          ? "border-amber-200 bg-amber-50 dark:border-amber-400/20 dark:bg-amber-500/10"
+                          : "border-border bg-bg dark:border-white/10 dark:bg-white/5"
+                      )}
+                    >
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <p className="flex items-center gap-2 text-sm font-black text-text-main dark:text-white">
+                          {message.internal_note ? <StickyNote className="h-4 w-4 text-amber-500" /> : <MessageSquareText className="h-4 w-4 text-primary" />}
+                          {message.sender_role}
+                        </p>
+                        <p className="text-xs font-bold text-text-muted">{new Date(message.created_at).toLocaleString()}</p>
                       </div>
+                      <p className="text-sm font-semibold leading-6 text-text-muted">{message.message}</p>
+                    </div>
+                  )) : (
+                    <div className="rounded-2xl border border-dashed border-border p-6 text-center dark:border-white/10">
+                      <MessageSquareText className="mx-auto h-6 w-6 text-primary" />
+                      <p className="mt-2 text-sm font-black text-text-main dark:text-white">No replies yet</p>
+                    </div>
+                  )}
+
+                  <div className="rounded-2xl border border-border bg-white p-3 dark:border-white/10 dark:bg-slate-900">
+                    <textarea
+                      value={reply}
+                      onChange={(event) => setReply(event.target.value)}
+                      placeholder={isAgent ? "Reply to the user or add an internal note..." : "Reply to support..."}
+                      className="min-h-24 w-full resize-none bg-transparent px-2 py-2 text-sm font-semibold outline-none"
+                    />
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      {isAgent ? (
+                        <label className="flex items-center gap-2 text-xs font-bold text-text-muted">
+                          <input type="checkbox" checked={internalNote} onChange={(event) => setInternalNote(event.target.checked)} />
+                          Internal note
+                        </label>
+                      ) : <span />}
+                      <Button onClick={sendReply} disabled={!reply.trim()} className="gap-2">
+                        <Send className="h-4 w-4" />
+                        Send reply
+                      </Button>
                     </div>
                   </div>
-
-                  <div className="grid content-start gap-3">
-                    <Card className="rounded-2xl p-4">
-                      <p className="type-label text-primary">Activity timeline</p>
-                      <div className="mt-4 grid gap-3">
-                        {[
-                          ["Created", selectedTicket.created_at],
-                          ["Last update", selectedTicket.updated_at || selectedTicket.created_at],
-                          ["Current status", formatTicketStatus(selectedTicket.status)]
-                        ].map(([label, value]) => (
-                          <div key={label} className="flex gap-3">
-                            <span className="mt-1 h-2 w-2 rounded-full bg-primary" />
-                            <div>
-                              <p className="text-xs font-black text-text-main dark:text-white">{label}</p>
-                              <p className="text-xs font-semibold text-text-muted">{value}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </Card>
-                    {isAgent ? (
-                      <Card className="rounded-2xl p-4">
-                        <p className="type-label text-primary">Move ticket</p>
-                        <div className="mt-3 grid gap-2">
-                          {ticketStatuses.map((status) => (
-                            <Button
-                              key={status}
-                              variant={selectedTicket.status === status ? "primary" : "secondary"}
-                              className="justify-start px-3 py-2"
-                              onClick={() => updateStatus(selectedTicket.id, status)}
-                            >
-                              {formatTicketStatus(status)}
-                            </Button>
-                          ))}
-                        </div>
-                      </Card>
-                    ) : null}
-                  </div>
                 </div>
-              </>
-            ) : (
-              <div className="p-8 text-center">
-                <ShieldCheck className="mx-auto h-8 w-8 text-primary" />
-                <h2 className="mt-3 text-xl font-black text-text-main dark:text-white">Select a ticket</h2>
-                <p className="mt-2 text-sm font-semibold text-text-muted">Ticket details, messages, and actions will appear here.</p>
+
+                <Card className="h-fit rounded-2xl p-4">
+                  <p className="type-label text-primary">Activity timeline</p>
+                  <div className="mt-4 grid gap-3">
+                    {[
+                      ["Created", selectedTicket.created_at],
+                      ["Last update", selectedTicket.updated_at || selectedTicket.created_at],
+                      ["Current status", formatTicketStatus(selectedTicket.status)]
+                    ].map(([label, value]) => (
+                      <div key={label} className="flex gap-3">
+                        <span className="mt-1 h-2 w-2 rounded-full bg-primary" />
+                        <div>
+                          <p className="text-xs font-black text-text-main dark:text-white">{label}</p>
+                          <p className="text-xs font-semibold text-text-muted">{value}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
               </div>
-            )}
-          </Card>
+            </Card>
+          ) : null}
         </div>
       </div>
     </div>
   );
 }
+
