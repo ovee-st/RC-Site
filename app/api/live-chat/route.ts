@@ -80,7 +80,8 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => ({}));
-  const initialMessage = String(body.message || "Hi, I need help.").trim();
+  const initialMessage = String(body.message || "").trim();
+  const ticketSummary = initialMessage || "Live chat session opened.";
   const username = context.profile?.username || context.user.email?.split("@")[0] || context.user.id;
 
   const { data: existing } = await context.adminClient
@@ -102,7 +103,7 @@ export async function POST(request: Request) {
     username,
     subject: "Live chat support request",
     category: "Technical Bug",
-    message: initialMessage,
+    message: ticketSummary,
     priority: "MEDIUM",
     status: employeeId ? "IN_PROGRESS" : "OPEN",
     assigned_employee_id: employeeId
@@ -134,19 +135,21 @@ export async function POST(request: Request) {
   if (sessionError) return NextResponse.json({ error: sessionError.message }, { status: 400 });
 
   if (session?.id) {
-    await context.adminClient.from("live_chat_messages").insert({
-      session_id: session.id,
-      sender_id: context.user.id,
-      sender_role: role,
-      message: initialMessage
-    });
-    await context.adminClient.from("ticket_messages").insert({
-      ticket_id: ticket?.id,
-      sender_id: context.user.id,
-      sender_role: role,
-      message: initialMessage,
-      internal_note: false
-    });
+    if (initialMessage) {
+      await context.adminClient.from("live_chat_messages").insert({
+        session_id: session.id,
+        sender_id: context.user.id,
+        sender_role: role,
+        message: initialMessage
+      });
+      await context.adminClient.from("ticket_messages").insert({
+        ticket_id: ticket?.id,
+        sender_id: context.user.id,
+        sender_role: role,
+        message: initialMessage,
+        internal_note: false
+      });
+    }
     if (employeeId) {
       await context.adminClient.from("notifications").insert({
         user_id: employeeId,

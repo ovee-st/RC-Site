@@ -51,7 +51,7 @@ export default function ChatWindow({ sessionId, mode = "user", onSessionChange }
       const response = await fetch("/api/live-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...headers },
-        body: JSON.stringify({ message: "Hi, I need help with RC." })
+        body: JSON.stringify({})
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || "Could not start live chat.");
