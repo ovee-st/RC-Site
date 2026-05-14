@@ -23,7 +23,7 @@ export const useSupportStore = create<SupportStore>((set) => ({
     tickets,
     selectedTicketId: state.selectedTicketId && tickets.some((ticket) => ticket.id === state.selectedTicketId)
       ? state.selectedTicketId
-      : tickets[0]?.id || null
+      : null
   })),
   upsertTicket: (ticket) => set((state) => ({
     tickets: state.tickets.some((item) => item.id === ticket.id)
