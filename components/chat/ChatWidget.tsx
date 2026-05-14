@@ -58,18 +58,18 @@ export default function ChatWidget() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 18, scale: 0.96 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="mb-3 w-[min(380px,calc(100vw-2rem))] overflow-hidden rounded-[1.75rem] border border-white/70 bg-white/90 shadow-[0_28px_80px_rgba(15,23,42,0.22)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/92"
+            className="mb-3 w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-[1.5rem] border border-white/70 bg-white/90 shadow-[0_22px_60px_rgba(15,23,42,0.2)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/92"
           >
-            <div className="flex items-center justify-between border-b border-border px-4 py-3 dark:border-white/10">
+            <div className="flex items-center justify-between border-b border-border px-4 py-2.5 dark:border-white/10">
               <div>
-                <p className="text-xs font-black uppercase tracking-wider text-primary">RC Live Support</p>
-                <p className="text-sm font-bold text-text-muted">Realtime help linked to your ticket</p>
+                <p className="text-xs font-black uppercase tracking-wider text-primary">Live Support</p>
+                <p className="text-xs font-bold text-text-muted">Realtime help linked to your ticket</p>
               </div>
               <button type="button" onClick={() => setOpen(false)} className="rounded-full p-2 text-text-muted transition hover:bg-slate-100 hover:text-text-main dark:hover:bg-white/10" aria-label="Minimize chat">
                 <Minus className="h-4 w-4" />
               </button>
             </div>
-            <div className="h-[560px] max-h-[72vh] p-3">
+            <div className="h-[420px] max-h-[62vh] p-2.5">
               <ChatWindow sessionId={activeSession?.id || null} mode="user" onSessionChange={(session) => { upsertSession(session); selectSession(session.id); }} />
             </div>
           </motion.div>

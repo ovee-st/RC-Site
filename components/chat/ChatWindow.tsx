@@ -119,16 +119,16 @@ export default function ChatWindow({ sessionId, mode = "user", onSessionChange }
     }
 
     return (
-      <div className="grid gap-4 rounded-3xl border border-border bg-white p-5 shadow-elevated dark:border-white/10 dark:bg-slate-950">
-        <div className="grid h-12 w-12 place-items-center rounded-2xl bg-primary/10 text-primary">
+      <div className="grid gap-3 rounded-2xl border border-border bg-white p-4 shadow-soft dark:border-white/10 dark:bg-slate-950">
+        <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary">
           <Sparkles className="h-5 w-5" />
         </div>
         <div>
-          <h3 className="text-xl font-black text-text-main dark:text-white">Live support</h3>
-          <p className="mt-1 text-sm font-semibold text-text-muted">Start a realtime conversation. If no agent is online, we will keep it as a support ticket.</p>
+          <h3 className="text-lg font-black text-text-main dark:text-white">Live support</h3>
+          <p className="mt-1 text-xs font-semibold leading-5 text-text-muted">Start a realtime conversation. If no agent is online, we will keep it as a support ticket.</p>
         </div>
         {error ? <p className="rounded-2xl bg-red-50 px-3 py-2 text-sm font-bold text-red-600">{error}</p> : null}
-        <Button onClick={startChat} disabled={starting} className="gap-2">
+        <Button onClick={startChat} disabled={starting} className="gap-2 py-2">
           {starting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
           Start conversation
         </Button>
@@ -140,8 +140,8 @@ export default function ChatWindow({ sessionId, mode = "user", onSessionChange }
   const ended = activeSession.status === "ENDED";
 
   return (
-    <div className="flex h-full min-h-[460px] flex-col overflow-hidden rounded-3xl border border-border bg-white shadow-elevated dark:border-white/10 dark:bg-slate-950">
-      <div className="flex items-center justify-between gap-3 border-b border-border bg-white/80 p-4 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/80">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-soft dark:border-white/10 dark:bg-slate-950">
+      <div className="flex items-center justify-between gap-3 border-b border-border bg-white/80 p-3 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/80">
         <div>
           <p className="type-label text-primary">Live Chat</p>
           <h3 className="text-base font-black text-text-main dark:text-white">{mode === "user" ? "RC Support" : activeSession.username || "Customer"}</h3>
@@ -155,11 +155,11 @@ export default function ChatWindow({ sessionId, mode = "user", onSessionChange }
           ) : null}
         </div>
       </div>
-      <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto bg-gradient-to-b from-slate-50 to-white p-4 dark:from-slate-900 dark:to-slate-950">
+      <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto bg-gradient-to-b from-slate-50 to-white p-3 dark:from-slate-900 dark:to-slate-950">
         {messages.map((message) => <ChatBubble key={message.id} message={message} mine={mine(message)} />)}
         {activeSession.status === "WAITING" ? <TypingIndicator label="Waiting for an available support agent" /> : null}
       </div>
-      <div className="border-t border-border p-3 dark:border-white/10">
+      <div className="border-t border-border p-2.5 dark:border-white/10">
         {ended ? (
           <div className="rounded-2xl border border-border bg-slate-50 px-4 py-3 text-sm font-bold text-text-muted dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
             This chat has ended. The conversation is kept here as a read-only transcript.
