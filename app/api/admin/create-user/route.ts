@@ -1,8 +1,8 @@
 ﻿import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const ADMIN_ROLES = new Set(["admin", "super_admin"]);
-const INTERNAL_ROLES = new Set(["admin", "super_admin", "viewer", "employee", "support_agent", "support_senior", "support_manager"]);
+const ADMIN_ROLES = new Set(["admin"]);
+const INTERNAL_ROLES = new Set(["admin", "viewer", "employee", "support_agent", "support_senior", "support_manager"]);
 
 export async function POST(request: Request) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

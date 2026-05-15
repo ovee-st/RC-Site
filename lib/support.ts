@@ -108,7 +108,6 @@ export function normalizeSupportRole(role?: string | null): SupportUserRole {
     role === "support_senior" ||
     role === "support_manager" ||
     role === "admin" ||
-    role === "super_admin" ||
     role === "viewer"
   ) {
     return role;

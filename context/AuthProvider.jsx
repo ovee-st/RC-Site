@@ -121,7 +121,6 @@ function normalizeRole(value) {
     "support_senior",
     "support_manager",
     "admin",
-    "super_admin",
     "viewer"
   ].includes(value) ? value : null;
 }

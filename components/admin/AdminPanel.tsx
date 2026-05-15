@@ -70,11 +70,10 @@ type AdminSection =
   | "transactions";
 
 type AnyRecord = Record<string, any>;
-type PlatformRole = "admin" | "super_admin" | "viewer" | "employer" | "employee" | "support_agent" | "support_senior" | "support_manager" | "candidate";
+type PlatformRole = "admin" | "viewer" | "employer" | "employee" | "support_agent" | "support_senior" | "support_manager" | "candidate";
 
 const platformRoles: { value: PlatformRole; label: string }[] = [
   { value: "admin", label: "Admin" },
-  { value: "super_admin", label: "Super Admin" },
   { value: "viewer", label: "Admin (Viewer)" },
   { value: "employer", label: "Employer" },
   { value: "employee", label: "Employee" },
@@ -117,7 +116,7 @@ const ADMIN_NOTIFICATION_STORAGE_KEY = "MXVL-admin-cleared-notifications";
 
 const sectionMeta: Record<AdminSection, { title: string; description: string }> = {
   dashboard: {
-    title: "Super Admin Command Center",
+    title: "Admin Command Center",
     description: "Monitor users, revenue, jobs, applications, and operational signals from one premium control room."
   },
   users: {
@@ -168,7 +167,7 @@ const navItems = [
 ] as const;
 
 const fallbackProfiles = [
-  { id: "admin-demo", full_name: "MXVL Super Admin", email: "admin@mxventurelab.com", role: "admin", plan: "Internal", applications_used: 0, created_at: "2026-05-01" },
+  { id: "admin-demo", full_name: "MXVL Admin", email: "admin@mxventurelab.com", role: "admin", plan: "Internal", applications_used: 0, created_at: "2026-05-01" },
   { id: "viewer-demo", full_name: "MXVL Viewer", email: "viewer@mxventurelab.com", role: "viewer", plan: "Internal", applications_used: 0, created_at: "2026-05-01" },
   { id: "candidate-demo", full_name: "Md Jahid Anwar", email: "candidate.admin@mxventurelab.com", role: "candidate", plan: "Free", applications_used: 3, created_at: "2026-04-20" },
   { id: "employer-demo", full_name: "Ovee", email: "employer.admin@mxventurelab.com", role: "employer", plan: "Growth", applications_used: 8, created_at: "2026-04-18" }
@@ -772,7 +771,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
           .from("profiles")
           .update({
             role: nextRole,
-            plan: nextRole === "admin" || nextRole === "super_admin" || nextRole === "viewer" || nextRole === "employee" || nextRole === "support_agent" || nextRole === "support_senior" || nextRole === "support_manager" ? "Internal" : profile.plan || "Basic"
+            plan: nextRole === "admin" || nextRole === "viewer" || nextRole === "employee" || nextRole === "support_agent" || nextRole === "support_senior" || nextRole === "support_manager" ? "Internal" : profile.plan || "Basic"
           })
           .eq("id", profile.id);
 
@@ -1213,7 +1212,6 @@ function UsersSection({
           <Input value={newUser.password} onChange={(event) => setNewUser((current) => ({ ...current, password: event.target.value }))} placeholder="Password" type="password" disabled={readOnly} />
                 <select value={newUser.role} onChange={(event) => setNewUser((current) => ({ ...current, role: event.target.value }))} disabled={readOnly} className="rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-bold dark:border-white/10 dark:bg-slate-900">
                   <option value="admin">Admin</option>
-                  <option value="super_admin">Super Admin</option>
                   <option value="viewer">Admin (Viewer)</option>
                   <option value="employee">Employee</option>
                   <option value="support_agent">Support Agent</option>

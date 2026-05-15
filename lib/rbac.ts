@@ -8,16 +8,15 @@ export const roleHomeRoutes: Record<Exclude<UserRole, "guest">, string> = {
   support_senior: "/support",
   support_manager: "/support",
   admin: "/admin",
-  super_admin: "/admin",
   viewer: "/admin"
 };
 
 export const protectedRouteAccess: Array<{ prefix: string; roles: UserRole[] }> = [
-  { prefix: "/admin", roles: ["admin", "super_admin", "viewer"] },
-  { prefix: "/employee", roles: ["employee", "support_agent", "support_senior", "support_manager", "admin", "super_admin"] },
-  { prefix: "/employer", roles: ["employer", "admin", "super_admin"] },
-  { prefix: "/candidate", roles: ["candidate", "admin", "super_admin"] },
-  { prefix: "/support", roles: ["candidate", "employer", "employee", "support_agent", "support_senior", "support_manager", "admin", "super_admin", "viewer"] }
+  { prefix: "/admin", roles: ["admin", "viewer"] },
+  { prefix: "/employee", roles: ["employee", "support_agent", "support_senior", "support_manager", "admin"] },
+  { prefix: "/employer", roles: ["employer", "admin"] },
+  { prefix: "/candidate", roles: ["candidate", "admin"] },
+  { prefix: "/support", roles: ["candidate", "employer", "employee", "support_agent", "support_senior", "support_manager", "admin", "viewer"] }
 ];
 
 export function canAccessPath(role: UserRole | null | undefined, pathname: string) {
@@ -35,7 +34,6 @@ export function normalizeAppRole(value?: string | null): UserRole {
     value === "support_senior" ||
     value === "support_manager" ||
     value === "admin" ||
-    value === "super_admin" ||
     value === "viewer"
   ) {
     return value;

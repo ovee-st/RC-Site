@@ -21,12 +21,12 @@ const features = [
 ];
 
 type LoginRole = "candidate" | "employer" | "support_manager";
-type ResolvedRole = LoginRole | "employee" | "support_agent" | "support_senior" | "support_manager" | "admin" | "super_admin" | "viewer";
+type ResolvedRole = LoginRole | "employee" | "support_agent" | "support_senior" | "support_manager" | "admin" | "viewer";
 
-const resolvedRoles: ResolvedRole[] = ["candidate", "employer", "employee", "support_agent", "support_senior", "support_manager", "admin", "super_admin", "viewer"];
+const resolvedRoles: ResolvedRole[] = ["candidate", "employer", "employee", "support_agent", "support_senior", "support_manager", "admin", "viewer"];
 
 function getDefaultProfile(role: ResolvedRole, fallbackName: string) {
-  if (role === "admin" || role === "super_admin" || role === "viewer") {
+  if (role === "admin" || role === "viewer") {
     return {
       name: fallbackName && fallbackName !== "MX User" ? fallbackName : "MXVL Admin",
       avatar: undefined

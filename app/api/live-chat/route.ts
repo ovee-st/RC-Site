@@ -2,7 +2,7 @@ import { after, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabaseServer";
 import { makeTicketNumber, normalizeTicketUserRole } from "@/lib/support";
 
-const AGENT_ROLES = new Set(["employee", "support_agent", "support_senior", "support_manager", "admin", "super_admin", "viewer"]);
+const AGENT_ROLES = new Set(["employee", "support_agent", "support_senior", "support_manager", "admin", "viewer"]);
 
 async function getRequester(request: Request) {
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");

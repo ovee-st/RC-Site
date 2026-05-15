@@ -25,7 +25,7 @@ export function createRoleUsername(role?: string | null, sequence?: number | nul
     ? "employer"
     : role === "employee" || role === "support_agent" || role === "support_senior" || role === "support_manager"
       ? "employee"
-      : role === "admin" || role === "super_admin" || role === "viewer"
+      : role === "admin" || role === "viewer"
         ? "admin"
         : "candidate";
   if (typeof sequence === "number" && Number.isFinite(sequence) && sequence > 0) {

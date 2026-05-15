@@ -594,7 +594,7 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
     );
   }
 
-  if ((mode === "employee" && !isSupportStaffRole(roleValue)) || (mode === "admin" && roleValue !== "admin" && roleValue !== "super_admin" && roleValue !== "viewer")) {
+  if ((mode === "employee" && !isSupportStaffRole(roleValue)) || (mode === "admin" && roleValue !== "admin" && roleValue !== "viewer")) {
     return (
       <main className="grid min-h-[70vh] place-items-center px-6">
         <Card className="max-w-md rounded-3xl p-8 text-center">

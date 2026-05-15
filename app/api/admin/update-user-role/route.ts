@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { ensureRoleRecord } from "@/lib/authUserSync";
 
-const ADMIN_ROLES = new Set(["admin", "super_admin"]);
-const PLATFORM_ROLES = new Set(["admin", "super_admin", "viewer", "employer", "employee", "support_agent", "support_senior", "support_manager", "candidate"]);
+const ADMIN_ROLES = new Set(["admin"]);
+const PLATFORM_ROLES = new Set(["admin", "viewer", "employer", "employee", "support_agent", "support_senior", "support_manager", "candidate"]);
 
 function employeeUsername(email: string, id: string) {
   const base = email.split("@")[0]?.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").toLowerCase() || "employee";
@@ -85,7 +85,7 @@ export async function POST(request: Request) {
       full_name: resolvedName,
       name: resolvedName,
       role,
-      plan: role === "admin" || role === "super_admin" || role === "viewer" || role === "employee" || role === "support_agent" || role === "support_senior" || role === "support_manager" ? "Internal" : undefined
+      plan: role === "admin" || role === "viewer" || role === "employee" || role === "support_agent" || role === "support_senior" || role === "support_manager" ? "Internal" : undefined
     }, { onConflict: "id" })
     .select("*")
     .maybeSingle();

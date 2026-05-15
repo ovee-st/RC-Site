@@ -16,8 +16,7 @@ alter table if exists public.profiles
     'support_senior',
     'support_manager',
     'admin',
-    'super_admin',
-    'viewer'
+        'viewer'
   ));
 
 create table if not exists public.support_tickets (
@@ -107,7 +106,7 @@ as $$
     select 1
     from public.profiles p
     where p.id = check_user_id
-      and p.role in ('employee','support_agent','support_senior','support_manager','admin','super_admin','viewer')
+      and p.role in ('employee','support_agent','support_senior','support_manager','admin','viewer')
   );
 $$;
 
@@ -122,7 +121,7 @@ as $$
     select 1
     from public.profiles p
     where p.id = check_user_id
-      and p.role in ('support_senior','support_manager','admin','super_admin','viewer')
+      and p.role in ('support_senior','support_manager','admin','viewer')
   );
 $$;
 
