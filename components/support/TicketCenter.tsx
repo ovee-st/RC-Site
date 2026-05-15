@@ -3,8 +3,10 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import {
   AlertTriangle,
+  CalendarDays,
   CheckCircle2,
   Clock3,
+  Download,
   FileUp,
   Inbox,
   Loader2,
@@ -37,7 +39,7 @@ import Badge from "@/components/ui/Badge";
 import Input from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
-import { isSupportStaffRole } from "@/lib/supportRoles";
+import { canExportSupportReports, isSupportStaffRole } from "@/lib/supportRoles";
 
 type TicketCenterProps = {
   mode: "user" | "employee" | "admin";
@@ -83,6 +85,170 @@ function getPriorityClass(priority: SupportTicketPriority) {
   return "border-slate-200 bg-slate-50 text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-300";
 }
 
+function minutesBetween(start?: string | null, end?: string | null) {
+  if (!start || !end) return "";
+  const diff = Math.max(0, new Date(end).getTime() - new Date(start).getTime());
+  return Math.round(diff / 60000).toString();
+}
+
+function formatDurationLabel(minutesValue: string) {
+  const minutes = Number(minutesValue);
+  if (!Number.isFinite(minutes) || minutesValue === "") return "Not recorded";
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest ? `${hours}h ${rest}m` : `${hours}h`;
+}
+
+function isoDateOnly(value?: string | null) {
+  if (!value) return "";
+  return new Date(value).toISOString().slice(0, 10);
+}
+
+function isWithinDateRange(value: string, startDate: string, endDate: string) {
+  const day = isoDateOnly(value);
+  if (startDate && day < startDate) return false;
+  if (endDate && day > endDate) return false;
+  return true;
+}
+
+function csvCell(value: unknown) {
+  const text = String(value ?? "").replace(/\r?\n/g, " ");
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+function xmlCell(value: unknown) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function downloadReport(content: string, filename: string, mimeType: string) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
+function buildSupportExportRows(tickets: SupportTicket[], messagesByTicket: Record<string, TicketMessage[]>) {
+  const rows: Record<string, string>[] = [];
+
+  tickets.forEach((ticket) => {
+    const messages = [...(messagesByTicket[ticket.id] || [])].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    const firstAgentMessage = messages.find((message) => isSupportStaffRole(message.sender_role));
+    const closedAt = ticket.status === "RESOLVED" || ticket.status === "CLOSED" ? ticket.updated_at || ticket.created_at : "";
+    const forwardedAt = ticket.assigned_employee_id ? ticket.updated_at || ticket.created_at : "";
+    const firstResponseMinutes = minutesBetween(ticket.created_at, firstAgentMessage?.created_at || null);
+    const forwardMinutes = minutesBetween(ticket.created_at, forwardedAt || null);
+    const closeMinutes = minutesBetween(ticket.created_at, closedAt || null);
+
+    rows.push({
+      row_type: "ticket_summary",
+      ticket_number: ticket.ticket_number,
+      subject: ticket.subject,
+      requester: ticket.username,
+      requester_role: ticket.user_role,
+      category: ticket.category || "Other",
+      priority: ticket.priority,
+      status: ticket.status,
+      assigned_employee_id: ticket.assigned_employee_id || "Unassigned",
+      created_at: ticket.created_at,
+      updated_at: ticket.updated_at || "",
+      layer: "0",
+      actor_role: "system",
+      action: "Ticket opened",
+      step_elapsed_minutes: "0",
+      total_elapsed_minutes: "0",
+      first_response_minutes: firstResponseMinutes,
+      first_response_time: formatDurationLabel(firstResponseMinutes),
+      forward_or_assignment_minutes: forwardMinutes,
+      forward_or_assignment_time: formatDurationLabel(forwardMinutes),
+      close_or_resolution_minutes: closeMinutes,
+      close_or_resolution_time: formatDurationLabel(closeMinutes),
+      message: ticket.message
+    });
+
+    let previousAt = ticket.created_at;
+    messages.forEach((message, index) => {
+      const stepMinutes = minutesBetween(previousAt, message.created_at);
+      const totalMinutes = minutesBetween(ticket.created_at, message.created_at);
+      rows.push({
+        row_type: "message_layer",
+        ticket_number: ticket.ticket_number,
+        subject: ticket.subject,
+        requester: ticket.username,
+        requester_role: ticket.user_role,
+        category: ticket.category || "Other",
+        priority: ticket.priority,
+        status: ticket.status,
+        assigned_employee_id: ticket.assigned_employee_id || "Unassigned",
+        created_at: ticket.created_at,
+        updated_at: ticket.updated_at || "",
+        layer: String(index + 1),
+        actor_role: message.sender_role,
+        action: message.internal_note ? "Internal note" : "Reply",
+        step_elapsed_minutes: stepMinutes,
+        total_elapsed_minutes: totalMinutes,
+        first_response_minutes: firstResponseMinutes,
+        first_response_time: formatDurationLabel(firstResponseMinutes),
+        forward_or_assignment_minutes: forwardMinutes,
+        forward_or_assignment_time: formatDurationLabel(forwardMinutes),
+        close_or_resolution_minutes: closeMinutes,
+        close_or_resolution_time: formatDurationLabel(closeMinutes),
+        message: message.message
+      });
+      previousAt = message.created_at;
+    });
+  });
+
+  return rows;
+}
+
+const exportColumns = [
+  "row_type",
+  "ticket_number",
+  "subject",
+  "requester",
+  "requester_role",
+  "category",
+  "priority",
+  "status",
+  "assigned_employee_id",
+  "created_at",
+  "updated_at",
+  "layer",
+  "actor_role",
+  "action",
+  "step_elapsed_minutes",
+  "total_elapsed_minutes",
+  "first_response_minutes",
+  "first_response_time",
+  "forward_or_assignment_minutes",
+  "forward_or_assignment_time",
+  "close_or_resolution_minutes",
+  "close_or_resolution_time",
+  "message"
+];
+
+function exportRowsAsCsv(rows: Record<string, string>[], filename: string) {
+  const csv = [exportColumns.join(","), ...rows.map((row) => exportColumns.map((column) => csvCell(row[column])).join(","))].join("\n");
+  downloadReport(csv, filename, "text/csv;charset=utf-8");
+}
+
+function exportRowsAsXlsx(rows: Record<string, string>[], filename: string) {
+  const sheetRows = [exportColumns, ...rows.map((row) => exportColumns.map((column) => row[column] || ""))]
+    .map((row) => `<Row>${row.map((cell) => `<Cell><Data ss:Type="String">${xmlCell(cell)}</Data></Cell>`).join("")}</Row>`)
+    .join("");
+  const workbook = `<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="Support Report"><Table>${sheetRows}</Table></Worksheet></Workbook>`;
+  downloadReport(workbook, filename, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=utf-8");
+}
 async function uploadTicketFiles(files: File[], ticketId: string) {
   if (!files.length || !isSupabaseConfigured) return [];
 
@@ -117,6 +283,9 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
   const [moveMenuTicketId, setMoveMenuTicketId] = useState<string | null>(null);
+  const [exportStartDate, setExportStartDate] = useState("");
+  const [exportEndDate, setExportEndDate] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
   const ticketWorkspaceRef = useRef<HTMLDivElement | null>(null);
   const roleValue = role as string | null;
 
@@ -127,6 +296,7 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
   const username = user?.username || String(userMetadata.username || "") || `${currentRole}_${String(user?.id || "000000").slice(0, 6)}`;
   const selectedTicket = tickets.find((ticket) => ticket.id === selectedTicketId) || null;
   const selectedMessages = selectedTicket ? messagesByTicket[selectedTicket.id] || [] : [];
+  const canExportReports = canExportSupportReports(roleValue);
 
   useEffect(() => {
     let active = true;
@@ -359,6 +529,58 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
   async function moveSelectedTicket(ticketId: string, status: SupportTicketStatus) {
     await updateStatus(ticketId, status);
     setMoveMenuTicketId(null);
+    selectTicket(ticketId);
+  }
+
+  async function exportSupportReport(format: "csv" | "xlsx") {
+    if (!canExportReports) return;
+    setIsExporting(true);
+
+    try {
+      const scopedTickets = tickets.filter((ticket) => {
+        const createdMatch = isWithinDateRange(ticket.created_at, exportStartDate, exportEndDate);
+        const updatedMatch = ticket.updated_at ? isWithinDateRange(ticket.updated_at, exportStartDate, exportEndDate) : false;
+        return createdMatch || updatedMatch;
+      });
+
+      if (!scopedTickets.length) {
+        setStatusMessage("No support tickets found for the selected date range.");
+        return;
+      }
+
+      const exportMessagesByTicket: Record<string, TicketMessage[]> = { ...messagesByTicket };
+
+      if (isSupabaseConfigured) {
+        const ticketIds = scopedTickets.map((ticket) => ticket.id);
+        const { data } = await supabase
+          .from("ticket_messages")
+          .select("*")
+          .in("ticket_id", ticketIds)
+          .order("created_at", { ascending: true });
+
+        if (data) {
+          ticketIds.forEach((ticketId) => {
+            exportMessagesByTicket[ticketId] = [];
+          });
+          (data as TicketMessage[]).forEach((message) => {
+            exportMessagesByTicket[message.ticket_id] = [...(exportMessagesByTicket[message.ticket_id] || []), message];
+          });
+        }
+      }
+
+      const rows = buildSupportExportRows(scopedTickets, exportMessagesByTicket);
+      const stamp = `${exportStartDate || "all"}_to_${exportEndDate || isoDateOnly(new Date().toISOString())}`;
+
+      if (format === "csv") {
+        exportRowsAsCsv(rows, `mxvl-support-report-${stamp}.csv`);
+      } else {
+        exportRowsAsXlsx(rows, `mxvl-support-report-${stamp}.xlsx`);
+      }
+
+      setStatusMessage(`Support report exported as ${format.toUpperCase()}.`);
+    } finally {
+      setIsExporting(false);
+    }
   }
 
   if (loading || dataLoading) {
@@ -421,6 +643,46 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
         </div>
       ) : null}
 
+      {canExportReports ? (
+        <Card className="mb-5 rounded-3xl p-4">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="grid h-10 w-10 place-items-center rounded-2xl bg-primary/10 text-primary">
+                <CalendarDays className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="type-label text-primary">Manager export</p>
+                <p className="text-sm font-bold text-text-muted">Download CSV/XLSX reports with response, forward, close, and layer-by-layer timestamps.</p>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <input
+                type="date"
+                value={exportStartDate}
+                onChange={(event) => setExportStartDate(event.target.value)}
+                className="rounded-2xl border border-border bg-surface px-3 py-2 text-sm font-bold text-text-main outline-none dark:border-white/10 dark:bg-slate-900 dark:text-white"
+                aria-label="Export start date"
+              />
+              <input
+                type="date"
+                value={exportEndDate}
+                onChange={(event) => setExportEndDate(event.target.value)}
+                className="rounded-2xl border border-border bg-surface px-3 py-2 text-sm font-bold text-text-main outline-none dark:border-white/10 dark:bg-slate-900 dark:text-white"
+                aria-label="Export end date"
+              />
+              <Button variant="secondary" className="gap-2 px-4 py-2" disabled={isExporting} onClick={() => exportSupportReport("csv")}>
+                {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                CSV
+              </Button>
+              <Button className="gap-2 px-4 py-2" disabled={isExporting} onClick={() => exportSupportReport("xlsx")}>
+                {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                XLSX
+              </Button>
+            </div>
+          </div>
+        </Card>
+      ) : null}
+
       <div
         ref={ticketWorkspaceRef}
         className={cn("grid min-w-0 gap-6", !isAgent && "xl:grid-cols-[360px_minmax(0,1fr)]")}
@@ -476,19 +738,19 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
           </Card>
         ) : null}
 
-        <div className="grid min-w-0 gap-4">
+        <div className={cn("grid min-w-0 gap-4", isAgent && "xl:grid-cols-[minmax(0,1fr)_420px]")}>
           <Card className="overflow-hidden rounded-3xl p-0">
             <div className="flex flex-col gap-3 border-b border-border p-5 dark:border-white/10 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className="type-label text-primary">Ticket queue</p>
                 <h2 className="mt-1 text-xl font-black text-text-main dark:text-white">{isAgent ? "Assigned and open tickets" : "Your tickets"}</h2>
               </div>
-              <p className="text-xs font-bold text-text-muted">Click a row to expand. Use Move to change status.</p>
+              <p className="text-xs font-bold text-text-muted">Click a row to open the side panel. Use Move to change status.</p>
             </div>
 
             {tickets.length ? (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[760px] border-collapse text-left">
+                <table className="w-full min-w-[720px] border-collapse text-left">
                   <thead className="bg-bg/80 text-xs font-black uppercase tracking-wider text-text-muted dark:bg-white/5">
                     <tr>
                       <th className="px-5 py-3">Ticket</th>
@@ -545,7 +807,7 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
                               </div>
                             </td>
                           </tr>
-                          {active ? (
+                          {!isAgent && active ? (
                             <tr key={`${ticket.id}-expanded`} className="bg-primary/5 dark:bg-primary/10">
                               <td colSpan={6} className="px-5 pb-5">
                                 <div className="grid gap-4 rounded-2xl border border-primary/15 bg-white p-4 shadow-soft dark:border-primary/20 dark:bg-slate-900 lg:grid-cols-[minmax(0,1fr)_280px]">
@@ -587,7 +849,7 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
                                     <div className="rounded-2xl border border-border bg-bg p-3 dark:border-white/10 dark:bg-white/5">
                                       <p className="type-label text-primary">Thread summary</p>
                                       <p className="mt-2 text-sm font-black text-text-main dark:text-white">{(messagesByTicket[ticket.id] || []).length} replies</p>
-                                      <p className="mt-1 text-xs font-semibold text-text-muted">Conversation opens below this list.</p>
+                                      <p className="mt-1 text-xs font-semibold text-text-muted">Conversation opens in the side panel.</p>
                                     </div>
                                   )}
                                 </div>
@@ -612,7 +874,7 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
           </Card>
 
           {selectedTicket ? (
-            <Card className="min-w-0 overflow-hidden rounded-3xl p-0">
+            <Card className={cn("min-w-0 overflow-hidden rounded-3xl p-0", isAgent && "xl:sticky xl:top-24 xl:max-h-[calc(100vh-7rem)] xl:overflow-y-auto")}>
               <div className="border-b border-border p-5 dark:border-white/10">
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                   <div>
@@ -646,7 +908,7 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
                 ) : null}
               </div>
 
-              <div className="grid gap-4 p-5 lg:grid-cols-[1fr_260px]">
+              <div className={cn("grid gap-4 p-5", !isAgent && "lg:grid-cols-[1fr_260px]")}>
                 <div className="grid gap-3">
                   {selectedMessages.length ? selectedMessages.map((message) => (
                     <div
@@ -716,11 +978,20 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
                 </Card>
               </div>
             </Card>
+          ) : isAgent ? (
+            <Card className="grid min-h-[360px] place-items-center rounded-3xl p-6 text-center xl:sticky xl:top-24">
+              <div>
+                <ShieldCheck className="mx-auto h-8 w-8 text-primary" />
+                <h2 className="mt-3 text-xl font-black text-text-main dark:text-white">Select a ticket</h2>
+                <p className="mt-2 text-sm font-semibold text-text-muted">Ticket details, reply box, and move controls will open here.</p>
+              </div>
+            </Card>
           ) : null}
         </div>
       </div>
     </div>
   );
 }
+
 
 

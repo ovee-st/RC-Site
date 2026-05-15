@@ -17,6 +17,10 @@ export function canEscalateSupport(role?: string | null) {
   return role === "support_senior" || role === "support_manager" || role === "admin" || role === "super_admin";
 }
 
+export function canExportSupportReports(role?: string | null) {
+  return role === "support_manager" || role === "admin" || role === "super_admin";
+}
+
 export function getSupportRoleLabel(role?: string | null) {
   if (role === "support_agent" || role === "employee") return "Support Agent";
   if (role === "support_senior") return "Senior Support";
@@ -25,3 +29,4 @@ export function getSupportRoleLabel(role?: string | null) {
   if (role === "viewer") return "Admin Viewer";
   return "Customer";
 }
+
