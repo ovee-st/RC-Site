@@ -1,30 +1,20 @@
-"use client";
+﻿"use client";
 
 import {
   ArrowRight,
-  BadgeCheck,
   Brain,
   BriefcaseBusiness,
   Building2,
-  CheckCircle2,
-  Clock3,
   KanbanSquare,
-  Layers3,
-  LineChart,
   MessageSquareText,
   ShieldCheck,
   Sparkles,
-  Target,
-  TrendingUp,
   Users
 } from "lucide-react";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import { LinkButton } from "@/components/ui/Button";
-import PageContainer from "@/components/layout/PageContainer";
 import Container from "@/components/layout/Container";
-import Section from "@/components/layout/Section";
-import { StaggerContainer } from "@/components/motion/MotionSystem";
 import { useAuth } from "@/hooks/useAuth";
 import StatsCards from "@/components/dashboard/StatsCards";
 import AIInsights from "@/components/dashboard/AIInsights";
@@ -39,12 +29,6 @@ import EmployerCommandCenter from "@/components/dashboard/EmployerCommandCenter"
 import AdminPanel from "@/components/admin/AdminPanel";
 import type { CandidateAnalytics, CandidateDocument, CandidateNotification, CandidateProfile, InterviewEvent, SkillAssessment } from "@/types/candidate";
 import type { CandidateApplication, JobRecommendation } from "@/types/application";
-
-const features = [
-  { icon: Brain, title: "AI-ranked shortlists", text: "Turn every job post into a ranked list of ready candidates, scored by skills, experience, category, and semantic fit." },
-  { icon: KanbanSquare, title: "Built-in hiring pipeline", text: "Shortlist, invite, interview, offer, and hire inside one workspace without losing candidate context." },
-  { icon: MessageSquareText, title: "Support-led hiring service", text: "When employers need extra help, MXVL can source, screen, and deliver curated profiles for them." }
-];
 
 const steps = [
   { title: "Post the role", text: "Add category, skills, salary, deadline, and workplace preferences in a structured hiring form." },
@@ -64,8 +48,6 @@ const outcomes = [
   { label: "90%", title: "match accuracy target", text: "Blend AI similarity with structured hiring criteria for reliable ranking." },
   { label: "10k+", title: "candidate pool", text: "Centralize candidates, skills, CVs, applications, and recruiter actions." }
 ];
-
-const pricing = ["Starter", "Growth", "Enterprise"];
 
 const candidateHomeProfile: CandidateProfile = {
   id: "candidate-home",
@@ -235,222 +217,205 @@ export default function LandingPage() {
 
   return (
     <main className="overflow-hidden bg-bg dark:bg-slate-950">
-      <Section className="relative pt-24 pb-14 sm:pt-28 lg:pt-32">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_20%_10%,rgba(37,99,235,0.18),transparent_34%),radial-gradient(circle_at_84%_20%,rgba(34,197,94,0.13),transparent_30%)]" />
-        <Container className="grid items-center gap-8 lg:grid-cols-[1fr_0.9fr]">
+      <section className="relative py-14 sm:py-16 lg:py-20">
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_16%_12%,rgba(37,99,235,0.22),transparent_30%),radial-gradient(circle_at_82%_8%,rgba(34,197,94,0.16),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.8),rgba(248,250,252,0))] dark:bg-[radial-gradient(circle_at_16%_12%,rgba(37,99,235,0.28),transparent_32%),radial-gradient(circle_at_82%_8%,rgba(34,197,94,0.14),transparent_28%)]" />
+        <Container className="grid items-center gap-7 lg:grid-cols-[0.92fr_1.08fr]">
           <div>
             <Badge variant="primary" className="type-label text-primary">AI Hiring Platform for Bangladesh</Badge>
-            <h1 className="mt-6 max-w-4xl text-5xl font-black leading-[1.02] tracking-[-0.06em] text-text-main dark:text-white sm:text-6xl lg:text-7xl">
-              Hire <span className="text-primary">job-ready talent</span> before your competitors do.
+            <h1 className="mt-4 max-w-3xl text-4xl font-black leading-[1.02] tracking-[-0.05em] text-text-main dark:text-white sm:text-5xl lg:text-6xl">
+              Hire <span className="text-primary">top talent</span> with an AI command center.
             </h1>
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-text-muted dark:text-slate-300">
-              MX Venture Lab helps employers post roles, rank candidates with AI, manage interviews, and move hiring from scattered CVs to one decisive command center.
+            <p className="mt-4 max-w-xl text-base leading-7 text-text-muted dark:text-slate-300">
+              Post jobs, rank candidates, manage pipelines, and get support-led hiring help from one compact workspace.
             </p>
-            <div className="mt-7 flex flex-wrap gap-3">
-              <LinkButton href="/login" className="rounded-2xl px-7 py-4 text-base font-black">
-                Start hiring smarter <ArrowRight className="ml-2 h-5 w-5" />
+            <div className="mt-6 flex flex-wrap gap-3">
+              <LinkButton href="/login" className="rounded-2xl px-6 py-3 text-sm font-black">
+                Start hiring <ArrowRight className="ml-2 h-4 w-4" />
               </LinkButton>
-              <LinkButton href="/jobs" variant="secondary" className="rounded-2xl px-7 py-4 text-base font-black">
-                Browse open jobs
+              <LinkButton href="/jobs" variant="secondary" className="rounded-2xl px-6 py-3 text-sm font-black">
+                Browse jobs
               </LinkButton>
             </div>
-            <div className="mt-5 flex flex-wrap items-center gap-3 text-sm font-bold text-text-muted dark:text-slate-300">
-              <span className="inline-flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-success" />10,000+ candidate profiles</span>
-              <span className="inline-flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-success" />AI-ranked shortlists</span>
-              <span className="inline-flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-success" />ATS workflow included</span>
-            </div>
-          </div>
-
-          <Card className="relative overflow-hidden rounded-[2rem] border-primary/15 bg-surface/90 p-5 shadow-glow backdrop-blur dark:bg-slate-900/90">
-            <div className="absolute -right-16 -top-16 h-44 w-44 rounded-full bg-primary/20 blur-3xl" />
-            <div className="relative flex items-start justify-between gap-4 border-b border-border pb-5 dark:border-white/10">
-              <div>
-                <p className="type-label text-primary">Live recruiter cockpit</p>
-                <h2 className="mt-2 text-2xl font-black tracking-tight text-text-main dark:text-white">Top matches for your job</h2>
-                <p className="type-body mt-2 text-xs">Ranked by skills, experience, industry fit, and semantic profile analysis.</p>
-              </div>
-              <div className="grid h-12 w-12 place-items-center rounded-2xl bg-primary text-white shadow-glow">
-                <Sparkles className="h-6 w-6" />
-              </div>
-            </div>
-
-            <StaggerContainer className="relative mt-5 grid gap-3">
-              {[
-                { name: "Md Jahid Anwar", roleName: "Admin & Operations", score: 94, skills: "4/4 skills matched" },
-                { name: "Nusrat Jahan", roleName: "Customer Support", score: 88, skills: "3/4 skills matched" },
-                { name: "Rahim Ahmed", roleName: "Frontend Developer", score: 82, skills: "Strong semantic fit" }
-              ].map((candidate, index) => (
-                <Card key={candidate.name} className="group flex items-center justify-between gap-4 bg-bg p-4 shadow-none dark:bg-white/5">
-                  <div className="flex items-center gap-3">
-                    <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-primary to-success text-sm font-black text-white">
-                      {candidate.name.split(" ").map((part) => part[0]).slice(0, 2).join("")}
-                    </div>
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="text-base font-black text-text-main dark:text-white">{candidate.name}</h3>
-                        {index === 0 && <Badge variant="success">Top match</Badge>}
-                      </div>
-                      <p className="mt-1 text-xs font-semibold text-text-muted dark:text-slate-300">{candidate.roleName}</p>
-                      <p className="mt-1 text-[11px] font-bold text-success dark:text-emerald-300">{candidate.skills} - ready for recruiter review</p>
-                    </div>
-                  </div>
-                  <Badge variant="match-score" className="shrink-0">{candidate.score}%</Badge>
+            <div className="mt-6 grid max-w-xl grid-cols-3 gap-3">
+              {outcomes.map((item) => (
+                <Card key={item.title} className="rounded-2xl p-4 shadow-soft">
+                  <p className="text-2xl font-black text-text-main dark:text-white">{item.label}</p>
+                  <p className="mt-1 text-[11px] font-bold leading-4 text-text-muted dark:text-slate-300">{item.title}</p>
                 </Card>
               ))}
-            </StaggerContainer>
-
-            <div className="relative mt-5 grid gap-3 rounded-2xl border border-border bg-white/70 p-4 dark:border-white/10 dark:bg-slate-950/40 sm:grid-cols-3">
-              {outcomes.map((item) => (
-                <div key={item.title}>
-                  <p className="text-2xl font-black text-text-main dark:text-white">{item.label}</p>
-                  <p className="mt-1 text-xs font-bold text-text-muted dark:text-slate-300">{item.title}</p>
-                </div>
-              ))}
             </div>
-          </Card>
-        </Container>
-      </Section>
+          </div>
 
-      <Section className="py-10">
-        <Container>
-          <Card className="grid gap-4 rounded-3xl bg-text-main p-5 text-white shadow-elevated dark:bg-white dark:text-text-main md:grid-cols-4">
-            {[
-              { icon: Clock3, title: "Faster hiring", text: "From requirement to shortlist in 48 hours." },
-              { icon: Target, title: "Better focus", text: "Review the strongest fits first." },
-              { icon: ShieldCheck, title: "Verified flow", text: "Profiles, CVs, and actions stay traceable." },
-              { icon: TrendingUp, title: "Pipeline clarity", text: "Know where every candidate stands." }
-            ].map((item) => (
-              <div key={item.title} className="flex gap-3 rounded-2xl bg-white/8 p-4 dark:bg-slate-100">
-                <item.icon className="mt-0.5 h-5 w-5 shrink-0 text-blue-300 dark:text-primary" />
-                <div>
-                  <p className="font-black">{item.title}</p>
-                  <p className="mt-1 text-xs leading-5 text-white/70 dark:text-text-muted">{item.text}</p>
+          <div className="relative">
+            <div className="absolute -inset-6 -z-10 rounded-[2.5rem] bg-gradient-to-br from-primary/20 via-transparent to-success/20 blur-2xl" />
+            <Card className="overflow-hidden rounded-[2rem] p-0 shadow-glow dark:bg-slate-900/95">
+              <div className="grid gap-0 lg:grid-cols-[0.78fr_1fr]">
+                <div className="bg-gradient-to-br from-slate-950 via-blue-950 to-primary p-5 text-white">
+                  <div className="flex items-center justify-between">
+                    <Badge variant="neutral" className="bg-white/10 text-white dark:bg-white/10">Live cockpit</Badge>
+                    <Sparkles className="h-5 w-5 text-blue-200" />
+                  </div>
+                  <h2 className="mt-5 text-2xl font-black tracking-tight">Recruiter view</h2>
+                  <p className="mt-2 text-xs leading-5 text-white/70">Top candidates, active jobs, applications, and support signals in one glance.</p>
+                  <div className="mt-5 grid grid-cols-2 gap-2">
+                    {[
+                      ["12", "top matches"],
+                      ["8", "applications"],
+                      ["3", "active jobs"],
+                      ["94%", "best fit"]
+                    ].map(([value, label]) => (
+                      <div key={label} className="rounded-2xl border border-white/10 bg-white/10 p-3 backdrop-blur">
+                        <p className="text-xl font-black">{value}</p>
+                        <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-white/60">{label}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-3 p-4">
+                  {[
+                    { name: "Md Jahid Anwar", roleName: "Admin & Operations", score: 94, skills: ["Admin", "Excel", "Coordination"] },
+                    { name: "Nusrat Jahan", roleName: "Customer Support", score: 88, skills: ["CRM", "Communication"] },
+                    { name: "Rahim Ahmed", roleName: "Frontend Developer", score: 82, skills: ["React", "TypeScript"] }
+                  ].map((candidate, index) => (
+                    <div key={candidate.name} className="group rounded-2xl border border-border bg-bg p-3 transition hover:-translate-y-0.5 hover:border-primary hover:shadow-soft dark:border-white/10 dark:bg-white/5">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-primary to-success text-xs font-black text-white">
+                            {candidate.name.split(" ").map((part) => part[0]).slice(0, 2).join("")}
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-black text-text-main dark:text-white">{candidate.name}</h3>
+                            <p className="text-[11px] font-semibold text-text-muted dark:text-slate-300">{candidate.roleName}</p>
+                          </div>
+                        </div>
+                        <Badge variant="match-score" className="shrink-0">{candidate.score}%</Badge>
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {candidate.skills.map((skill) => <Badge key={skill} variant="success" className="text-[10px]">{skill}</Badge>)}
+                        {index === 0 ? <Badge variant="primary" className="text-[10px]">Top match</Badge> : null}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            ))}
-          </Card>
-        </Container>
-      </Section>
-
-      <PageContainer className="grid gap-6 md:grid-cols-3">
-        {features.map((feature) => (
-          <Card key={feature.title} variant="interactive" className="rounded-3xl">
-            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-primary/10 text-primary">
-              <feature.icon className="h-6 w-6" />
-            </div>
-            <h2 className="type-h2 mt-6">{feature.title}</h2>
-            <p className="mt-3 leading-7">{feature.text}</p>
-          </Card>
-        ))}
-      </PageContainer>
-
-      <PageContainer>
-        <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
-          <div>
-            <Badge variant="primary" className="type-label text-primary">How MXVL works</Badge>
-            <h2 className="mt-3 text-3xl font-black tracking-tight text-text-main dark:text-white">A cleaner hiring system from job post to final decision.</h2>
-            <p className="type-body mt-4 max-w-xl">No more scattered spreadsheets, random CV folders, or lost follow-ups. The platform keeps candidates, jobs, support, and hiring actions connected.</p>
+            </Card>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {steps.map((step, index) => (
-              <Card key={step.title} variant="interactive" className="rounded-3xl p-5">
-                <Badge variant="neutral">Step {index + 1}</Badge>
-                <h3 className="type-h3 mt-4 font-black">{step.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-text-muted dark:text-slate-300">{step.text}</p>
+        </Container>
+      </section>
+
+      <section className="py-6">
+        <Container>
+          <div className="grid gap-3 md:grid-cols-4">
+            {[
+              { icon: Brain, title: "AI scoring", text: "Structured + semantic ranking." },
+              { icon: KanbanSquare, title: "ATS pipeline", text: "Applied to hired in one board." },
+              { icon: ShieldCheck, title: "Verified profiles", text: "Cleaner candidate confidence." },
+              { icon: MessageSquareText, title: "Live support", text: "Support and hiring help built in." }
+            ].map((item) => (
+              <Card key={item.title} variant="interactive" className="flex items-center gap-3 rounded-2xl p-4">
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+                  <item.icon className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-black text-text-main dark:text-white">{item.title}</h2>
+                  <p className="mt-1 text-xs leading-5 text-text-muted dark:text-slate-300">{item.text}</p>
+                </div>
               </Card>
             ))}
           </div>
-        </div>
-      </PageContainer>
+        </Container>
+      </section>
 
-      <PageContainer>
-        <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
-          <div>
-            <Badge variant="primary" className="type-label text-primary">Hiring categories</Badge>
-            <h2 className="mt-3 text-3xl font-black tracking-tight text-text-main dark:text-white">Built for the roles Bangladeshi teams hire every week.</h2>
+      <section className="py-10">
+        <Container className="grid gap-5 lg:grid-cols-[0.75fr_1.25fr]">
+          <Card className="rounded-3xl p-5">
+            <Badge variant="primary">How it works</Badge>
+            <h2 className="mt-3 text-2xl font-black tracking-tight text-text-main dark:text-white">From job post to hire, without the clutter.</h2>
+            <p className="mt-3 text-sm leading-6 text-text-muted dark:text-slate-300">A compact operating system for posting, matching, reviewing, and closing roles faster.</p>
+            <LinkButton href="/we-hire-for-you" variant="secondary" className="mt-5 w-full rounded-2xl">Need hiring support?</LinkButton>
+          </Card>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {steps.map((step, index) => (
+              <Card key={step.title} variant="interactive" className="rounded-2xl p-4">
+                <div className="flex items-start gap-3">
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-primary text-xs font-black text-white">{index + 1}</span>
+                  <div>
+                    <h3 className="text-sm font-black text-text-main dark:text-white">{step.title}</h3>
+                    <p className="mt-1 text-xs leading-5 text-text-muted dark:text-slate-300">{step.text}</p>
+                  </div>
+                </div>
+              </Card>
+            ))}
           </div>
-          <LinkButton href="/we-hire-for-you" variant="secondary">We Hire for You</LinkButton>
-        </div>
-        <div className="grid gap-6 md:grid-cols-3">
-          {categories.map((item) => (
-            <Card key={item.title} variant="interactive" className="group overflow-hidden rounded-3xl p-0">
-              <div className="h-28 bg-gradient-to-br from-primary/90 via-blue-500 to-success/80 p-5 text-white">
-                <item.icon className="h-8 w-8" />
-              </div>
-              <div className="p-6">
-                <h3 className="type-h2">{item.title}</h3>
-                <p className="mt-3 leading-7">{item.text}</p>
-              </div>
-            </Card>
-          ))}
-        </div>
-      </PageContainer>
+        </Container>
+      </section>
 
-      <PageContainer>
-        <Card className="rounded-3xl p-6 lg:p-8">
-          <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+      <section className="py-10">
+        <Container>
+          <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+            <div>
+              <Badge variant="primary">Role coverage</Badge>
+              <h2 className="mt-3 text-2xl font-black tracking-tight text-text-main dark:text-white">Built for high-volume hiring categories.</h2>
+            </div>
+            <LinkButton href="/services" variant="ghost">View services</LinkButton>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            {categories.map((item) => (
+              <Card key={item.title} variant="interactive" className="group overflow-hidden rounded-3xl p-0">
+                <div className="relative h-24 overflow-hidden bg-gradient-to-br from-primary via-blue-500 to-success p-4 text-white">
+                  <div className="absolute -right-6 -top-8 h-24 w-24 rounded-full bg-white/20 blur-xl" />
+                  <item.icon className="relative h-8 w-8" />
+                </div>
+                <div className="p-4">
+                  <h3 className="text-lg font-black text-text-main dark:text-white">{item.title}</h3>
+                  <p className="mt-2 text-xs leading-5 text-text-muted dark:text-slate-300">{item.text}</p>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </Container>
+      </section>
+
+      <section className="py-10">
+        <Container>
+          <Card className="grid gap-5 rounded-3xl p-5 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
             <div>
               <Badge variant="success">Explainable AI</Badge>
-              <h2 className="mt-4 text-3xl font-black tracking-tight text-text-main dark:text-white">Trust the score because you can see the reason.</h2>
-              <p className="type-body mt-4">Every match can show skills matched, experience fit, semantic similarity, and missing gaps so recruiters make faster decisions without treating AI like a black box.</p>
+              <h2 className="mt-3 text-2xl font-black tracking-tight text-text-main dark:text-white">Transparent match scoring, not magic.</h2>
+              <p className="mt-3 text-sm leading-6 text-text-muted dark:text-slate-300">Recruiters can see why a candidate ranks high before they invite, shortlist, or interview.</p>
             </div>
-            <div className="space-y-4 rounded-3xl border border-border bg-bg p-5 dark:border-white/10 dark:bg-slate-900">
+            <div className="grid gap-3 sm:grid-cols-2">
               {[
-                { label: "Skills match", value: 40, color: "bg-success" },
-                { label: "Experience match", value: 30, color: "bg-success" },
-                { label: "Semantic similarity", value: 18, color: "bg-yellow-400" },
-                { label: "Industry match", value: 10, color: "bg-success" }
+                { label: "Skills", value: 40, color: "bg-success" },
+                { label: "Experience", value: 30, color: "bg-success" },
+                { label: "Semantic", value: 18, color: "bg-yellow-400" },
+                { label: "Industry", value: 10, color: "bg-primary" }
               ].map((bar) => (
-                <div key={bar.label}>
-                  <div className="mb-2 flex justify-between text-sm font-bold text-text-muted dark:text-slate-300">
-                    <span>{bar.label}</span>
-                    <span>{bar.value}%</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-slate-200 dark:bg-slate-800">
-                    <div className={`${bar.color} h-2 rounded-full`} style={{ width: `${bar.value * 2}%`, maxWidth: "100%" }} />
-                  </div>
+                <div key={bar.label} className="rounded-2xl border border-border bg-bg p-4 dark:border-white/10 dark:bg-white/5">
+                  <div className="mb-2 flex justify-between text-xs font-black text-text-muted dark:text-slate-300"><span>{bar.label}</span><span>{bar.value}%</span></div>
+                  <div className="h-2 rounded-full bg-slate-200 dark:bg-slate-800"><div className={`${bar.color} h-2 rounded-full`} style={{ width: `${Math.min(bar.value * 2, 100)}%` }} /></div>
                 </div>
               ))}
             </div>
-          </div>
-        </Card>
-      </PageContainer>
+          </Card>
+        </Container>
+      </section>
 
-      <PageContainer id="pricing">
-        <div className="text-center">
-          <Badge variant="primary">Flexible plans</Badge>
-          <h2 className="mt-4 text-3xl font-black tracking-tight text-text-main dark:text-white">Plans for every hiring pace</h2>
-          <p className="type-body mx-auto mt-3 max-w-xl">Start with core hiring tools, then scale into managed recruitment and premium candidate access as your team grows.</p>
-        </div>
-        <div className="mt-8 grid gap-6 md:grid-cols-3">
-          {pricing.map((plan, index) => (
-            <Card key={plan} variant={index === 1 ? "highlighted" : "interactive"} className="rounded-3xl">
-              <div className="flex items-center justify-between">
-                <h3 className="type-h2">{plan}</h3>
-                {index === 1 && <Badge variant="primary">Popular</Badge>}
-              </div>
-              <p className="mt-3 leading-7">AI matching, recruiter workflow, candidate management, and hiring visibility.</p>
-              <p className="mt-6 text-3xl font-black text-text-main dark:text-white">Custom</p>
-              <LinkButton href="/login" className="mt-6 w-full">Start Hiring</LinkButton>
-            </Card>
-          ))}
-        </div>
-      </PageContainer>
-
-      <Section>
+      <section className="py-10">
         <Container>
-          <Card className="mx-auto max-w-[1000px] overflow-hidden rounded-[2rem] bg-gradient-to-br from-primary via-blue-600 to-slate-950 p-10 text-center text-white shadow-glow">
-            <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-white/15 backdrop-blur">
-              <Layers3 className="h-7 w-7" />
-            </div>
-            <h2 className="mt-6 text-4xl font-black tracking-tight sm:text-5xl">Stop screening. Start hiring.</h2>
-            <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-white/75">Bring job posts, AI matches, support, CVs, and hiring progress into one polished operating system for recruitment.</p>
-            <div className="mt-7 flex justify-center">
-              <LinkButton href="/login" variant="secondary" className="rounded-2xl bg-white px-7 py-4 text-base font-black text-primary hover:bg-white/90">Create account</LinkButton>
+          <Card className="overflow-hidden rounded-[2rem] bg-gradient-to-br from-primary via-blue-600 to-slate-950 p-7 text-white shadow-glow">
+            <div className="grid gap-5 md:grid-cols-[1fr_auto] md:items-center">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.22em] text-white/60">MX Venture Lab</p>
+                <h2 className="mt-2 text-3xl font-black tracking-tight">Stop screening. Start hiring.</h2>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-white/75">Bring job posts, AI matches, CVs, support, and hiring progress into one premium recruitment workspace.</p>
+              </div>
+              <LinkButton href="/login" variant="secondary" className="rounded-2xl bg-white px-6 py-3 text-sm font-black text-primary hover:bg-white/90">Create account</LinkButton>
             </div>
           </Card>
         </Container>
-      </Section>
+      </section>
     </main>
   );
 }
+
