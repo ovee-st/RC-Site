@@ -21,7 +21,7 @@ export default function ChatWidget() {
   const { sessions, setSessions, activeSessionId, selectSession, upsertSession, addMessage } = useLiveChatStore();
   const [open, setOpen] = useState(false);
 
-  const canUseChat = Boolean(user && (role === "candidate" || role === "employer"));
+  const canUseChat = Boolean(user && role === "employer");
   const activeSession = useMemo(() => {
     const selected = sessions.find((session) => session.id === activeSessionId && session.status !== "ENDED");
     return selected || sessions.find((session) => session.status !== "ENDED") || null;
@@ -89,5 +89,6 @@ export default function ChatWidget() {
     </div>
   );
 }
+
 
 
