@@ -294,6 +294,36 @@ function MoveTicketMenu({
     </div>
   );
 }
+
+function PrioritySelect({
+  priority,
+  onChange,
+  compact = false
+}: {
+  priority: SupportTicketPriority;
+  onChange: (priority: SupportTicketPriority) => void;
+  compact?: boolean;
+}) {
+  return (
+    <select
+      value={priority}
+      onClick={(event) => event.stopPropagation()}
+      onChange={(event) => onChange(event.target.value as SupportTicketPriority)}
+      className={cn(
+        "appearance-none rounded-full border text-xs font-black uppercase outline-none transition focus:ring-2 focus:ring-primary/20",
+        compact ? "px-2.5 py-1" : "px-3 py-1.5",
+        getPriorityClass(priority)
+      )}
+      aria-label="Change ticket priority"
+    >
+      {ticketPriorities.map((item) => (
+        <option key={item} value={item} className="bg-white text-slate-900 dark:bg-slate-950 dark:text-white">
+          {item}
+        </option>
+      ))}
+    </select>
+  );
+}
 async function uploadTicketFiles(files: File[], ticketId: string) {
   if (!files.length || !isSupabaseConfigured) return [];
 
@@ -540,6 +570,35 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
         },
         body: JSON.stringify({ status })
       });
+    }
+  }
+
+  async function updatePriority(ticketId: string, priority: SupportTicketPriority) {
+    const ticket = tickets.find((item) => item.id === ticketId);
+    if (!ticket || ticket.priority === priority) return;
+
+    upsertTicket({ ...ticket, priority, updated_at: new Date().toISOString() });
+
+    if (isSupabaseConfigured) {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const response = await fetch(`/api/support/tickets/${ticketId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...(sessionData?.session?.access_token ? { Authorization: `Bearer ${sessionData.session.access_token}` } : {})
+        },
+        body: JSON.stringify({ priority })
+      });
+
+      if (!response.ok) {
+        upsertTicket(ticket);
+        const payload = await response.json().catch(() => ({}));
+        setStatusMessage(payload.error || "Could not update ticket priority.");
+        return;
+      }
+
+      const payload = await response.json().catch(() => ({}));
+      if (payload.ticket) upsertTicket(payload.ticket as SupportTicket);
     }
   }
 
@@ -903,7 +962,11 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
                               <p className="text-xs font-bold capitalize text-text-muted">{ticket.user_role}</p>
                             </td>
                             <td className="px-5 py-4 align-top">
-                              <span className={cn("rounded-full border px-2.5 py-1 text-xs font-black", getPriorityClass(ticket.priority))}>{ticket.priority}</span>
+                              {canEditTicket(roleValue) ? (
+                                <PrioritySelect priority={ticket.priority} compact onChange={(priority) => updatePriority(ticket.id, priority)} />
+                              ) : (
+                                <span className={cn("rounded-full border px-2.5 py-1 text-xs font-black", getPriorityClass(ticket.priority))}>{ticket.priority}</span>
+                              )}
                             </td>
                             <td className="px-5 py-4 align-top">
                               <Badge variant={getTicketTone(ticket.status) as any} className="gap-1.5">
@@ -1034,7 +1097,11 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant={getTicketTone(selectedTicket.status) as any}>{formatTicketStatus(selectedTicket.status)}</Badge>
-                    <span className={cn("rounded-full border px-3 py-1 text-xs font-black", getPriorityClass(selectedTicket.priority))}>{selectedTicket.priority}</span>
+                    {canEditTicket(roleValue) ? (
+                      <PrioritySelect priority={selectedTicket.priority} onChange={(priority) => updatePriority(selectedTicket.id, priority)} />
+                    ) : (
+                      <span className={cn("rounded-full border px-3 py-1 text-xs font-black", getPriorityClass(selectedTicket.priority))}>{selectedTicket.priority}</span>
+                    )}
                     {isAgent ? (
                       <Button variant="secondary" className="px-3 py-2" onClick={() => setMoveMenuTicketId((current) => current === selectedTicket.id ? null : selectedTicket.id)}>
                         Move ticket
@@ -1151,6 +1218,4 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
     </div>
   );
 }
-
-
 

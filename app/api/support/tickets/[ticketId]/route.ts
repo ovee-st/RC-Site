@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabaseServer";
-import { canEditTicket, canSeeTicket, ticketStatuses } from "@/lib/support";
+import { canEditTicket, canSeeTicket, ticketPriorities, ticketStatuses } from "@/lib/support";
 
 async function getRequester(request: Request) {
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
@@ -44,7 +44,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (body.status && ticketStatuses.includes(body.status)) patch.status = body.status;
   if ("assigned_employee_id" in body) patch.assigned_employee_id = body.assigned_employee_id || null;
-  if (body.priority) patch.priority = body.priority;
+  if (body.priority && ticketPriorities.includes(body.priority)) patch.priority = body.priority;
 
   const { data, error } = await context.adminClient
     .from("support_tickets")
@@ -65,3 +65,4 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 
   return NextResponse.json({ ticket: data });
 }
+
