@@ -343,6 +343,7 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
   const selectedTicket = tickets.find((ticket) => ticket.id === selectedTicketId) || null;
   const selectedMessages = selectedTicket ? messagesByTicket[selectedTicket.id] || [] : [];
   const canExportReports = canExportSupportReports(roleValue);
+  const canExportVisibleTickets = isAgent || canExportReports;
 
   useEffect(() => {
     let active = true;
@@ -579,7 +580,7 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
   }
 
   async function exportSupportReport(format: "csv" | "xlsx") {
-    if (!canExportReports) return;
+    if (!canExportVisibleTickets) return;
     setIsExporting(true);
 
     try {
@@ -646,7 +647,7 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
   }
 
   async function exportSingleTicket(ticket: SupportTicket, format: "csv" | "xlsx") {
-    if (!canExportReports) return;
+    if (!canExportVisibleTickets) return;
     setExportingTicketId(ticket.id);
 
     try {
@@ -848,7 +849,21 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
                 <p className="type-label text-primary">Ticket queue</p>
                 <h2 className="mt-1 text-xl font-black text-text-main dark:text-white">{isAgent ? "Assigned and open tickets" : "Your tickets"}</h2>
               </div>
-              <p className="text-xs font-bold text-text-muted">Click a row to open details. Export captures chat history and movement timing.</p>
+              <div className="flex flex-col gap-2 sm:items-end">
+                <p className="text-xs font-bold text-text-muted">Click a row to open details. Export captures chat history and movement timing.</p>
+                {canExportVisibleTickets ? (
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <Button variant="secondary" className="gap-1 px-3 py-2 text-xs" disabled={isExporting} onClick={() => exportSupportReport("csv")}>
+                      {isExporting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+                      Export CSV
+                    </Button>
+                    <Button variant="secondary" className="gap-1 px-3 py-2 text-xs" disabled={isExporting} onClick={() => exportSupportReport("xlsx")}>
+                      {isExporting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+                      Export XLSX
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
             </div>
 
             {tickets.length ? (
@@ -907,7 +922,7 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
                                     <Button variant="secondary" className="px-3 py-2 text-xs" onClick={(event) => handleMoveButtonClick(event, ticket.id)}>
                                       Move
                                     </Button>
-                                    {canExportReports ? (
+                                    {canExportVisibleTickets ? (
                                       <>
                                         <Button
                                           variant="secondary"
@@ -1024,6 +1039,28 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
                       <Button variant="secondary" className="px-3 py-2" onClick={() => setMoveMenuTicketId((current) => current === selectedTicket.id ? null : selectedTicket.id)}>
                         Move ticket
                       </Button>
+                    ) : null}
+                    {canExportVisibleTickets ? (
+                      <>
+                        <Button
+                          variant="secondary"
+                          className="gap-1 px-3 py-2 text-xs"
+                          disabled={exportingTicketId === selectedTicket.id}
+                          onClick={() => exportSingleTicket(selectedTicket, "csv")}
+                        >
+                          {exportingTicketId === selectedTicket.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+                          CSV
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          className="gap-1 px-3 py-2 text-xs"
+                          disabled={exportingTicketId === selectedTicket.id}
+                          onClick={() => exportSingleTicket(selectedTicket, "xlsx")}
+                        >
+                          {exportingTicketId === selectedTicket.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+                          XLSX
+                        </Button>
+                      </>
                     ) : null}
                   </div>
                 </div>
