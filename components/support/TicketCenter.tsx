@@ -33,7 +33,7 @@ import {
   ticketStatuses
 } from "@/lib/support";
 import { useSupportStore } from "@/store/useSupportStore";
-import type { SupportTicket, SupportTicketPriority, SupportTicketStatus, TicketMessage } from "@/types/support";
+import type { SupportTicket, SupportTicketPriority, SupportTicketStatus, TicketActivity, TicketMessage } from "@/types/support";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Input from "@/components/ui/Input";
@@ -137,7 +137,11 @@ function downloadReport(content: string, filename: string, mimeType: string) {
   URL.revokeObjectURL(url);
 }
 
-function buildSupportExportRows(tickets: SupportTicket[], messagesByTicket: Record<string, TicketMessage[]>) {
+function buildSupportExportRows(
+  tickets: SupportTicket[],
+  messagesByTicket: Record<string, TicketMessage[]>,
+  activitiesByTicket: Record<string, TicketActivity[]> = {}
+) {
   const rows: Record<string, string>[] = [];
 
   tickets.forEach((ticket) => {
@@ -175,12 +179,23 @@ function buildSupportExportRows(tickets: SupportTicket[], messagesByTicket: Reco
       message: ticket.message
     });
 
+    const activities = [...(activitiesByTicket[ticket.id] || [])].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    const timeline = [
+      ...activities.map((activity) => ({ kind: "activity" as const, at: activity.created_at, item: activity })),
+      ...messages.map((message) => ({ kind: "message" as const, at: message.created_at, item: message }))
+    ].sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+
     let previousAt = ticket.created_at;
-    messages.forEach((message, index) => {
-      const stepMinutes = minutesBetween(previousAt, message.created_at);
-      const totalMinutes = minutesBetween(ticket.created_at, message.created_at);
+    timeline.forEach((entry, index) => {
+      const stepMinutes = minutesBetween(previousAt, entry.at);
+      const totalMinutes = minutesBetween(ticket.created_at, entry.at);
+      const isActivity = entry.kind === "activity";
+      const activity = isActivity ? entry.item as TicketActivity : null;
+      const message = !isActivity ? entry.item as TicketMessage : null;
+      const activityMetadata = activity?.metadata ? JSON.stringify(activity.metadata) : "";
+
       rows.push({
-        row_type: "message_layer",
+        row_type: isActivity ? "movement_layer" : "message_layer",
         ticket_number: ticket.ticket_number,
         subject: ticket.subject,
         requester: ticket.username,
@@ -192,8 +207,8 @@ function buildSupportExportRows(tickets: SupportTicket[], messagesByTicket: Reco
         created_at: ticket.created_at,
         updated_at: ticket.updated_at || "",
         layer: String(index + 1),
-        actor_role: message.sender_role,
-        action: message.internal_note ? "Internal note" : "Reply",
+        actor_role: activity?.actor_role || message?.sender_role || "system",
+        action: activity?.action || (message?.internal_note ? "Internal note" : "Reply"),
         step_elapsed_minutes: stepMinutes,
         total_elapsed_minutes: totalMinutes,
         first_response_minutes: firstResponseMinutes,
@@ -202,9 +217,9 @@ function buildSupportExportRows(tickets: SupportTicket[], messagesByTicket: Reco
         forward_or_assignment_time: formatDurationLabel(forwardMinutes),
         close_or_resolution_minutes: closeMinutes,
         close_or_resolution_time: formatDurationLabel(closeMinutes),
-        message: message.message
+        message: message?.message || activityMetadata
       });
-      previousAt = message.created_at;
+      previousAt = entry.at;
     });
   });
 
@@ -286,6 +301,7 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
   const [exportStartDate, setExportStartDate] = useState("");
   const [exportEndDate, setExportEndDate] = useState("");
   const [isExporting, setIsExporting] = useState(false);
+  const [exportingTicketId, setExportingTicketId] = useState<string | null>(null);
   const ticketWorkspaceRef = useRef<HTMLDivElement | null>(null);
   const roleValue = role as string | null;
 
@@ -549,6 +565,7 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
       }
 
       const exportMessagesByTicket: Record<string, TicketMessage[]> = { ...messagesByTicket };
+      const exportActivitiesByTicket: Record<string, TicketActivity[]> = {};
 
       if (isSupabaseConfigured) {
         const ticketIds = scopedTickets.map((ticket) => ticket.id);
@@ -566,9 +583,24 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
             exportMessagesByTicket[message.ticket_id] = [...(exportMessagesByTicket[message.ticket_id] || []), message];
           });
         }
+
+        const { data: activityData } = await supabase
+          .from("ticket_activity")
+          .select("*")
+          .in("ticket_id", ticketIds)
+          .order("created_at", { ascending: true });
+
+        if (activityData) {
+          ticketIds.forEach((ticketId) => {
+            exportActivitiesByTicket[ticketId] = [];
+          });
+          (activityData as TicketActivity[]).forEach((activity) => {
+            exportActivitiesByTicket[activity.ticket_id] = [...(exportActivitiesByTicket[activity.ticket_id] || []), activity];
+          });
+        }
       }
 
-      const rows = buildSupportExportRows(scopedTickets, exportMessagesByTicket);
+      const rows = buildSupportExportRows(scopedTickets, exportMessagesByTicket, exportActivitiesByTicket);
       const stamp = `${exportStartDate || "all"}_to_${exportEndDate || isoDateOnly(new Date().toISOString())}`;
 
       if (format === "csv") {
@@ -580,6 +612,47 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
       setStatusMessage(`Support report exported as ${format.toUpperCase()}.`);
     } finally {
       setIsExporting(false);
+    }
+  }
+
+  async function exportSingleTicket(ticket: SupportTicket, format: "csv" | "xlsx") {
+    if (!canExportReports) return;
+    setExportingTicketId(ticket.id);
+
+    try {
+      let ticketMessages = messagesByTicket[ticket.id] || [];
+      let ticketActivities: TicketActivity[] = [];
+
+      if (isSupabaseConfigured) {
+        const [{ data: messageData }, { data: activityData }] = await Promise.all([
+          supabase
+            .from("ticket_messages")
+            .select("*")
+            .eq("ticket_id", ticket.id)
+            .order("created_at", { ascending: true }),
+          supabase
+            .from("ticket_activity")
+            .select("*")
+            .eq("ticket_id", ticket.id)
+            .order("created_at", { ascending: true })
+        ]);
+
+        if (messageData) ticketMessages = messageData as TicketMessage[];
+        if (activityData) ticketActivities = activityData as TicketActivity[];
+      }
+
+      const rows = buildSupportExportRows([ticket], { [ticket.id]: ticketMessages }, { [ticket.id]: ticketActivities });
+      const safeNumber = ticket.ticket_number.replace(/[^a-z0-9-]/gi, "-").toLowerCase();
+
+      if (format === "csv") {
+        exportRowsAsCsv(rows, `${safeNumber}-support-route.csv`);
+      } else {
+        exportRowsAsXlsx(rows, `${safeNumber}-support-route.xlsx`);
+      }
+
+      setStatusMessage(`${ticket.ticket_number} exported as ${format.toUpperCase()}.`);
+    } finally {
+      setExportingTicketId(null);
     }
   }
 
@@ -738,14 +811,14 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
           </Card>
         ) : null}
 
-        <div className={cn("grid min-w-0 gap-4", isAgent && "xl:grid-cols-[minmax(0,1fr)_420px]")}>
+        <div className={cn("grid min-w-0 gap-4", isAgent && selectedTicket && "xl:grid-cols-[minmax(0,1fr)_420px]")}>
           <Card className="overflow-hidden rounded-3xl p-0">
             <div className="flex flex-col gap-3 border-b border-border p-5 dark:border-white/10 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className="type-label text-primary">Ticket queue</p>
                 <h2 className="mt-1 text-xl font-black text-text-main dark:text-white">{isAgent ? "Assigned and open tickets" : "Your tickets"}</h2>
               </div>
-              <p className="text-xs font-bold text-text-muted">Click a row to open the side panel. Use Move to change status.</p>
+              <p className="text-xs font-bold text-text-muted">Click a row to open details. Export captures chat history and movement timing.</p>
             </div>
 
             {tickets.length ? (
@@ -800,9 +873,33 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
                               <div className="flex justify-end gap-2">
                                 {ticket.attachment_urls?.length ? <span className="flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs font-bold text-text-muted dark:border-white/10"><Paperclip className="h-3 w-3" />{ticket.attachment_urls.length}</span> : null}
                                 {isAgent ? (
-                                  <Button variant="secondary" className="px-3 py-2 text-xs" onClick={(event) => handleMoveButtonClick(event, ticket.id)}>
-                                    Move
-                                  </Button>
+                                  <>
+                                    <Button variant="secondary" className="px-3 py-2 text-xs" onClick={(event) => handleMoveButtonClick(event, ticket.id)}>
+                                      Move
+                                    </Button>
+                                    {canExportReports ? (
+                                      <>
+                                        <Button
+                                          variant="secondary"
+                                          className="gap-1 px-3 py-2 text-xs"
+                                          disabled={exportingTicketId === ticket.id}
+                                          onClick={(event) => { event.stopPropagation(); exportSingleTicket(ticket, "csv"); }}
+                                        >
+                                          {exportingTicketId === ticket.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+                                          CSV
+                                        </Button>
+                                        <Button
+                                          variant="secondary"
+                                          className="gap-1 px-3 py-2 text-xs"
+                                          disabled={exportingTicketId === ticket.id}
+                                          onClick={(event) => { event.stopPropagation(); exportSingleTicket(ticket, "xlsx"); }}
+                                        >
+                                          {exportingTicketId === ticket.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+                                          XLSX
+                                        </Button>
+                                      </>
+                                    ) : null}
+                                  </>
                                 ) : null}
                               </div>
                             </td>
@@ -976,14 +1073,6 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
                     ))}
                   </div>
                 </Card>
-              </div>
-            </Card>
-          ) : isAgent ? (
-            <Card className="grid min-h-[360px] place-items-center rounded-3xl p-6 text-center xl:sticky xl:top-24">
-              <div>
-                <ShieldCheck className="mx-auto h-8 w-8 text-primary" />
-                <h2 className="mt-3 text-xl font-black text-text-main dark:text-white">Select a ticket</h2>
-                <p className="mt-2 text-sm font-semibold text-text-muted">Ticket details, reply box, and move controls will open here.</p>
               </div>
             </Card>
           ) : null}
