@@ -2,7 +2,7 @@
 
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Camera, FileText, Pencil, Save, Sparkles, UserRound, X } from "lucide-react";
+import { Camera, FileText, Pencil, Plus, Save, Sparkles, Trash2, UserRound, X } from "lucide-react";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import EmptyState from "@/components/ui/EmptyState";
@@ -241,6 +241,25 @@ function getDefaultProfile(user: ReturnType<typeof useAuth>["user"]): CandidateP
   };
 }
 
+const createEmptyExperience = (): CandidateProfileState["experience"][number] => ({
+  role: "",
+  company: "",
+  period: "",
+  description: ""
+});
+
+const createEmptyEducation = (): CandidateProfileState["education"][number] => ({
+  degree: "",
+  institution: "",
+  year: ""
+});
+
+const createEmptyCertification = (): CandidateProfileState["certifications"][number] => ({
+  name: "",
+  organization: "",
+  year: ""
+});
+
 function loadSavedProfile(user: ReturnType<typeof useAuth>["user"]) {
   const fallback = getDefaultProfile(user);
 
@@ -272,20 +291,32 @@ function ProfileAvatar({ src, name, className }: { src?: string | null; name: st
 function SectionCard({
   title,
   onEdit,
+  onAdd,
+  addLabel = "Add",
   children
 }: {
   title: string;
   onEdit: () => void;
+  onAdd?: () => void;
+  addLabel?: string;
   children: React.ReactNode;
 }) {
   return (
     <Card className="p-5 shadow-soft">
       <div className="mb-4 flex items-center justify-between gap-3">
         <h3 className="type-h3 font-bold">{title}</h3>
-        <Button type="button" variant="secondary" onClick={onEdit} className="rounded-full px-3 py-1.5 text-xs">
-          <Pencil className="h-3.5 w-3.5" />
-          Edit
-        </Button>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {onAdd ? (
+            <Button type="button" variant="secondary" onClick={onAdd} className="rounded-full px-3 py-1.5 text-xs">
+              <Plus className="h-3.5 w-3.5" />
+              {addLabel}
+            </Button>
+          ) : null}
+          <Button type="button" variant="secondary" onClick={onEdit} className="rounded-full px-3 py-1.5 text-xs">
+            <Pencil className="h-3.5 w-3.5" />
+            Edit
+          </Button>
+        </div>
       </div>
       {children}
     </Card>
@@ -986,6 +1017,25 @@ export default function CandidateDashboard() {
     setEditing(section);
   };
 
+  const openAddEditor = (section: "experience" | "education" | "certifications") => {
+    const nextDraft = { ...profile };
+
+    if (section === "experience") {
+      nextDraft.experience = [...profile.experience, createEmptyExperience()];
+    }
+
+    if (section === "education") {
+      nextDraft.education = [...profile.education, createEmptyEducation()];
+    }
+
+    if (section === "certifications") {
+      nextDraft.certifications = [...profile.certifications, createEmptyCertification()];
+    }
+
+    setDraft(nextDraft);
+    setEditing(section);
+  };
+
   const closeEditor = () => {
     setDraft(profile);
     setEditing(null);
@@ -1162,7 +1212,7 @@ export default function CandidateDashboard() {
                   </div>
                 </SectionCard>
 
-                <SectionCard title="Experience" onEdit={() => openEditor("experience")}>
+                <SectionCard title="Experience" onEdit={() => openEditor("experience")} onAdd={() => openAddEditor("experience")} addLabel="Add">
                   <div className="grid gap-4 border-l-2 border-primary/30 pl-4">
                     {profile.experience.map((item) => (
                       <div key={`${item.role}-${item.company}`}>
@@ -1175,7 +1225,7 @@ export default function CandidateDashboard() {
                   </div>
                 </SectionCard>
 
-                <SectionCard title="Education" onEdit={() => openEditor("education")}>
+                <SectionCard title="Education" onEdit={() => openEditor("education")} onAdd={() => openAddEditor("education")} addLabel="Add">
                   {profile.education.map((item) => (
                     <div key={`${item.degree}-${item.institution}`}>
                       <h4 className="text-sm font-black text-text-main dark:text-white">{item.degree}</h4>
@@ -1185,7 +1235,7 @@ export default function CandidateDashboard() {
                   ))}
                 </SectionCard>
 
-                <SectionCard title="Certifications" onEdit={() => openEditor("certifications")}>
+                <SectionCard title="Certifications" onEdit={() => openEditor("certifications")} onAdd={() => openAddEditor("certifications")} addLabel="Add">
                   {profile.certifications.map((item) => (
                     <div key={`${item.name}-${item.organization}`}>
                       <h4 className="text-sm font-black text-text-main dark:text-white">{item.name}</h4>
@@ -1344,27 +1394,105 @@ export default function CandidateDashboard() {
               ) : null}
 
               {editing === "experience" ? (
-                <div className="grid gap-3">
-                  <Input value={draft.experience[0]?.role || ""} onChange={(event) => setDraft((current) => ({ ...current, experience: [{ ...current.experience[0], role: event.target.value }] }))} placeholder="Role" />
-                  <Input value={draft.experience[0]?.company || ""} onChange={(event) => setDraft((current) => ({ ...current, experience: [{ ...current.experience[0], company: event.target.value }] }))} placeholder="Company" />
-                  <Input value={draft.experience[0]?.period || ""} onChange={(event) => setDraft((current) => ({ ...current, experience: [{ ...current.experience[0], period: event.target.value }] }))} placeholder="Period" />
-                  <TextArea value={draft.experience[0]?.description || ""} onChange={(event) => setDraft((current) => ({ ...current, experience: [{ ...current.experience[0], description: event.target.value }] }))} placeholder="Description" />
+                <div className="grid gap-4">
+                  {draft.experience.map((item, index) => (
+                    <Card key={`experience-draft-${index}`} className="p-4 shadow-none">
+                      <div className="mb-3 flex items-center justify-between gap-3">
+                        <Badge variant="neutral">Experience {index + 1}</Badge>
+                        {draft.experience.length > 1 ? (
+                          <button
+                            type="button"
+                            onClick={() => setDraft((current) => ({
+                              ...current,
+                              experience: current.experience.filter((_, itemIndex) => itemIndex !== index)
+                            }))}
+                            className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-bold text-red-500 transition hover:bg-red-500/10"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Remove
+                          </button>
+                        ) : null}
+                      </div>
+                      <div className="grid gap-3">
+                        <Input value={item.role} onChange={(event) => setDraft((current) => ({ ...current, experience: current.experience.map((entry, entryIndex) => entryIndex === index ? { ...entry, role: event.target.value } : entry) }))} placeholder="Role" />
+                        <Input value={item.company} onChange={(event) => setDraft((current) => ({ ...current, experience: current.experience.map((entry, entryIndex) => entryIndex === index ? { ...entry, company: event.target.value } : entry) }))} placeholder="Company" />
+                        <Input value={item.period} onChange={(event) => setDraft((current) => ({ ...current, experience: current.experience.map((entry, entryIndex) => entryIndex === index ? { ...entry, period: event.target.value } : entry) }))} placeholder="Period" />
+                        <TextArea value={item.description} onChange={(event) => setDraft((current) => ({ ...current, experience: current.experience.map((entry, entryIndex) => entryIndex === index ? { ...entry, description: event.target.value } : entry) }))} placeholder="Description" />
+                      </div>
+                    </Card>
+                  ))}
+                  <Button type="button" variant="secondary" onClick={() => setDraft((current) => ({ ...current, experience: [...current.experience, createEmptyExperience()] }))} className="w-fit rounded-full px-3 py-1.5 text-xs">
+                    <Plus className="h-3.5 w-3.5" />
+                    Add another experience
+                  </Button>
                 </div>
               ) : null}
 
               {editing === "education" ? (
-                <div className="grid gap-3">
-                  <Input value={draft.education[0]?.degree || ""} onChange={(event) => setDraft((current) => ({ ...current, education: [{ ...current.education[0], degree: event.target.value }] }))} placeholder="Degree" />
-                  <Input value={draft.education[0]?.institution || ""} onChange={(event) => setDraft((current) => ({ ...current, education: [{ ...current.education[0], institution: event.target.value }] }))} placeholder="Institution" />
-                  <Input value={draft.education[0]?.year || ""} onChange={(event) => setDraft((current) => ({ ...current, education: [{ ...current.education[0], year: event.target.value }] }))} placeholder="Year" />
+                <div className="grid gap-4">
+                  {draft.education.map((item, index) => (
+                    <Card key={`education-draft-${index}`} className="p-4 shadow-none">
+                      <div className="mb-3 flex items-center justify-between gap-3">
+                        <Badge variant="neutral">Education {index + 1}</Badge>
+                        {draft.education.length > 1 ? (
+                          <button
+                            type="button"
+                            onClick={() => setDraft((current) => ({
+                              ...current,
+                              education: current.education.filter((_, itemIndex) => itemIndex !== index)
+                            }))}
+                            className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-bold text-red-500 transition hover:bg-red-500/10"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Remove
+                          </button>
+                        ) : null}
+                      </div>
+                      <div className="grid gap-3">
+                        <Input value={item.degree} onChange={(event) => setDraft((current) => ({ ...current, education: current.education.map((entry, entryIndex) => entryIndex === index ? { ...entry, degree: event.target.value } : entry) }))} placeholder="Degree" />
+                        <Input value={item.institution} onChange={(event) => setDraft((current) => ({ ...current, education: current.education.map((entry, entryIndex) => entryIndex === index ? { ...entry, institution: event.target.value } : entry) }))} placeholder="Institution" />
+                        <Input value={item.year} onChange={(event) => setDraft((current) => ({ ...current, education: current.education.map((entry, entryIndex) => entryIndex === index ? { ...entry, year: event.target.value } : entry) }))} placeholder="Year" />
+                      </div>
+                    </Card>
+                  ))}
+                  <Button type="button" variant="secondary" onClick={() => setDraft((current) => ({ ...current, education: [...current.education, createEmptyEducation()] }))} className="w-fit rounded-full px-3 py-1.5 text-xs">
+                    <Plus className="h-3.5 w-3.5" />
+                    Add another education
+                  </Button>
                 </div>
               ) : null}
 
               {editing === "certifications" ? (
-                <div className="grid gap-3">
-                  <Input value={draft.certifications[0]?.name || ""} onChange={(event) => setDraft((current) => ({ ...current, certifications: [{ ...current.certifications[0], name: event.target.value }] }))} placeholder="Certificate name" />
-                  <Input value={draft.certifications[0]?.organization || ""} onChange={(event) => setDraft((current) => ({ ...current, certifications: [{ ...current.certifications[0], organization: event.target.value }] }))} placeholder="Organization" />
-                  <Input value={draft.certifications[0]?.year || ""} onChange={(event) => setDraft((current) => ({ ...current, certifications: [{ ...current.certifications[0], year: event.target.value }] }))} placeholder="Year" />
+                <div className="grid gap-4">
+                  {draft.certifications.map((item, index) => (
+                    <Card key={`certification-draft-${index}`} className="p-4 shadow-none">
+                      <div className="mb-3 flex items-center justify-between gap-3">
+                        <Badge variant="neutral">Certification {index + 1}</Badge>
+                        {draft.certifications.length > 1 ? (
+                          <button
+                            type="button"
+                            onClick={() => setDraft((current) => ({
+                              ...current,
+                              certifications: current.certifications.filter((_, itemIndex) => itemIndex !== index)
+                            }))}
+                            className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-bold text-red-500 transition hover:bg-red-500/10"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Remove
+                          </button>
+                        ) : null}
+                      </div>
+                      <div className="grid gap-3">
+                        <Input value={item.name} onChange={(event) => setDraft((current) => ({ ...current, certifications: current.certifications.map((entry, entryIndex) => entryIndex === index ? { ...entry, name: event.target.value } : entry) }))} placeholder="Certificate name" />
+                        <Input value={item.organization} onChange={(event) => setDraft((current) => ({ ...current, certifications: current.certifications.map((entry, entryIndex) => entryIndex === index ? { ...entry, organization: event.target.value } : entry) }))} placeholder="Organization" />
+                        <Input value={item.year} onChange={(event) => setDraft((current) => ({ ...current, certifications: current.certifications.map((entry, entryIndex) => entryIndex === index ? { ...entry, year: event.target.value } : entry) }))} placeholder="Year" />
+                      </div>
+                    </Card>
+                  ))}
+                  <Button type="button" variant="secondary" onClick={() => setDraft((current) => ({ ...current, certifications: [...current.certifications, createEmptyCertification()] }))} className="w-fit rounded-full px-3 py-1.5 text-xs">
+                    <Plus className="h-3.5 w-3.5" />
+                    Add another certification
+                  </Button>
                 </div>
               ) : null}
 
