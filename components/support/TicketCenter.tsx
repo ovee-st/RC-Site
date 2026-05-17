@@ -264,6 +264,36 @@ function exportRowsAsXlsx(rows: Record<string, string>[], filename: string) {
   const workbook = `<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="Support Report"><Table>${sheetRows}</Table></Worksheet></Workbook>`;
   downloadReport(workbook, filename, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=utf-8");
 }
+
+function MoveTicketMenu({
+  currentStatus,
+  onMove,
+  compact = false
+}: {
+  currentStatus: SupportTicketStatus;
+  onMove: (status: SupportTicketStatus) => void;
+  compact?: boolean;
+}) {
+  return (
+    <div className={cn("grid gap-1.5", compact ? "grid-cols-1" : "grid-cols-2")}>
+      {ticketStatuses.map((status) => (
+        <button
+          key={status}
+          type="button"
+          onClick={() => onMove(status)}
+          className={cn(
+            "rounded-xl border px-3 py-2 text-left text-xs font-black transition hover:-translate-y-0.5 hover:border-primary hover:bg-primary/5 dark:hover:bg-primary/10",
+            currentStatus === status
+              ? "border-primary bg-primary text-white shadow-soft"
+              : "border-border bg-white text-text-main dark:border-white/10 dark:bg-slate-950 dark:text-white"
+          )}
+        >
+          {formatTicketStatus(status)}
+        </button>
+      ))}
+    </div>
+  );
+}
 async function uploadTicketFiles(files: File[], ticketId: string) {
   if (!files.length || !isSupabaseConfigured) return [];
 
@@ -870,7 +900,7 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
                               {new Date(ticket.updated_at || ticket.created_at).toLocaleString()}
                             </td>
                             <td className="px-5 py-4 align-top">
-                              <div className="flex justify-end gap-2">
+                              <div className="relative flex justify-end gap-2">
                                 {ticket.attachment_urls?.length ? <span className="flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs font-bold text-text-muted dark:border-white/10"><Paperclip className="h-3 w-3" />{ticket.attachment_urls.length}</span> : null}
                                 {isAgent ? (
                                   <>
@@ -898,6 +928,19 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
                                           XLSX
                                         </Button>
                                       </>
+                                    ) : null}
+                                    {moveMenuTicketId === ticket.id ? (
+                                      <div
+                                        className="absolute right-0 top-11 z-40 w-52 rounded-2xl border border-border bg-white p-2 shadow-elevated dark:border-white/10 dark:bg-slate-950"
+                                        onClick={(event) => event.stopPropagation()}
+                                      >
+                                        <p className="mb-2 px-2 text-[10px] font-black uppercase tracking-[0.18em] text-primary">Move ticket</p>
+                                        <MoveTicketMenu
+                                          compact
+                                          currentStatus={ticket.status}
+                                          onMove={(status) => moveSelectedTicket(ticket.id, status)}
+                                        />
+                                      </div>
                                     ) : null}
                                   </>
                                 ) : null}
@@ -929,17 +972,12 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
                                   {isAgent && moveMenuTicketId === ticket.id ? (
                                     <div className="rounded-2xl border border-border bg-bg p-3 dark:border-white/10 dark:bg-white/5" onClick={(event) => event.stopPropagation()}>
                                       <p className="type-label text-primary">Move ticket</p>
-                                      <div className="mt-3 grid grid-cols-2 gap-2 lg:grid-cols-1">
-                                        {ticketStatuses.map((status) => (
-                                          <Button
-                                            key={status}
-                                            variant={ticket.status === status ? "primary" : "secondary"}
-                                            className="justify-center px-3 py-2 text-xs"
-                                            onClick={() => moveSelectedTicket(ticket.id, status)}
-                                          >
-                                            {formatTicketStatus(status)}
-                                          </Button>
-                                        ))}
+                                      <div className="mt-3">
+                                        <MoveTicketMenu
+                                          compact
+                                          currentStatus={ticket.status}
+                                          onMove={(status) => moveSelectedTicket(ticket.id, status)}
+                                        />
                                       </div>
                                     </div>
                                   ) : (
@@ -990,17 +1028,12 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
                   </div>
                 </div>
                 {isAgent && moveMenuTicketId === selectedTicket.id ? (
-                  <div className="mt-4 grid gap-2 rounded-2xl border border-border bg-bg p-3 dark:border-white/10 dark:bg-white/5 sm:grid-cols-3 lg:grid-cols-6">
-                    {ticketStatuses.map((status) => (
-                      <Button
-                        key={status}
-                        variant={selectedTicket.status === status ? "primary" : "secondary"}
-                        className="px-3 py-2 text-xs"
-                        onClick={() => moveSelectedTicket(selectedTicket.id, status)}
-                      >
-                        {formatTicketStatus(status)}
-                      </Button>
-                    ))}
+                  <div className="mt-4 rounded-2xl border border-border bg-bg p-3 dark:border-white/10 dark:bg-white/5">
+                    <p className="mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-primary">Move ticket</p>
+                    <MoveTicketMenu
+                      currentStatus={selectedTicket.status}
+                      onMove={(status) => moveSelectedTicket(selectedTicket.id, status)}
+                    />
                   </div>
                 ) : null}
               </div>
