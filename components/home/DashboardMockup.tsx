@@ -31,11 +31,12 @@ export default function DashboardMockup() {
       <Card className="relative overflow-hidden rounded-[2rem] border-white/70 bg-white/90 p-3 shadow-[0_30px_100px_rgba(37,99,235,0.18)] backdrop-blur dark:border-white/10 dark:bg-slate-900/90 sm:p-5">
         <div className="grid gap-4 lg:grid-cols-[0.78fr_1fr]">
           <motion.div
-            className="relative overflow-hidden rounded-[1.5rem] bg-gradient-to-br from-slate-950 via-blue-950 to-blue-600 p-5 text-white"
+            className="relative overflow-hidden rounded-[1.5rem] bg-gradient-to-br from-slate-950 via-blue-900 to-blue-600 p-5 text-white shadow-2xl"
             animate={reduceMotion ? undefined : { y: [0, -8, 0] }}
             transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
           >
-            <div className="absolute -right-12 top-8 h-36 w-36 rounded-full bg-blue-300/20 blur-3xl" />
+            <div className="absolute inset-0 bg-slate-950/35" />
+            <div className="absolute -right-12 top-8 h-36 w-36 rounded-full bg-blue-200/25 blur-3xl" />
             <div className="absolute -left-16 bottom-6 h-32 w-32 rounded-full bg-red-400/20 blur-3xl" />
             <div className="relative flex items-center justify-between">
               <Badge className="border-white/25 bg-white/10 text-white shadow-none">Live cockpit</Badge>
@@ -43,20 +44,20 @@ export default function DashboardMockup() {
                 <Sparkles className="h-6 w-6 text-blue-100" />
               </motion.div>
             </div>
-            <h2 className="relative mt-6 text-2xl font-black tracking-tight">Recruiter command center</h2>
-            <p className="relative mt-3 text-sm leading-6 text-white/78">Ranked shortlists, live pipelines, support signals, and hiring progress in one glance.</p>
+            <h2 className="relative mt-6 text-2xl font-black tracking-tight text-white drop-shadow-sm">Recruiter command center</h2>
+            <p className="relative mt-3 text-sm font-semibold leading-6 text-blue-50/95 drop-shadow-sm">Ranked shortlists, live pipelines, support signals, and hiring progress in one glance.</p>
             <div className="relative mt-6 grid grid-cols-2 gap-3">
               {cockpitMetrics.map(({ value, label, Icon }, index) => (
                 <motion.div
                   key={String(label)}
-                  className="rounded-2xl border border-white/10 bg-white/12 p-4 backdrop-blur"
+                  className="rounded-2xl border border-white/20 bg-white/16 p-4 shadow-inner backdrop-blur"
                   initial={reduceMotion ? false : { opacity: 0, y: 16 }}
                   animate={reduceMotion ? undefined : { opacity: 1, y: [0, -5, 0] }}
                   transition={{ opacity: { delay: index * 0.08 }, y: { duration: 3.4, repeat: Infinity, delay: index * 0.35 } }}
                 >
                   <Icon className="mb-3 h-4 w-4 text-blue-100" />
-                  <p className="text-2xl font-black">{value}</p>
-                  <p className="text-[10px] font-black uppercase tracking-wider text-white/70">{label}</p>
+                  <p className="text-2xl font-black text-white drop-shadow-sm">{value}</p>
+                  <p className="text-[10px] font-black uppercase tracking-wider text-blue-50/90">{label}</p>
                 </motion.div>
               ))}
             </div>
@@ -104,6 +105,8 @@ export default function DashboardMockup() {
     </motion.div>
   );
 }
+
+
 
 
 
