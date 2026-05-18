@@ -258,7 +258,9 @@ export default function LandingPage() {
               <Card className="overflow-hidden rounded-[2.2rem] border-white/70 bg-white/90 p-0 shadow-glow backdrop-blur dark:border-white/10 dark:bg-slate-900/90">
                 <div className="grid gap-0 lg:grid-cols-[0.8fr_1fr]">
                   <div className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-blue-950 to-primary p-5 text-white">
-                    <div className="absolute -right-10 top-6 h-28 w-28 rounded-full bg-blue-300/20 blur-2xl" />
+                    <motion.div className="absolute -right-10 top-6 h-28 w-28 rounded-full bg-blue-300/25 blur-2xl" animate={{ x: [0, -18, 10, 0], y: [0, 12, -8, 0], opacity: [0.45, 0.9, 0.55] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }} />
+                    <motion.div className="absolute -left-16 bottom-8 h-32 w-32 rounded-full bg-emerald-300/20 blur-3xl" animate={{ x: [0, 22, 0], y: [0, -14, 0], opacity: [0.35, 0.8, 0.35] }} transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }} />
+                    <motion.div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent" animate={{ x: ["-100%", "100%"] }} transition={{ duration: 2.8, repeat: Infinity, ease: "linear" }} />
                     <div className="flex items-center justify-between">
                       <Badge variant="neutral" className="border-white/30 bg-white/10 text-white dark:bg-white/10">Live cockpit</Badge>
                       <motion.div animate={{ rotate: [0, 12, -8, 0], scale: [1, 1.08, 1] }} transition={{ duration: 4, repeat: Infinity }}>
@@ -274,21 +276,22 @@ export default function LandingPage() {
                         ["3", "active jobs"],
                         ["94%", "best fit"]
                       ].map(([value, label], index) => (
-                        <motion.div key={label} className="rounded-2xl border border-white/10 bg-white/12 p-3 backdrop-blur" initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.06 }}>
+                        <motion.div key={label} className="rounded-2xl border border-white/10 bg-white/12 p-3 backdrop-blur" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: [0, -5, 0], scale: [1, 1.03, 1] }} transition={{ delay: index * 0.18, y: { duration: 3.2, repeat: Infinity, ease: "easeInOut", delay: index * 0.25 }, scale: { duration: 3.2, repeat: Infinity, ease: "easeInOut", delay: index * 0.25 }, opacity: { duration: 0.4 } }}>
                           <p className="text-2xl font-black text-white">{value}</p>
                           <p className="mt-1 text-[10px] font-black uppercase tracking-wider text-white/75">{label}</p>
                         </motion.div>
                       ))}
                     </div>
                   </div>
-                  <div className="relative space-y-3 p-4">
+                  <div className="relative space-y-3 overflow-hidden p-4">
+                    <motion.div className="pointer-events-none absolute inset-y-2 left-0 w-24 bg-gradient-to-r from-transparent via-primary/10 to-transparent" animate={{ x: ["-140%", "520%"] }} transition={{ duration: 4.5, repeat: Infinity, ease: "linear" }} />
                     <div className="absolute right-6 top-6 h-24 w-24 rounded-full border border-primary/15" />
                     {[
                       { name: "Md Jahid Anwar", roleName: "Admin & Operations", score: 94, skills: ["Admin", "Excel", "Coordination"], badge: "Top match" },
                       { name: "Nusrat Jahan", roleName: "Customer Support", score: 88, skills: ["CRM", "Communication"], badge: "Ready" },
                       { name: "Rahim Ahmed", roleName: "Frontend Developer", score: 82, skills: ["React", "TypeScript"], badge: "Good fit" }
                     ].map((candidate, index) => (
-                      <motion.div key={candidate.name} className="group rounded-2xl border border-border bg-white/80 p-3 transition hover:-translate-y-1 hover:border-primary hover:shadow-soft dark:border-white/10 dark:bg-white/5" initial={{ opacity: 0, x: 24 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.08, duration: 0.45 }}>
+                      <motion.div key={candidate.name} className="group relative rounded-2xl border border-border bg-white/80 p-3 transition hover:-translate-y-1 hover:border-primary hover:shadow-soft dark:border-white/10 dark:bg-white/5" initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0, y: [0, -6, 0] }} transition={{ x: { delay: index * 0.08, duration: 0.45 }, opacity: { delay: index * 0.08, duration: 0.45 }, y: { duration: 3.8, repeat: Infinity, ease: "easeInOut", delay: index * 0.45 } }}>
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex min-w-0 items-center gap-3">
                             <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-primary to-success text-xs font-black text-white shadow-soft">
@@ -299,10 +302,16 @@ export default function LandingPage() {
                               <p className="truncate text-[11px] font-semibold text-text-muted dark:text-slate-300">{candidate.roleName}</p>
                             </div>
                           </div>
-                          <Badge variant="match-score" className="shrink-0">{candidate.score}%</Badge>
+                          <motion.div className="shrink-0" animate={{ scale: [1, 1.08, 1] }} transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut", delay: index * 0.35 }}>
+                            <Badge variant="match-score">{candidate.score}%</Badge>
+                          </motion.div>
                         </div>
                         <div className="mt-3 flex flex-wrap gap-1.5">
-                          {candidate.skills.map((skill) => <Badge key={skill} variant="success" className="text-[10px]">{skill}</Badge>)}
+                          {candidate.skills.map((skill, skillIndex) => (
+                            <motion.span key={skill} animate={{ y: [0, -3, 0] }} transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut", delay: skillIndex * 0.18 }}>
+                              <Badge variant="success" className="text-[10px]">{skill}</Badge>
+                            </motion.span>
+                          ))}
                           <Badge variant="primary" className="text-[10px]">{candidate.badge}</Badge>
                         </div>
                       </motion.div>
@@ -437,7 +446,7 @@ export default function LandingPage() {
               ].map((bar) => (
                 <div key={bar.label} className="rounded-2xl border border-border bg-bg p-4 dark:border-white/10 dark:bg-white/5">
                   <div className="mb-2 flex justify-between text-xs font-black text-text-muted dark:text-slate-300"><span>{bar.label}</span><span>{bar.value}%</span></div>
-                  <div className="h-2 rounded-full bg-slate-200 dark:bg-slate-800"><div className={`${bar.color} h-2 rounded-full`} style={{ width: `${Math.min(bar.value * 2, 100)}%` }} /></div>
+                  <div className="h-2 rounded-full bg-slate-200 dark:bg-slate-800"><motion.div className={`${bar.color} h-2 rounded-full`} initial={{ width: 0 }} whileInView={{ width: `${Math.min(bar.value * 2, 100)}%` }} viewport={{ once: false }} transition={{ duration: 1.1, repeat: Infinity, repeatType: "reverse", repeatDelay: 1.2, ease: "easeInOut" }} /></div>
                 </div>
               ))}
             </div>
