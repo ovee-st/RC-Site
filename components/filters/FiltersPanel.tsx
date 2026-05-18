@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { BriefcaseBusiness, CalendarClock, ChevronDown, Clock3, Filter, Grid2X2, MapPin, Search, SlidersHorizontal } from "lucide-react";
+import { BriefcaseBusiness, CalendarClock, ChevronDown, Clock3, Grid2X2, MapPin, Search, SlidersHorizontal } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useJobStore } from "@/store/useJobStore";
 import Badge from "@/components/ui/Badge";
@@ -10,10 +10,7 @@ import Input from "@/components/ui/Input";
 import { cn } from "@/lib/cn";
 import { bdjobsDepartments } from "@/lib/bdjobsDepartments";
 import { bdjobsSkills } from "@/lib/bdjobsSkills";
-
-const experienceOptions = ["Intern", "Fresher", "Mid Level", "Senior Level"];
-const jobTypes = ["Full Time", "Part Time", "Intern", "Remote", "Hybrid", "On-site"];
-const divisions = ["Dhaka", "Chattogram", "Rajshahi", "Khulna", "Barishal", "Sylhet", "Rangpur", "Mymensingh"];
+import { employmentTypeOptions, experienceFilterOptions, jobLocationOptions } from "@/lib/jobOptions";
 const deadlines = ["This week", "This month", "Any time"];
 
 function ChoiceRow({
@@ -184,7 +181,7 @@ export default function FiltersPanel() {
 
       <FilterSection id="location" title="Location" icon={MapPin} openSection={openSection} setOpenSection={setOpenSection} activeCount={filters.locations.length}>
         <div className="grid gap-1">
-          {divisions.map((division) => (
+          {jobLocationOptions.map((division) => (
             <ChoiceRow key={division} label={division} active={filters.locations.includes(division)} onToggle={() => toggleAndCollapse("locations", division)} />
           ))}
         </div>
@@ -192,7 +189,7 @@ export default function FiltersPanel() {
 
       <FilterSection id="experience" title="Experience" icon={BriefcaseBusiness} openSection={openSection} setOpenSection={setOpenSection} activeCount={filters.experience.length}>
         <div className="grid gap-1">
-          {experienceOptions.map((item) => (
+          {experienceFilterOptions.map((item) => (
             <ChoiceRow key={item} label={item} active={filters.experience.includes(item)} onToggle={() => toggleAndCollapse("experience", item)} />
           ))}
         </div>
@@ -206,44 +203,41 @@ export default function FiltersPanel() {
         </div>
       </FilterSection>
 
-      <FilterSection id="other" title="Other Filters" icon={Filter} openSection={openSection} setOpenSection={setOpenSection} activeCount={filters.jobType.length + filters.skills.length}>
-        <div className="grid gap-5">
-          <div>
-            <h3 className="mb-2 text-sm font-black text-text-main dark:text-white">Job Type</h3>
-            <div className="grid gap-1">
-              {jobTypes.map((type) => (
-                <ChoiceRow key={type} label={type} active={filters.jobType.includes(type)} onToggle={() => toggleAndCollapse("jobType", type)} />
-              ))}
-            </div>
+      <FilterSection id="jobType" title="Job Type" icon={BriefcaseBusiness} openSection={openSection} setOpenSection={setOpenSection} activeCount={filters.jobType.length}>
+        <div className="grid gap-1">
+          {employmentTypeOptions.map((type) => (
+            <ChoiceRow key={type} label={type} active={filters.jobType.includes(type)} onToggle={() => toggleAndCollapse("jobType", type)} />
+          ))}
+        </div>
+      </FilterSection>
+
+      <FilterSection id="skills" title="Skills" icon={Search} openSection={openSection} setOpenSection={setOpenSection} activeCount={filters.skills.length}>
+        <div>
+          <div className="relative mb-3">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+            <Input
+              value={skillSearch}
+              onChange={(event) => setSkillSearch(event.target.value)}
+              placeholder="Search skills..."
+              className="pl-9"
+            />
           </div>
-          <div>
-            <h3 className="mb-3 text-sm font-black text-text-main dark:text-white">Skills</h3>
-            <div className="relative mb-3">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
-              <Input
-                value={skillSearch}
-                onChange={(event) => setSkillSearch(event.target.value)}
-                placeholder="Search skills..."
-                className="pl-9"
-              />
-            </div>
-            <div className="flex max-h-48 flex-wrap gap-2 overflow-y-auto pr-1">
-              {visibleSkills.map((skill) => (
-                <button
-                  key={skill}
-                  type="button"
-                  onClick={() => toggleAndCollapse("skills", skill)}
-                  className={cn(
-                    "rounded-full border px-3 py-1.5 text-xs font-bold transition",
-                    filters.skills.includes(skill)
-                      ? "border-primary bg-primary text-white shadow-soft"
-                      : "border-border bg-bg text-text-muted hover:border-primary/25 hover:text-primary dark:border-slate-600/70 dark:bg-slate-800/90 dark:text-slate-100 dark:hover:text-blue-300"
-                  )}
-                >
-                  {skill}
-                </button>
-              ))}
-            </div>
+          <div className="flex max-h-48 flex-wrap gap-2 overflow-y-auto pr-1">
+            {visibleSkills.map((skill) => (
+              <button
+                key={skill}
+                type="button"
+                onClick={() => toggleAndCollapse("skills", skill)}
+                className={cn(
+                  "rounded-full border px-3 py-1.5 text-xs font-bold transition",
+                  filters.skills.includes(skill)
+                    ? "border-primary bg-primary text-white shadow-soft"
+                    : "border-border bg-bg text-text-muted hover:border-primary/25 hover:text-primary dark:border-slate-600/70 dark:bg-slate-800/90 dark:text-slate-100 dark:hover:text-blue-300"
+                )}
+              >
+                {skill}
+              </button>
+            ))}
           </div>
         </div>
       </FilterSection>

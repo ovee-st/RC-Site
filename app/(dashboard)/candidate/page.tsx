@@ -11,6 +11,7 @@ import Container from "@/components/layout/Container";
 import Input from "@/components/ui/Input";
 import { demoCandidates, demoJobs } from "@/lib/demoData";
 import { matchCandidateToJob } from "@/lib/ai/matching";
+import { jobLocationOptions } from "@/lib/jobOptions";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/cn";
@@ -34,6 +35,7 @@ type CandidateProfileState = {
   name: string;
   title: string;
   location: string;
+  preferredJobLocation: string;
   avatar: string | null;
   about: string;
   skills: string[];
@@ -212,6 +214,7 @@ function getDefaultProfile(user: ReturnType<typeof useAuth>["user"]): CandidateP
     name,
     title: candidate.title,
     location: "Dhaka",
+    preferredJobLocation: "On-site",
     avatar,
     about:
       "I am an Assistant Manager - Administration with 7+ years of experience supporting fast-growing organizations through efficient workplace, facilities, and operational management. Currently at Pathao, I work across site acquisition, vendor management, security operations, and renovation projects, ensuring smooth day-to-day operations in a dynamic, high-growth environment.",
@@ -273,6 +276,7 @@ const createEmptyCertification = (): CandidateProfileState["certifications"][num
 function normalizeProfile(profile: CandidateProfileState): CandidateProfileState {
   return {
     ...profile,
+    preferredJobLocation: profile.preferredJobLocation || "",
     availability: {
       immediate: profile.availability?.immediate ?? true,
       noticePeriod: profile.availability?.noticePeriod || "",
@@ -390,6 +394,7 @@ async function syncCandidateProfile(nextProfile: CandidateProfileState, user: Re
     name: nextProfile.name,
     title: nextProfile.title,
     location: nextProfile.location,
+    preferred_job_location: nextProfile.preferredJobLocation || null,
     about: nextProfile.about,
     skills: nextProfile.skills,
     skills_array: nextProfile.skills,
@@ -404,9 +409,9 @@ async function syncCandidateProfile(nextProfile: CandidateProfileState, user: Re
 
   const { error } = await supabase.from("candidates").upsert(candidatePatch, { onConflict: "user_id" });
   if (error) {
-    const missingAvailabilityColumns = /immediate_availability|notice_period/i.test(error.message || "");
+    const missingAvailabilityColumns = /immediate_availability|notice_period|preferred_job_location/i.test(error.message || "");
     if (missingAvailabilityColumns) {
-      const { immediate_availability, notice_period_value, notice_period_unit, ...fallbackPatch } = candidatePatch;
+      const { immediate_availability, notice_period_value, notice_period_unit, preferred_job_location, ...fallbackPatch } = candidatePatch;
       const { error: fallbackError } = await supabase.from("candidates").upsert(fallbackPatch, { onConflict: "user_id" });
       if (fallbackError) {
         await supabase.from("candidates").update(fallbackPatch).eq("user_id", user.id);
@@ -1283,7 +1288,7 @@ export default function CandidateDashboard() {
                 </SectionCard>
 
                 <SectionCard title="Availability" onEdit={() => openEditor("availability")}>
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="grid gap-3 lg:grid-cols-3">
                     <div className="rounded-lg bg-success/10 p-4 dark:bg-success/10">
                       <p className="type-label">Immediate Availability</p>
                       <p className="mt-2 inline-flex items-center gap-2 text-sm font-black text-success">
@@ -1296,6 +1301,10 @@ export default function CandidateDashboard() {
                       <p className="mt-2 text-sm font-bold text-text-main dark:text-white">
                         {profile.availability.immediate ? "Not required" : `${profile.availability.noticePeriod || "Not set"} ${profile.availability.noticePeriod ? profile.availability.noticeUnit : ""}`}
                       </p>
+                    </div>
+                    <div className="rounded-lg bg-primary/8 p-4 dark:bg-white/5">
+                      <p className="type-label">Preferred Job Location</p>
+                      <p className="mt-2 text-sm font-bold text-text-main dark:text-white">{profile.preferredJobLocation || "Not set"}</p>
                     </div>
                   </div>
                 </SectionCard>
@@ -1433,7 +1442,17 @@ export default function CandidateDashboard() {
                   </div>
                   <Input value={draft.name} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} placeholder="Full name" />
                   <Input value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} placeholder="Professional title" />
-                  <Input value={draft.location} onChange={(event) => setDraft((current) => ({ ...current, location: event.target.value }))} placeholder="Location" />
+                  <Input value={draft.location} onChange={(event) => setDraft((current) => ({ ...current, location: event.target.value }))} placeholder="Current location" />
+                  <select
+                    value={draft.preferredJobLocation}
+                    onChange={(event) => setDraft((current) => ({ ...current, preferredJobLocation: event.target.value }))}
+                    className="focus-ring w-full rounded-md border border-border bg-surface px-4 py-3 text-sm font-bold text-text-main shadow-soft dark:border-white/10 dark:bg-surface-dark dark:text-white"
+                  >
+                    <option value="">Preferred job location</option>
+                    {jobLocationOptions.map((location) => (
+                      <option key={location} value={location}>{location}</option>
+                    ))}
+                  </select>
                 </div>
               ) : null}
 
@@ -1578,6 +1597,20 @@ export default function CandidateDashboard() {
                       <span className="mt-1 block text-xs font-semibold text-text-muted dark:text-slate-300">Tick this if you can join immediately.</span>
                     </span>
                   </label>
+
+                  <div>
+                    <label className="mb-2 block text-xs font-black uppercase tracking-wide text-text-muted">Preferred job location</label>
+                    <select
+                      value={draft.preferredJobLocation}
+                      onChange={(event) => setDraft((current) => ({ ...current, preferredJobLocation: event.target.value }))}
+                      className="focus-ring w-full rounded-md border border-border bg-surface px-4 py-3 text-sm font-bold text-text-main shadow-soft dark:border-white/10 dark:bg-surface-dark dark:text-white"
+                    >
+                      <option value="">Select preferred job location</option>
+                      {jobLocationOptions.map((location) => (
+                        <option key={location} value={location}>{location}</option>
+                      ))}
+                    </select>
+                  </div>
 
                   {!draft.availability.immediate ? (
                     <div className="grid gap-3 sm:grid-cols-[1fr_160px]">

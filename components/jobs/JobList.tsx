@@ -105,8 +105,9 @@ export default function JobList({ headerAction, showArchived = false }: { header
       const matchesSearch = !search || `${job.title} ${job.company} ${job.skills.join(" ")}`.toLowerCase().includes(search);
       const matchesCategory = !filters.categories.length || filters.categories.includes(job.category);
       const matchesExperience = !filters.experience.length || filters.experience.includes(job.experience) || (filters.experience.includes("Fresher") && job.experience === "Entry Level");
-      const matchesType = !filters.jobType.length || filters.jobType.includes(job.jobType) || Boolean(job.workType && filters.jobType.includes(job.workType));
-      const matchesLocation = !filters.locations.length || filters.locations.some((location) => job.location.toLowerCase().includes(location.toLowerCase()));
+      const matchesType = !filters.jobType.length || filters.jobType.includes(job.jobType);
+      const locationHaystack = `${job.location} ${job.workType || ""}`.toLowerCase();
+      const matchesLocation = !filters.locations.length || filters.locations.some((location) => locationHaystack.includes(location.toLowerCase()));
       const matchesSalary = job.hideSalary || job.salaryMax <= filters.salary;
       const matchesSkills = !filters.skills.length || filters.skills.every((skill) => job.skills.includes(skill));
       return visibleStatus && matchesSearch && matchesCategory && matchesExperience && matchesType && matchesLocation && matchesSalary && matchesSkills;

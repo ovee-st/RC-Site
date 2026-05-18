@@ -12,6 +12,7 @@ import { useJobStore } from "@/store/useJobStore";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
 import { bdjobsDepartments } from "@/lib/bdjobsDepartments";
+import { employmentTypeOptions, workLocationOptions } from "@/lib/jobOptions";
 import SkillPicker from "@/components/skills/SkillPicker";
 
 const defaultJob = {
@@ -257,14 +258,14 @@ export default function EmployerPostJob({ label = "Post New Job" }: { label?: st
               <Input value={form.title} onChange={(event) => updateForm("title", event.target.value)} placeholder="Designation / Job Title" />
               <Input value={form.location} onChange={(event) => updateForm("location", event.target.value)} placeholder="Job Location" />
               <select value={form.jobType} onChange={(event) => updateForm("jobType", event.target.value)} className="focus-ring w-full rounded-md border border-border bg-surface px-4 py-3 text-sm font-medium text-text-main shadow-soft dark:border-white/10 dark:bg-surface-dark dark:text-white">
-                <option>Full Time</option>
-                <option>Part Time</option>
-                <option>Intern</option>
+                {employmentTypeOptions.map((type) => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
               </select>
               <select value={form.workType} onChange={(event) => updateForm("workType", event.target.value)} className="focus-ring w-full rounded-md border border-border bg-surface px-4 py-3 text-sm font-medium text-text-main shadow-soft dark:border-white/10 dark:bg-surface-dark dark:text-white">
-                <option>On-site</option>
-                <option>Hybrid</option>
-                <option>Remote</option>
+                {workLocationOptions.map((type) => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
               </select>
               <select value={form.category} onChange={(event) => updateForm("category", event.target.value)} className="focus-ring w-full rounded-md border border-border bg-surface px-4 py-3 text-sm font-medium text-text-main shadow-soft dark:border-white/10 dark:bg-surface-dark dark:text-white">
                 {bdjobsDepartments.map((department) => (
