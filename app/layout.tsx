@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
@@ -8,8 +8,8 @@ import { AuthProvider } from "@/context/AuthProvider";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "MX VENTURE LAB | AI Hiring Platform",
-  description: "AI-ranked talent matching, recruiter dashboards, and ATS hiring workflows for modern teams."
+  title: "MX Venture Lab | AI-Powered Recruitment & Business Solutions",
+  description: "AI-powered recruitment platform for candidates and employers in Bangladesh. ATS CV builder, smart matching, managed hiring, and business solutions."
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -41,3 +41,4 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   );
 }
+
