@@ -29,12 +29,22 @@ type SavedCandidateProfile = {
   avatar?: string | null;
   skills?: string[];
   about?: string;
+  availability?: {
+    immediate: boolean;
+    noticePeriod?: string;
+    noticeUnit?: "Days" | "Months";
+  };
 };
 
 type RegisteredCandidate = Candidate & {
   avatar?: string;
   location?: string;
   linkedin_url?: string;
+  availability?: {
+    immediate: boolean;
+    noticePeriod?: string;
+    noticeUnit?: "Days" | "Months";
+  };
 };
 
 type CandidateRow = {
@@ -56,6 +66,9 @@ type CandidateRow = {
   avatar?: string;
   location?: string;
   linkedin_url?: string;
+  immediate_availability?: boolean;
+  notice_period_value?: string | number | null;
+  notice_period_unit?: "Days" | "Months" | string | null;
 };
 
 function getInitials(name?: string | null) {
@@ -97,7 +110,14 @@ function loadRegisteredCandidates(): RegisteredCandidate[] {
       profile: parsed.about || "Registered candidate profile from MX Venture Lab.",
       linkedin_url: (parsed as any).linkedin_url || "",
       avatar: parsed.avatar || undefined,
-      location: parsed.location || "Dhaka"
+      location: parsed.location || "Dhaka",
+      availability: parsed.availability
+        ? {
+          immediate: parsed.availability.immediate,
+          noticePeriod: parsed.availability.noticePeriod,
+          noticeUnit: parsed.availability.noticeUnit
+        }
+        : undefined
     };
 
     const withoutDuplicate = demoCandidates.filter((candidate) => candidate.name.toLowerCase() !== localCandidate.name.toLowerCase());
@@ -127,7 +147,12 @@ function mapCandidateRow(row: CandidateRow): RegisteredCandidate {
     profile: row.about || row.profile || "Registered candidate profile from MX Venture Lab.",
     avatar: row.photo_url || row.avatar_url || row.profile_photo_url || row.avatar,
     linkedin_url: row.linkedin_url || "",
-    location: row.location || "Bangladesh"
+    location: row.location || "Bangladesh",
+    availability: {
+      immediate: row.immediate_availability ?? true,
+      noticePeriod: row.notice_period_value ? String(row.notice_period_value) : "",
+      noticeUnit: row.notice_period_unit === "Months" ? "Months" : "Days"
+    }
   };
 }
 
@@ -184,7 +209,7 @@ export default function EmployerCandidates() {
 
         const { data, error } = await supabase
           .from("candidates")
-          .select("id, user_id, full_name, name, title, career_level, category, categories, skills, skills_array, about, photo_url, avatar, location, linkedin_url");
+          .select("id, user_id, full_name, name, title, career_level, category, categories, skills, skills_array, about, photo_url, avatar, location, linkedin_url, immediate_availability, notice_period_value, notice_period_unit");
 
         if (error || !data?.length) {
           setCandidates(localCandidates);
@@ -307,6 +332,13 @@ export default function EmployerCandidates() {
                     <Badge variant={score >= 80 ? "match-score" : score > 0 ? "primary" : "neutral"}>{score}% match</Badge>
                   </div>
                   <p className="type-body mt-1 text-sm">{candidate.title} | {candidate.experience} | {location}</p>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    {candidate.availability?.immediate ? (
+                      <Badge variant="success" className="px-2 py-1">✓ Immediate availability</Badge>
+                    ) : candidate.availability?.noticePeriod ? (
+                      <Badge variant="neutral" className="px-2 py-1">Notice period: {candidate.availability.noticePeriod} {candidate.availability.noticeUnit}</Badge>
+                    ) : null}
+                  </div>
                   <p className="type-body mt-1 text-xs font-semibold">Best for: {bestMatch?.job.title || "Post a job to calculate matches"}</p>
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     {candidate.skills.slice(0, 6).map((skill) => (

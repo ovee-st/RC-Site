@@ -28,7 +28,7 @@ import type { CandidateAnalytics, CandidateDocument, CandidateNotification, Cand
 import type { CandidateApplication, JobRecommendation } from "@/types/application";
 
 type CandidateTab = "home" | "profile" | "jobs" | "applied" | "resume";
-type EditableSection = "profile" | "about" | "skills" | "experience" | "education" | "certifications" | "salary" | null;
+type EditableSection = "profile" | "about" | "skills" | "experience" | "education" | "certifications" | "salary" | "availability" | null;
 
 type CandidateProfileState = {
   name: string;
@@ -56,6 +56,11 @@ type CandidateProfileState = {
   salary: {
     current: string;
     expected: string;
+  };
+  availability: {
+    immediate: boolean;
+    noticePeriod: string;
+    noticeUnit: "Days" | "Months";
   };
 };
 
@@ -237,6 +242,11 @@ function getDefaultProfile(user: ReturnType<typeof useAuth>["user"]): CandidateP
     salary: {
       current: "BDT 10,000",
       expected: "BDT 100,000"
+    },
+    availability: {
+      immediate: true,
+      noticePeriod: "",
+      noticeUnit: "Days"
     }
   };
 }
@@ -260,6 +270,17 @@ const createEmptyCertification = (): CandidateProfileState["certifications"][num
   year: ""
 });
 
+function normalizeProfile(profile: CandidateProfileState): CandidateProfileState {
+  return {
+    ...profile,
+    availability: {
+      immediate: profile.availability?.immediate ?? true,
+      noticePeriod: profile.availability?.noticePeriod || "",
+      noticeUnit: profile.availability?.noticeUnit === "Months" ? "Months" : "Days"
+    }
+  };
+}
+
 function loadSavedProfile(user: ReturnType<typeof useAuth>["user"]) {
   const fallback = getDefaultProfile(user);
 
@@ -267,7 +288,7 @@ function loadSavedProfile(user: ReturnType<typeof useAuth>["user"]) {
 
   try {
     const saved = window.localStorage.getItem(PROFILE_KEY);
-    return saved ? { ...fallback, ...JSON.parse(saved) } : fallback;
+    return saved ? normalizeProfile({ ...fallback, ...JSON.parse(saved) }) : fallback;
   } catch {
     return fallback;
   }
@@ -375,11 +396,24 @@ async function syncCandidateProfile(nextProfile: CandidateProfileState, user: Re
     photo_url: avatarUrl,
     avatar: avatarUrl,
     category: demoCandidates[0]?.category || "HR & Admin",
-    career_level: demoCandidates[0]?.experience || "Mid Level"
+    career_level: demoCandidates[0]?.experience || "Mid Level",
+    immediate_availability: nextProfile.availability.immediate,
+    notice_period_value: nextProfile.availability.immediate ? null : Number(nextProfile.availability.noticePeriod) || null,
+    notice_period_unit: nextProfile.availability.immediate ? null : nextProfile.availability.noticeUnit
   };
 
   const { error } = await supabase.from("candidates").upsert(candidatePatch, { onConflict: "user_id" });
   if (error) {
+    const missingAvailabilityColumns = /immediate_availability|notice_period/i.test(error.message || "");
+    if (missingAvailabilityColumns) {
+      const { immediate_availability, notice_period_value, notice_period_unit, ...fallbackPatch } = candidatePatch;
+      const { error: fallbackError } = await supabase.from("candidates").upsert(fallbackPatch, { onConflict: "user_id" });
+      if (fallbackError) {
+        await supabase.from("candidates").update(fallbackPatch).eq("user_id", user.id);
+      }
+      return;
+    }
+
     await supabase.from("candidates").update(candidatePatch).eq("user_id", user.id);
   }
 }
@@ -1245,6 +1279,24 @@ export default function CandidateDashboard() {
                   ))}
                 </SectionCard>
 
+                <SectionCard title="Availability" onEdit={() => openEditor("availability")}>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-lg bg-success/10 p-4 dark:bg-success/10">
+                      <p className="type-label">Immediate Availability</p>
+                      <p className="mt-2 inline-flex items-center gap-2 text-sm font-black text-success">
+                        <span className="grid h-5 w-5 place-items-center rounded-full bg-success text-xs text-white">✓</span>
+                        {profile.availability.immediate ? "Available immediately" : "Notice required"}
+                      </p>
+                    </div>
+                    <div className="rounded-lg bg-primary/8 p-4 dark:bg-white/5">
+                      <p className="type-label">Notice Period</p>
+                      <p className="mt-2 text-sm font-bold text-text-main dark:text-white">
+                        {profile.availability.immediate ? "Not required" : `${profile.availability.noticePeriod || "Not set"} ${profile.availability.noticePeriod ? profile.availability.noticeUnit : ""}`}
+                      </p>
+                    </div>
+                  </div>
+                </SectionCard>
+
                 <SectionCard title="Salary" onEdit={() => openEditor("salary")}>
                   <div className="grid gap-3">
                     <div className="rounded-lg bg-primary/8 p-4 dark:bg-white/5">
@@ -1500,6 +1552,55 @@ export default function CandidateDashboard() {
                 <div className="grid gap-3">
                   <Input value={draft.salary.current} onChange={(event) => setDraft((current) => ({ ...current, salary: { ...current.salary, current: event.target.value } }))} placeholder="Current salary" />
                   <Input value={draft.salary.expected} onChange={(event) => setDraft((current) => ({ ...current, salary: { ...current.salary, expected: event.target.value } }))} placeholder="Expected salary" />
+                </div>
+              ) : null}
+
+              {editing === "availability" ? (
+                <div className="grid gap-4">
+                  <label className="flex items-start gap-3 rounded-xl border border-border bg-bg p-4 text-sm font-bold text-text-main shadow-soft dark:border-white/10 dark:bg-white/5 dark:text-white">
+                    <input
+                      type="checkbox"
+                      checked={draft.availability.immediate}
+                      onChange={(event) => setDraft((current) => ({
+                        ...current,
+                        availability: {
+                          ...current.availability,
+                          immediate: event.target.checked
+                        }
+                      }))}
+                      className="mt-0.5 h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                    />
+                    <span>
+                      Immediate availability
+                      <span className="mt-1 block text-xs font-semibold text-text-muted dark:text-slate-300">Tick this if you can join immediately.</span>
+                    </span>
+                  </label>
+
+                  {!draft.availability.immediate ? (
+                    <div className="grid gap-3 sm:grid-cols-[1fr_160px]">
+                      <Input
+                        type="number"
+                        min="1"
+                        value={draft.availability.noticePeriod}
+                        onChange={(event) => setDraft((current) => ({
+                          ...current,
+                          availability: { ...current.availability, noticePeriod: event.target.value }
+                        }))}
+                        placeholder="Notice period"
+                      />
+                      <select
+                        value={draft.availability.noticeUnit}
+                        onChange={(event) => setDraft((current) => ({
+                          ...current,
+                          availability: { ...current.availability, noticeUnit: event.target.value === "Months" ? "Months" : "Days" }
+                        }))}
+                        className="focus-ring w-full rounded-md border border-border bg-surface px-4 py-3 text-sm font-bold text-text-main shadow-soft dark:border-white/10 dark:bg-surface-dark dark:text-white"
+                      >
+                        <option value="Days">Days</option>
+                        <option value="Months">Months</option>
+                      </select>
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
 
