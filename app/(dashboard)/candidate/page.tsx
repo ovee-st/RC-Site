@@ -1075,12 +1075,15 @@ export default function CandidateDashboard() {
     setEditing(null);
   };
 
-  const saveEditor = async () => {
-    persistProfile(draft);
-    await syncCandidateProfile(draft, user);
+  const saveEditor = () => {
+    const nextProfile = draft;
+    persistProfile(nextProfile);
     setEditing(null);
     setActiveTab("profile");
     router.replace("/candidate?view=profile");
+    void syncCandidateProfile(nextProfile, user).catch((error) => {
+      console.error("Candidate profile sync failed", error);
+    });
   };
 
   const handlePhotoChange = (event: ChangeEvent<HTMLInputElement>) => {
