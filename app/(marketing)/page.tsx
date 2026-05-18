@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   ArrowRight,
@@ -255,7 +255,7 @@ export default function LandingPage() {
                     <Badge variant="neutral" className="bg-white/10 text-white dark:bg-white/10">Live cockpit</Badge>
                     <Sparkles className="h-5 w-5 text-blue-200" />
                   </div>
-                  <h2 className="mt-5 text-2xl font-black tracking-tight">Recruiter view</h2>
+                  <h2 className="mt-5 text-2xl font-black tracking-tight text-white">Recruiter view</h2>
                   <p className="mt-2 text-xs leading-5 text-white/70">Top candidates, active jobs, applications, and support signals in one glance.</p>
                   <div className="mt-5 grid grid-cols-2 gap-2">
                     {[
@@ -265,8 +265,8 @@ export default function LandingPage() {
                       ["94%", "best fit"]
                     ].map(([value, label]) => (
                       <div key={label} className="rounded-2xl border border-white/10 bg-white/10 p-3 backdrop-blur">
-                        <p className="text-xl font-black">{value}</p>
-                        <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-white/60">{label}</p>
+                        <p className="text-xl font-black text-white">{value}</p>
+                        <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-white/75">{label}</p>
                       </div>
                     ))}
                   </div>
@@ -418,4 +418,5 @@ export default function LandingPage() {
     </main>
   );
 }
+
 
