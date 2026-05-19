@@ -128,7 +128,7 @@ function CandidateHomeDashboard({ profile }: { profile: CandidateProfile }) {
         </div>
 
         <div className="min-w-0 space-y-4">
-          <StatsCards profile={profile} applications={candidateHomeApplications} />
+          <StatsCards profile={profile} applications={candidateHomeApplications} upcomingInterviews={candidateHomeInterviews.length} />
 
           <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
             <Card className="overflow-hidden p-0 shadow-soft">
@@ -175,7 +175,9 @@ function CandidateHomeDashboard({ profile }: { profile: CandidateProfile }) {
 
           <div className="grid gap-4 xl:grid-cols-2">
             <AssessmentSection assessments={candidateHomeAssessments} />
-            <InterviewSection interviews={candidateHomeInterviews} />
+            <div id="candidate-interviews-section" className="scroll-mt-24">
+              <InterviewSection interviews={candidateHomeInterviews} />
+            </div>
           </div>
 
           <div className="grid gap-4 xl:grid-cols-2">
@@ -184,7 +186,9 @@ function CandidateHomeDashboard({ profile }: { profile: CandidateProfile }) {
           </div>
 
           <ResumeSection profile={profile} documents={candidateHomeDocuments} />
-          <ApplicationPipeline applications={candidateHomeApplications} />
+          <div id="candidate-applications-section" className="scroll-mt-24">
+            <ApplicationPipeline applications={candidateHomeApplications} />
+          </div>
         </div>
       </Container>
     </main>
