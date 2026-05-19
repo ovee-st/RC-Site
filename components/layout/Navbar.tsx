@@ -3,8 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CheckCircle2, LogOut, Menu, Settings, UserRound, X } from "lucide-react";
-import { type MouseEvent as ReactMouseEvent, useEffect, useRef, useState } from "react";
+import { BadgeCheck, Bell, BriefcaseBusiness, CalendarClock, CheckCircle2, CreditCard, Eye, LogOut, Menu, Settings, UserRound, Users, X, XCircle, type LucideIcon } from "lucide-react";
+import { type MouseEvent as ReactMouseEvent, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LinkButton } from "@/components/ui/Button";
 import GlobalSearch from "@/components/search/GlobalSearch";
@@ -68,6 +68,25 @@ const AUTH_CHANGE_EVENT = "mx-auth-change";
 const EMPLOYER_PANEL_EVENT = "mx-employer-panel-change";
 const CANDIDATE_PROFILE_KEY = "mx_candidate_profile";
 const EMPLOYER_PROFILE_KEY = "mx_employer_profile";
+const ROLE_NOTIFICATION_STORAGE_PREFIX = "MXVL-role-cleared-notifications";
+
+type NavbarNotification = {
+  id: string;
+  title: string;
+  message: string;
+  createdAt: string;
+  href: string;
+  icon: LucideIcon;
+  tone: "blue" | "green" | "amber" | "red" | "slate";
+};
+
+const notificationToneClass = {
+  blue: "bg-blue-50 text-blue-600 ring-blue-100 dark:bg-blue-500/10 dark:text-blue-300 dark:ring-blue-500/20",
+  green: "bg-emerald-50 text-emerald-600 ring-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/20",
+  amber: "bg-amber-50 text-amber-600 ring-amber-100 dark:bg-amber-500/10 dark:text-amber-300 dark:ring-amber-500/20",
+  red: "bg-red-50 text-red-600 ring-red-100 dark:bg-red-500/10 dark:text-red-300 dark:ring-red-500/20",
+  slate: "bg-slate-50 text-slate-600 ring-slate-100 dark:bg-white/5 dark:text-slate-300 dark:ring-white/10"
+};
 
 function isActiveRoute(pathname: string, href: string) {
   const [pathOnly] = href.split("?");
@@ -76,6 +95,163 @@ function isActiveRoute(pathname: string, href: string) {
   return pathname === pathOnly || pathname.startsWith(`${pathOnly}/`);
 }
 
+function getNotificationTimeLabel(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Just now";
+
+  const diff = Date.now() - date.getTime();
+  const minutes = Math.max(1, Math.floor(diff / 60000));
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function getNotificationHref(role: string, type?: string) {
+  if (role === "employer") {
+    if (type?.includes("subscription")) return "/employer#account-settings";
+    if (type?.includes("interview")) return "/employer#pipeline";
+    if (type?.includes("job")) return "/jobs";
+    return "/employer";
+  }
+
+  if (type?.includes("profile")) return "/candidate?view=profile";
+  return "/candidate?view=applied";
+}
+
+function getNotificationIcon(type?: string): LucideIcon {
+  const normalized = String(type || "").toLowerCase();
+  if (normalized.includes("shortlist")) return BriefcaseBusiness;
+  if (normalized.includes("interview")) return CalendarClock;
+  if (normalized.includes("offer") || normalized.includes("hired")) return BadgeCheck;
+  if (normalized.includes("reject")) return XCircle;
+  if (normalized.includes("profile") || normalized.includes("view")) return Eye;
+  if (normalized.includes("subscription")) return CreditCard;
+  if (normalized.includes("apply") || normalized.includes("candidate")) return Users;
+  if (normalized.includes("job") || normalized.includes("expire")) return CalendarClock;
+  return Bell;
+}
+
+function getNotificationTone(type?: string): NavbarNotification["tone"] {
+  const normalized = String(type || "").toLowerCase();
+  if (normalized.includes("reject") || normalized.includes("expire")) return "red";
+  if (normalized.includes("offer") || normalized.includes("shortlist") || normalized.includes("apply")) return "green";
+  if (normalized.includes("interview") || normalized.includes("subscription")) return "amber";
+  if (normalized.includes("profile") || normalized.includes("view")) return "blue";
+  return "slate";
+}
+
+function normalizeRemoteNotification(row: Record<string, any>, role: string): NavbarNotification {
+  const type = String(row.type || "notification").toLowerCase();
+  return {
+    id: `db-${row.id}`,
+    title: row.title || "Platform notification",
+    message: row.message || "There is a new update on your account.",
+    createdAt: row.created_at || new Date().toISOString(),
+    href: row.href || row.redirect_url || getNotificationHref(role, type),
+    icon: getNotificationIcon(type),
+    tone: getNotificationTone(type)
+  };
+}
+
+function getFallbackNotifications(role: string, displayName: string): NavbarNotification[] {
+  const now = Date.now();
+  if (role === "candidate") {
+    return [
+      {
+        id: "candidate-shortlisted",
+        title: "Shortlist updates",
+        message: "You will be notified here when an employer shortlists your profile.",
+        createdAt: new Date(now - 1000 * 60 * 25).toISOString(),
+        href: "/candidate?view=applied",
+        icon: BriefcaseBusiness,
+        tone: "green"
+      },
+      {
+        id: "candidate-interview",
+        title: "Interview schedule alerts",
+        message: "Interview invitations and schedule changes will appear in this panel.",
+        createdAt: new Date(now - 1000 * 60 * 55).toISOString(),
+        href: "/candidate?view=applied",
+        icon: CalendarClock,
+        tone: "amber"
+      },
+      {
+        id: "candidate-offer",
+        title: "Offer notifications",
+        message: "Offer, rejection, and hiring decisions for your applications are tracked here.",
+        createdAt: new Date(now - 1000 * 60 * 90).toISOString(),
+        href: "/candidate?view=applied",
+        icon: BadgeCheck,
+        tone: "blue"
+      },
+      {
+        id: "candidate-profile-viewed",
+        title: "Profile view alerts",
+        message: `${displayName}, you will be notified when an employer views your candidate profile.`,
+        createdAt: new Date(now - 1000 * 60 * 130).toISOString(),
+        href: "/candidate?view=profile",
+        icon: Eye,
+        tone: "blue"
+      }
+    ];
+  }
+
+  if (role === "employer") {
+    return [
+      {
+        id: "employer-application",
+        title: "New candidate applications",
+        message: "You will be notified when candidates apply to one of your active jobs.",
+        createdAt: new Date(now - 1000 * 60 * 20).toISOString(),
+        href: "/employer#applications",
+        icon: Users,
+        tone: "green"
+      },
+      {
+        id: "employer-subscription-expiring",
+        title: "Subscription expiry alerts",
+        message: "Renewal reminders will appear here before your subscription expires.",
+        createdAt: new Date(now - 1000 * 60 * 70).toISOString(),
+        href: "/employer#account-settings",
+        icon: CreditCard,
+        tone: "amber"
+      },
+      {
+        id: "employer-job-expiring",
+        title: "Job post expiry alerts",
+        message: "You will be notified before an active job post reaches its deadline.",
+        createdAt: new Date(now - 1000 * 60 * 105).toISOString(),
+        href: "/jobs",
+        icon: CalendarClock,
+        tone: "red"
+      },
+      {
+        id: "employer-upcoming-interview",
+        title: "Upcoming interview reminders",
+        message: "Scheduled interviews with candidates will appear here before the meeting.",
+        createdAt: new Date(now - 1000 * 60 * 150).toISOString(),
+        href: "/employer#pipeline",
+        icon: CalendarClock,
+        tone: "blue"
+      }
+    ];
+  }
+
+  return [];
+}
+
+function dedupeNotifications(notifications: NavbarNotification[]) {
+  const seen = new Set<string>();
+  return notifications.filter((notification) => {
+    if (seen.has(notification.id)) return false;
+    seen.add(notification.id);
+    return true;
+  });
+}
 function getInitials(name?: string | null) {
   if (!name) return "MX";
 
@@ -99,7 +275,11 @@ export default function Navbar() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [profileAvatar, setProfileAvatar] = useState<string | null>(null);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [remoteNotifications, setRemoteNotifications] = useState<NavbarNotification[]>([]);
+  const [clearedNotificationIds, setClearedNotificationIds] = useState<string[]>([]);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
+  const notificationMenuRef = useRef<HTMLDivElement | null>(null);
   const { user, role, loading } = useAuth();
   const currentRole = role as string | null;
   const isSupportRole = currentRole === "support_agent" || currentRole === "support_senior" || currentRole === "support_manager";
@@ -127,6 +307,17 @@ export default function Navbar() {
   const navItems = navItemsByRole[resolvedRole];
   const homeHref = resolvedRole === "admin" || resolvedRole === "viewer" ? "/admin" : resolvedRole === "support" ? "/support" : resolvedRole === "employee" ? "/employee" : resolvedRole === "employer" ? "/employer" : "/";
   const isAdminNavigation = resolvedRole === "admin" || resolvedRole === "viewer";
+  const showRoleNotifications = Boolean(user) && (resolvedRole === "candidate" || resolvedRole === "employer");
+  const notificationStorageKey = user?.id ? `${ROLE_NOTIFICATION_STORAGE_PREFIX}:${resolvedRole}:${user.id}` : `${ROLE_NOTIFICATION_STORAGE_PREFIX}:${resolvedRole}:guest`;
+  const fallbackNotifications = useMemo(
+    () => (showRoleNotifications ? getFallbackNotifications(resolvedRole, displayName) : []),
+    [displayName, resolvedRole, showRoleNotifications]
+  );
+  const allRoleNotifications = useMemo(
+    () => dedupeNotifications([...remoteNotifications, ...fallbackNotifications]).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    [fallbackNotifications, remoteNotifications]
+  );
+  const visibleRoleNotifications = allRoleNotifications.filter((notification) => !clearedNotificationIds.includes(notification.id));
 
   const avatar = avatarSrc ? (
     // eslint-disable-next-line @next/next/no-img-element
@@ -154,6 +345,89 @@ export default function Navbar() {
     window.addEventListener("scroll", updateScrolled, { passive: true });
     return () => window.removeEventListener("scroll", updateScrolled);
   }, []);
+
+
+  useEffect(() => {
+    if (!showRoleNotifications) {
+      setClearedNotificationIds([]);
+      return;
+    }
+
+    try {
+      const saved = window.localStorage.getItem(notificationStorageKey);
+      setClearedNotificationIds(saved ? JSON.parse(saved) : []);
+    } catch {
+      setClearedNotificationIds([]);
+    }
+  }, [notificationStorageKey, showRoleNotifications]);
+
+  useEffect(() => {
+    if (!showRoleNotifications) return;
+
+    try {
+      window.localStorage.setItem(notificationStorageKey, JSON.stringify(clearedNotificationIds));
+    } catch {
+      // Local storage can fail in privacy-restricted browsers; notifications still render normally.
+    }
+  }, [clearedNotificationIds, notificationStorageKey, showRoleNotifications]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadNotifications() {
+      if (!showRoleNotifications || !isSupabaseConfigured || !user?.id) {
+        setRemoteNotifications([]);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from("notifications")
+          .select("id,type,title,message,created_at,href,redirect_url")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(12);
+
+        if (!isMounted) return;
+        if (error) {
+          setRemoteNotifications([]);
+          return;
+        }
+
+        setRemoteNotifications((data || []).map((row) => normalizeRemoteNotification(row, resolvedRole)));
+      } catch {
+        if (isMounted) setRemoteNotifications([]);
+      }
+    }
+
+    loadNotifications();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [resolvedRole, showRoleNotifications, user?.id]);
+
+  useEffect(() => {
+    if (!notificationsOpen) return;
+
+    const handlePointerDown = (event: globalThis.MouseEvent) => {
+      const target = event.target as Node | null;
+      if (target && notificationMenuRef.current?.contains(target)) return;
+      setNotificationsOpen(false);
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setNotificationsOpen(false);
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [notificationsOpen]);
 
   useEffect(() => {
     if (!profileOpen) return;
@@ -241,6 +515,95 @@ export default function Navbar() {
     window.dispatchEvent(new CustomEvent(EMPLOYER_PANEL_EVENT, { detail: panel }));
   };
 
+
+  const clearRoleNotifications = () => {
+    setClearedNotificationIds((previous) => Array.from(new Set([...previous, ...allRoleNotifications.map((notification) => notification.id)])));
+    setNotificationsOpen(false);
+  };
+
+  const notificationBell = showRoleNotifications ? (
+    <div ref={notificationMenuRef} className="relative">
+      <button
+        type="button"
+        className="relative grid h-10 w-10 place-items-center rounded-full border border-gray-200 bg-white text-text-muted shadow-secondary transition hover:-translate-y-0.5 hover:border-blue-200 hover:text-primary hover:shadow-soft dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:border-blue-400/40 dark:hover:text-blue-300"
+        aria-label={`${resolvedRole} notifications`}
+        onClick={() => {
+          setProfileOpen(false);
+          setNotificationsOpen((value) => !value);
+        }}
+      >
+        <Bell className="h-4 w-4" />
+        {visibleRoleNotifications.length ? (
+          <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-[10px] font-black text-white ring-2 ring-white dark:ring-slate-950">
+            {visibleRoleNotifications.length > 9 ? "9+" : visibleRoleNotifications.length}
+          </span>
+        ) : null}
+      </button>
+      <AnimatePresence>
+        {notificationsOpen ? (
+          <motion.div
+            initial={{ opacity: 0, y: -8, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.98 }}
+            transition={{ duration: 0.16, ease: "easeOut" }}
+            className="absolute right-0 top-full z-50 mt-3 w-[360px] overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-elevated dark:border-white/10 dark:bg-slate-950"
+          >
+            <div className="flex items-start justify-between gap-3 border-b border-gray-100 p-4 dark:border-white/10">
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-primary">
+                  {resolvedRole === "employer" ? "Employer alerts" : "Candidate alerts"}
+                </p>
+                <h3 className="mt-1 text-lg font-black text-text-main dark:text-white">Notifications</h3>
+              </div>
+              {visibleRoleNotifications.length ? (
+                <button
+                  type="button"
+                  onClick={clearRoleNotifications}
+                  className="rounded-full border border-gray-200 px-3 py-1.5 text-xs font-bold text-text-muted transition hover:border-blue-200 hover:text-primary dark:border-white/10 dark:text-slate-300 dark:hover:border-blue-400/40"
+                >
+                  Clear
+                </button>
+              ) : null}
+            </div>
+            <div className="max-h-[420px] overflow-y-auto p-2">
+              {visibleRoleNotifications.length ? (
+                visibleRoleNotifications.map((notification) => {
+                  const Icon = notification.icon;
+                  return (
+                    <Link
+                      key={notification.id}
+                      href={notification.href}
+                      onClick={() => setNotificationsOpen(false)}
+                      className="flex gap-3 rounded-2xl p-3 transition hover:bg-slate-50 dark:hover:bg-white/5"
+                    >
+                      <span className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-2xl ring-1", notificationToneClass[notification.tone])}>
+                        <Icon className="h-4 w-4" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-black text-text-main dark:text-white">{notification.title}</span>
+                        <span className="mt-1 block text-xs font-semibold leading-5 text-text-muted dark:text-slate-400">{notification.message}</span>
+                        <span className="mt-2 block text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
+                          {getNotificationTimeLabel(notification.createdAt)}
+                        </span>
+                      </span>
+                    </Link>
+                  );
+                })
+              ) : (
+                <div className="grid place-items-center gap-2 px-6 py-10 text-center">
+                  <span className="grid h-12 w-12 place-items-center rounded-2xl bg-blue-50 text-primary dark:bg-blue-500/10 dark:text-blue-300">
+                    <Bell className="h-5 w-5" />
+                  </span>
+                  <p className="text-sm font-black text-text-main dark:text-white">No new notifications</p>
+                  <p className="text-xs font-semibold text-text-muted dark:text-slate-400">Fresh alerts will appear here automatically.</p>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </div>
+  ) : null;
   const profileMenu = (
     <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-gray-200 bg-white p-2 shadow-md dark:border-white/10 dark:bg-slate-950">
       <Link
@@ -317,16 +680,20 @@ export default function Navbar() {
           <GlobalSearch className={cn(isAdminNavigation ? "md:w-[260px] md:focus-within:w-[260px] lg:w-[300px] lg:focus-within:w-[300px]" : "md:w-[320px] md:focus-within:w-[320px] lg:focus-within:w-[420px]")} />
         </div>
 
-        <div className={cn("hidden shrink-0 items-center justify-end gap-3 md:flex", isAdminNavigation ? "w-[170px]" : "w-[230px]")}>
+        <div className={cn("hidden shrink-0 items-center justify-end gap-3 md:flex", isAdminNavigation ? "w-[170px]" : "w-[280px]")}>
           {!loading && !user ? (
             <LinkButton href="/login" className="whitespace-nowrap rounded-full px-5 py-2">Login</LinkButton>
           ) : null}
+          {!loading && user ? notificationBell : null}
           {!loading && user ? (
             <div ref={profileMenuRef} className="relative">
               <button
                 type="button"
                 className="flex cursor-pointer items-center gap-2 rounded-full px-2 py-1.5 transition hover:bg-blue-50 dark:hover:bg-white/5"
-                onClick={() => setProfileOpen((value) => !value)}
+                onClick={() => {
+                  setNotificationsOpen(false);
+                  setProfileOpen((value) => !value);
+                }}
               >
                 <span className="block h-8 w-8 shrink-0 overflow-hidden rounded-full">{avatar}</span>
                 <span className="max-w-28 truncate text-sm font-medium text-text-main dark:text-white">{displayName}</span>
@@ -434,6 +801,13 @@ export default function Navbar() {
     </header>
   );
 }
+
+
+
+
+
+
+
 
 
 
