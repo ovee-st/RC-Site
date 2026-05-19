@@ -50,7 +50,7 @@ export default function ChatWidget() {
   if (loading || !canUseChat) return null;
 
   return (
-    <div className="fixed inset-x-2 bottom-20 z-50 sm:inset-x-auto sm:bottom-24 sm:right-5">
+    <div className="fixed inset-x-3 bottom-5 z-50 sm:inset-x-auto sm:right-6">
       <AnimatePresence>
         {open ? (
           <motion.div
@@ -58,18 +58,23 @@ export default function ChatWidget() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 18, scale: 0.96 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="mb-3 w-full overflow-hidden rounded-[1.5rem] border border-white/70 bg-white/95 shadow-[0_22px_60px_rgba(15,23,42,0.2)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/95 sm:w-[360px]"
+            className="mb-3 w-full overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-[0_18px_55px_rgba(15,23,42,0.22)] dark:border-white/10 dark:bg-slate-950 sm:w-[360px]"
           >
-            <div className="flex items-center justify-between border-b border-border px-4 py-2.5 dark:border-white/10">
-              <div>
-                <p className="text-xs font-black uppercase tracking-wider text-primary">Live Support</p>
-                <p className="text-xs font-bold text-text-muted">Realtime help linked to your ticket</p>
+            <div className="flex h-14 items-center justify-between border-b border-slate-200 bg-white px-3.5 dark:border-white/10 dark:bg-slate-950">
+              <div className="flex min-w-0 items-center gap-2.5">
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-blue-600 to-cyan-500 text-white shadow-soft">
+                  <MessageCircle className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-black text-slate-950 dark:text-white">Live Support</p>
+                  <p className="truncate text-[11px] font-bold text-emerald-600 dark:text-emerald-300">{activeSession?.status === "ACTIVE" ? "Support is online" : activeSession?.status === "WAITING" ? "Waiting for support" : "Usually replies in a few minutes"}</p>
+                </div>
               </div>
-              <button type="button" onClick={() => setOpen(false)} className="rounded-full p-2 text-text-muted transition hover:bg-slate-100 hover:text-text-main dark:hover:bg-white/10" aria-label="Minimize chat">
+              <button type="button" onClick={() => setOpen(false)} className="rounded-full p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white" aria-label="Minimize chat">
                 <Minus className="h-4 w-4" />
               </button>
             </div>
-            <div className="h-[min(68dvh,430px)] min-h-[360px] p-2.5 sm:h-[420px] sm:max-h-[62vh] sm:min-h-0">
+            <div className="h-[min(72dvh,500px)] min-h-[420px] bg-slate-50 dark:bg-slate-900 sm:h-[500px] sm:max-h-[calc(100vh-120px)] sm:min-h-0">
               <ChatWindow sessionId={activeSession?.id || null} mode="user" onSessionChange={(session) => { upsertSession(session); selectSession(session.id); }} />
             </div>
           </motion.div>
@@ -80,7 +85,7 @@ export default function ChatWidget() {
         whileHover={{ y: -2, scale: 1.03 }}
         whileTap={{ scale: 0.96 }}
         onClick={() => setOpen((value) => !value)}
-        className="relative ml-auto grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-blue-600 to-cyan-500 text-white shadow-elevated sm:ml-0"
+        className="relative ml-auto grid h-14 w-14 place-items-center rounded-full bg-[#0866ff] text-white shadow-[0_12px_30px_rgba(8,102,255,0.35)] transition sm:ml-0"
         aria-label="Open live chat"
       >
         {open ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}

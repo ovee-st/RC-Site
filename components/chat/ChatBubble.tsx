@@ -7,10 +7,10 @@ export default function ChatBubble({ message, mine }: { message: LiveChatMessage
   return (
     <div className={cn("flex", mine ? "justify-end" : "justify-start")}>
       <div className={cn(
-        "max-w-[82%] rounded-2xl px-3 py-2 text-sm shadow-soft",
+        "max-w-[82%] rounded-[18px] px-3 py-2 text-sm shadow-sm",
         mine
-          ? "rounded-br-md bg-gradient-to-br from-blue-600 to-primary text-white"
-          : "rounded-bl-md border border-border bg-white text-slate-900 dark:border-white/10 dark:bg-slate-900 dark:text-white"
+          ? "rounded-br-md bg-[#0866ff] text-white"
+          : "rounded-bl-md bg-white text-slate-900 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-white dark:ring-white/10"
       )}>
         <p className={cn("whitespace-pre-wrap leading-5", mine ? "text-white" : "text-slate-900 dark:text-white")}>{message.message}</p>
         {message.attachment_url ? (

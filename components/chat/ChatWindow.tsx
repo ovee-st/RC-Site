@@ -119,19 +119,23 @@ export default function ChatWindow({ sessionId, mode = "user", onSessionChange }
     }
 
     return (
-      <div className="grid gap-3 rounded-2xl border border-border bg-white p-4 shadow-soft dark:border-white/10 dark:bg-slate-950">
-        <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary">
-          <Sparkles className="h-5 w-5" />
+      <div className="flex h-full flex-col justify-end bg-slate-50 p-4 dark:bg-slate-900">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft dark:border-white/10 dark:bg-slate-950">
+          <div className="flex items-start gap-3">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#0866ff]/10 text-[#0866ff]">
+              <Sparkles className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-base font-black text-slate-950 dark:text-white">Start a conversation</h3>
+              <p className="mt-1 text-xs font-semibold leading-5 text-slate-600 dark:text-slate-300">Message our support team. If no agent is online, we will keep it as a support ticket.</p>
+            </div>
+          </div>
+          {error ? <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-600 dark:bg-red-500/10 dark:text-red-200">{error}</p> : null}
+          <Button onClick={startChat} disabled={starting} className="mt-4 w-full gap-2 rounded-full bg-[#0866ff] py-2.5 hover:bg-[#0758dc]">
+            {starting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+            Start conversation
+          </Button>
         </div>
-        <div>
-          <h3 className="text-lg font-black text-text-main dark:text-white">Live support</h3>
-          <p className="mt-1 text-xs font-semibold leading-5 text-text-muted">Start a realtime conversation. If no agent is online, we will keep it as a support ticket.</p>
-        </div>
-        {error ? <p className="rounded-2xl bg-red-50 px-3 py-2 text-sm font-bold text-red-600">{error}</p> : null}
-        <Button onClick={startChat} disabled={starting} className="gap-2 py-2">
-          {starting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-          Start conversation
-        </Button>
       </div>
     );
   }
@@ -142,32 +146,39 @@ export default function ChatWindow({ sessionId, mode = "user", onSessionChange }
   const displayStatus = supportHasJoined && activeSession.status !== "ENDED" ? "ACTIVE" : activeSession.status;
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-soft dark:border-white/10 dark:bg-slate-950">
-      <div className="flex items-center justify-between gap-3 border-b border-border bg-white/80 p-3 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/80">
-        <div>
-          <p className="type-label text-primary">Live Chat</p>
-          <h3 className="text-base font-black text-text-main dark:text-white">{mode === "user" ? "Live Support" : activeSession.username || "Customer"}</h3>
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-white dark:bg-slate-950">
+      {mode !== "user" ? (
+        <div className="flex h-14 items-center justify-between gap-3 border-b border-slate-200 bg-white px-3.5 dark:border-white/10 dark:bg-slate-950">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-blue-600 to-cyan-500 text-xs font-black text-white shadow-soft">
+              {(activeSession.username || "C").slice(0, 2).toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <h3 className="truncate text-sm font-black text-slate-950 dark:text-white">{activeSession.username || "Customer"}</h3>
+              <p className="truncate text-[11px] font-bold text-slate-500 dark:text-slate-400">{displayStatus === "ACTIVE" ? "Support is online" : displayStatus === "ENDED" ? "Chat ended" : "Waiting for support"}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant={displayStatus === "ACTIVE" ? "success" : displayStatus === "ENDED" ? "neutral" : "primary"}>{formatLiveChatStatus(displayStatus)}</Badge>
+            {!ended ? (
+              <button type="button" onClick={endChat} className="rounded-full p-2 text-slate-500 transition hover:bg-red-50 hover:text-red-600 dark:text-slate-300 dark:hover:bg-red-500/10" aria-label="End chat">
+                <PhoneOff className="h-4 w-4" />
+              </button>
+            ) : null}
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant={displayStatus === "ACTIVE" ? "success" : displayStatus === "ENDED" ? "neutral" : "primary"}>{formatLiveChatStatus(displayStatus)}</Badge>
-          {!ended ? (
-            <button type="button" onClick={endChat} className="rounded-full p-2 text-text-muted transition hover:bg-red-50 hover:text-red-600" aria-label="End chat">
-              <PhoneOff className="h-4 w-4" />
-            </button>
-          ) : null}
-        </div>
-      </div>
-      <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto bg-gradient-to-b from-slate-50 to-white p-3 dark:from-slate-900 dark:to-slate-950">
+      ) : null}
+      <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto bg-[#f0f2f5] p-3 dark:bg-slate-900">
         {messages.map((message) => <ChatBubble key={message.id} message={message} mine={mine(message)} />)}
         {displayStatus === "WAITING" ? <TypingIndicator label="Waiting for an available support agent" /> : null}
       </div>
-      <div className="border-t border-border p-2.5 dark:border-white/10">
+      <div className="border-t border-slate-200 bg-white p-2 dark:border-white/10 dark:bg-slate-950">
         {ended ? (
-          <div className="rounded-2xl border border-border bg-slate-50 px-4 py-3 text-sm font-bold text-text-muted dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs font-bold text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
             This chat has ended. The conversation is kept here as a read-only transcript.
           </div>
         ) : (
-          <MessageInput onSend={sendMessage} placeholder={String(role) === "employee" || String(role) === "admin" ? "Reply to customer..." : "Message support..."} />
+          <MessageInput onSend={sendMessage} placeholder={String(role) === "employee" || String(role) === "admin" ? "Reply to customer..." : "Aa"} />
         )}
       </div>
     </div>
