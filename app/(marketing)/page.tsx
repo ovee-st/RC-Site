@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { motion } from "framer-motion";
 import {
@@ -20,16 +20,14 @@ import { useAuth } from "@/hooks/useAuth";
 import StatsCards from "@/components/dashboard/StatsCards";
 import AIInsights from "@/components/dashboard/AIInsights";
 import ApplicationPipeline from "@/components/dashboard/ApplicationPipeline";
-import AssessmentSection from "@/components/dashboard/AssessmentSection";
 import InterviewSection from "@/components/dashboard/InterviewSection";
-import NotificationsPanel from "@/components/dashboard/NotificationsPanel";
 import AnalyticsPanel from "@/components/dashboard/AnalyticsPanel";
 import JobRecommendations from "@/components/dashboard/JobRecommendations";
 import ResumeSection from "@/components/dashboard/ResumeSection";
 import EmployerCommandCenter from "@/components/dashboard/EmployerCommandCenter";
 import PublicHome from "@/components/home/PublicHome";
 import AdminPanel from "@/components/admin/AdminPanel";
-import type { CandidateAnalytics, CandidateDocument, CandidateNotification, CandidateProfile, InterviewEvent, SkillAssessment } from "@/types/candidate";
+import type { CandidateAnalytics, CandidateDocument, CandidateProfile, InterviewEvent } from "@/types/candidate";
 import type { CandidateApplication, JobRecommendation } from "@/types/application";
 
 const steps = [
@@ -83,20 +81,8 @@ const candidateHomeDocuments: CandidateDocument[] = [
   { id: "home-doc-2", name: "HR-Operations-Certificate.pdf", type: "Certification", url: "#", uploadedAt: "2026-04-22", score: 91 }
 ];
 
-const candidateHomeAssessments: SkillAssessment[] = [
-  { id: "home-assess-1", title: "Admin Operations MCQ", category: "Operations", score: 88, level: "Advanced", status: "Completed", summary: "Strong documentation, coordination, and workflow control." },
-  { id: "home-assess-2", title: "Excel Reporting Challenge", category: "Data", score: 82, level: "Upper Intermediate", status: "Completed", summary: "Good spreadsheet structure and reporting discipline." },
-  { id: "home-assess-3", title: "Communication Scenario Test", category: "Communication", score: 76, level: "Recommended", status: "Recommended", summary: "Recommended to improve recruiter-facing communication signals." }
-];
-
 const candidateHomeInterviews: InterviewEvent[] = [
   { id: "home-int-1", company: "MX Partner Employer", role: "Admin & Operations Manager", scheduledAt: "2026-05-09T11:00:00+06:00", meetingUrl: "https://meet.google.com/demo", checklist: ["Review job responsibilities", "Prepare vendor coordination example", "Bring latest ATS CV"], feedback: "Strong operations fit." }
-];
-
-const candidateHomeNotifications: CandidateNotification[] = [
-  { id: "home-n-1", type: "interview", title: "Interview scheduled", message: "MX Partner Employer scheduled an interview for Admin & Operations Manager.", createdAt: "2026-05-06T09:10:00+06:00", isRead: false },
-  { id: "home-n-2", type: "ai", title: "Resume suggestion", message: "Add quantified outcomes to your latest operations role to improve ATS strength.", createdAt: "2026-05-05T18:20:00+06:00", isRead: false },
-  { id: "home-n-3", type: "application", title: "Application shortlisted", message: "Your profile moved to Shortlisted for Admin & Operations Manager.", createdAt: "2026-05-04T13:00:00+06:00", isRead: true }
 ];
 
 const candidateHomeAnalytics: CandidateAnalytics = {
@@ -172,18 +158,10 @@ function CandidateHomeDashboard({ profile }: { profile: CandidateProfile }) {
             <AIInsights />
             <JobRecommendations jobs={candidateHomeJobs} candidateProfile={profile} />
           </div>
-
-          <div className="grid gap-4 xl:grid-cols-2">
-            <AssessmentSection assessments={candidateHomeAssessments} />
-            <div id="candidate-interviews-section" className="scroll-mt-24">
-              <InterviewSection interviews={candidateHomeInterviews} />
-            </div>
+          <div id="candidate-interviews-section" className="scroll-mt-24">
+            <InterviewSection interviews={candidateHomeInterviews} />
           </div>
-
-          <div className="grid gap-4 xl:grid-cols-2">
-            <NotificationsPanel notifications={candidateHomeNotifications} />
-            <AnalyticsPanel analytics={candidateHomeAnalytics} />
-          </div>
+          <AnalyticsPanel analytics={candidateHomeAnalytics} />
 
           <ResumeSection profile={profile} documents={candidateHomeDocuments} />
           <div id="candidate-applications-section" className="scroll-mt-24">
@@ -223,5 +201,6 @@ export default function LandingPage() {
 
   return <PublicHome />;
 }
+
 
 

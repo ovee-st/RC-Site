@@ -22,10 +22,9 @@ import AIInsights from "@/components/dashboard/AIInsights";
 import ApplicationPipeline from "@/components/dashboard/ApplicationPipeline";
 import ResumeSection from "@/components/dashboard/ResumeSection";
 import InterviewSection from "@/components/dashboard/InterviewSection";
-import NotificationsPanel from "@/components/dashboard/NotificationsPanel";
 import AnalyticsPanel from "@/components/dashboard/AnalyticsPanel";
 import JobRecommendations from "@/components/dashboard/JobRecommendations";
-import type { CandidateAnalytics, CandidateDocument, CandidateNotification, CandidateProfile, InterviewEvent } from "@/types/candidate";
+import type { CandidateAnalytics, CandidateDocument, CandidateProfile, InterviewEvent } from "@/types/candidate";
 import type { CandidateApplication, JobRecommendation } from "@/types/application";
 
 type CandidateTab = "home" | "profile" | "jobs" | "applied" | "resume";
@@ -159,12 +158,6 @@ const dashboardInterviews: InterviewEvent[] = [
     checklist: ["Review job responsibilities", "Prepare vendor coordination example", "Bring latest ATS CV"],
     feedback: "Strong operations fit."
   }
-];
-
-const dashboardNotifications: CandidateNotification[] = [
-  { id: "n-1", type: "interview", title: "Interview scheduled", message: "MX Partner Employer scheduled an interview for Admin & Operations Manager.", createdAt: "2026-05-06T09:10:00+06:00", isRead: false },
-  { id: "n-2", type: "ai", title: "Resume suggestion", message: "Add quantified outcomes to your latest operations role to improve ATS strength.", createdAt: "2026-05-05T18:20:00+06:00", isRead: false },
-  { id: "n-3", type: "application", title: "Application shortlisted", message: "Your profile moved to Shortlisted for Admin & Operations Manager.", createdAt: "2026-05-04T13:00:00+06:00", isRead: true }
 ];
 
 const dashboardAnalytics: CandidateAnalytics = {
@@ -1216,11 +1209,7 @@ export default function CandidateDashboard() {
                 </div>
 
                 <InterviewSection interviews={dashboardInterviews} />
-
-                <div className="grid gap-6 xl:grid-cols-2">
-                  <NotificationsPanel notifications={dashboardNotifications} />
-                  <AnalyticsPanel analytics={dashboardAnalytics} />
-                </div>
+                <AnalyticsPanel analytics={dashboardAnalytics} />
 
                 <ResumeSection profile={dashboardProfile} documents={dashboardDocuments} />
                 <ApplicationPipeline applications={dashboardApplications} />
@@ -1656,3 +1645,4 @@ export default function CandidateDashboard() {
     </main>
   );
 }
+
