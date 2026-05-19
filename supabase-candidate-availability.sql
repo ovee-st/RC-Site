@@ -3,7 +3,8 @@
 alter table public.candidates
   add column if not exists immediate_availability boolean default true,
   add column if not exists notice_period_value integer,
-  add column if not exists notice_period_unit text;
+  add column if not exists notice_period_unit text,
+  add column if not exists preferred_job_location text;
 
 alter table public.candidates
   drop constraint if exists candidates_notice_period_unit_check;

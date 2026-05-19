@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { BriefcaseBusiness, CalendarClock, ChevronDown, Clock3, Grid2X2, MapPin, Search, SlidersHorizontal } from "lucide-react";
+import { BriefcaseBusiness, CalendarClock, ChevronDown, Grid2X2, MapPin, Search, SlidersHorizontal } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useJobStore } from "@/store/useJobStore";
 import Badge from "@/components/ui/Badge";
@@ -90,47 +90,13 @@ function FilterSection({
   );
 }
 
-function RangeControl({
-  label,
-  value,
-  max,
-  step,
-  onChange,
-  footer
-}: {
-  label: string;
-  value: number;
-  max: number;
-  step: number;
-  onChange: (value: number) => void;
-  footer: string;
-}) {
-  return (
-    <div>
-      <div className="mb-1.5 flex items-center justify-between">
-        <h3 className="text-sm font-black text-text-main dark:text-white">{label}</h3>
-        <span className="text-xs font-bold text-text-muted dark:text-slate-300">{footer}</span>
-      </div>
-      <input
-        type="range"
-        min={0}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(event) => onChange(Number(event.target.value))}
-        className="h-1.5 w-full cursor-pointer accent-primary"
-      />
-    </div>
-  );
-}
-
 export default function FiltersPanel() {
-  const { filters, toggleFilter, setSalary, clearFilters } = useJobStore();
-  const [openSection, setOpenSection] = useState<string | null>("quick");
+  const { filters, toggleFilter, clearFilters } = useJobStore();
+  const [openSection, setOpenSection] = useState<string | null>(null);
   const [skillSearch, setSkillSearch] = useState("");
 
   const activeCount = useMemo(
-    () => filters.categories.length + filters.experience.length + filters.jobType.length + filters.locations.length + filters.skills.length + (filters.salary < 200000 ? 1 : 0),
+    () => filters.categories.length + filters.experience.length + filters.jobType.length + filters.locations.length + filters.skills.length,
     [filters]
   );
 
@@ -157,19 +123,6 @@ export default function FiltersPanel() {
           Clear all
         </Button>
       </div>
-
-      <FilterSection id="quick" title="Quick Filter" icon={Clock3} openSection={openSection} setOpenSection={setOpenSection} activeCount={filters.salary < 200000 ? 1 : 0}>
-        <div className="grid gap-3.5">
-          <RangeControl
-            label="Salary Range"
-            value={filters.salary}
-            max={200000}
-            step={5000}
-            onChange={setSalary}
-            footer={`Up to BDT ${filters.salary.toLocaleString()}`}
-          />
-        </div>
-      </FilterSection>
 
       <FilterSection id="category" title="Category/Industry" icon={Grid2X2} openSection={openSection} setOpenSection={setOpenSection} activeCount={filters.categories.length}>
         <div className="grid gap-1">

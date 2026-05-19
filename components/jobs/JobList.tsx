@@ -108,9 +108,8 @@ export default function JobList({ headerAction, showArchived = false }: { header
       const matchesType = !filters.jobType.length || filters.jobType.includes(job.jobType);
       const locationHaystack = `${job.location} ${job.workType || ""}`.toLowerCase();
       const matchesLocation = !filters.locations.length || filters.locations.some((location) => locationHaystack.includes(location.toLowerCase()));
-      const matchesSalary = job.hideSalary || job.salaryMax <= filters.salary;
       const matchesSkills = !filters.skills.length || filters.skills.every((skill) => job.skills.includes(skill));
-      return visibleStatus && matchesSearch && matchesCategory && matchesExperience && matchesType && matchesLocation && matchesSalary && matchesSkills;
+      return visibleStatus && matchesSearch && matchesCategory && matchesExperience && matchesType && matchesLocation && matchesSkills;
     })
     .map((job) => ({
       ...job,
@@ -160,7 +159,7 @@ export default function JobList({ headerAction, showArchived = false }: { header
             <EmptyState
               icon={<SlidersHorizontal size={22} />}
               title={showArchived ? "No archived jobs found" : "No jobs found"}
-              message={showArchived ? "Archived or expired roles will appear here after you archive them." : "Try removing filters, expanding your salary range, or searching with a broader skill keyword."}
+              message={showArchived ? "Archived or expired roles will appear here after you archive them." : "Try removing filters or searching with a broader skill keyword."}
               actionLabel="Clear filters"
               onAction={clearFilters}
             />

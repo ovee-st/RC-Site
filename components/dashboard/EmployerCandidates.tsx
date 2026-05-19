@@ -33,6 +33,7 @@ type SavedCandidateProfile = {
     immediate: boolean;
     noticePeriod?: string;
     noticeUnit?: "Days" | "Months";
+    preferredJobLocation?: string;
   };
 };
 
@@ -44,6 +45,7 @@ type RegisteredCandidate = Candidate & {
     immediate: boolean;
     noticePeriod?: string;
     noticeUnit?: "Days" | "Months";
+    preferredJobLocation?: string;
   };
 };
 
@@ -66,6 +68,7 @@ type CandidateRow = {
   avatar?: string;
   location?: string;
   linkedin_url?: string;
+  preferred_job_location?: string | null;
   immediate_availability?: boolean;
   notice_period_value?: string | number | null;
   notice_period_unit?: "Days" | "Months" | string | null;
@@ -115,7 +118,8 @@ function loadRegisteredCandidates(): RegisteredCandidate[] {
         ? {
           immediate: parsed.availability.immediate,
           noticePeriod: parsed.availability.noticePeriod,
-          noticeUnit: parsed.availability.noticeUnit
+          noticeUnit: parsed.availability.noticeUnit,
+          preferredJobLocation: parsed.availability.preferredJobLocation
         }
         : undefined
     };
@@ -151,7 +155,8 @@ function mapCandidateRow(row: CandidateRow): RegisteredCandidate {
     availability: {
       immediate: row.immediate_availability ?? true,
       noticePeriod: row.notice_period_value ? String(row.notice_period_value) : "",
-      noticeUnit: row.notice_period_unit === "Months" ? "Months" : "Days"
+      noticeUnit: row.notice_period_unit === "Months" ? "Months" : "Days",
+      preferredJobLocation: row.preferred_job_location || ""
     }
   };
 }
@@ -209,7 +214,7 @@ export default function EmployerCandidates() {
 
         const { data, error } = await supabase
           .from("candidates")
-          .select("id, user_id, full_name, name, title, career_level, category, categories, skills, skills_array, about, photo_url, avatar, location, linkedin_url, immediate_availability, notice_period_value, notice_period_unit");
+          .select("id, user_id, full_name, name, title, career_level, category, categories, skills, skills_array, about, photo_url, avatar, location, linkedin_url, preferred_job_location, immediate_availability, notice_period_value, notice_period_unit");
 
         if (error || !data?.length) {
           setCandidates(localCandidates);
@@ -337,6 +342,9 @@ export default function EmployerCandidates() {
                       <Badge variant="success" className="px-2 py-1">✓ Immediate availability</Badge>
                     ) : candidate.availability?.noticePeriod ? (
                       <Badge variant="neutral" className="px-2 py-1">Notice period: {candidate.availability.noticePeriod} {candidate.availability.noticeUnit}</Badge>
+                    ) : null}
+                    {candidate.availability?.preferredJobLocation ? (
+                      <Badge variant="primary" className="px-2 py-1">Preferred: {candidate.availability.preferredJobLocation}</Badge>
                     ) : null}
                   </div>
                   <p className="type-body mt-1 text-xs font-semibold">Best for: {bestMatch?.job.title || "Post a job to calculate matches"}</p>
