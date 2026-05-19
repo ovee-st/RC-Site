@@ -982,11 +982,14 @@ export default function CandidateDashboard() {
   const [profile, setProfile] = useState<CandidateProfileState>(() => loadSavedProfile(user));
   const [editing, setEditing] = useState<EditableSection>(null);
   const [draft, setDraft] = useState<CandidateProfileState>(() => loadSavedProfile(user));
+  const [matchPanelOpen, setMatchPanelOpen] = useState(false);
+  const [selectedActivity, setSelectedActivity] = useState<{ title: string; status: string; description: string; actionLabel: string; action: () => void } | null>(null);
   const candidate = demoCandidates[0];
   const matchedJobs = useMemo(
     () => demoJobs.map((job) => ({ job, match: matchCandidateToJob(candidate, job) })).sort((a, b) => b.match.score - a.match.score),
     [candidate]
   );
+  const floatingMatches = useMemo(() => matchedJobs.filter(({ match }) => match.score >= 70).slice(0, 5), [matchedJobs]);
   const dashboardProfile: CandidateProfile = useMemo(() => ({
     id: "candidate-demo",
     userId: user?.id,
@@ -1009,6 +1012,37 @@ export default function CandidateDashboard() {
     aiMatchScore: matchedJobs[0]?.match.score || 0,
     resumeScore: 84
   }), [candidate.experience, matchedJobs, profile, user?.email, user?.id]);
+
+  const recentActivities = useMemo(() => [
+    {
+      title: "Profile viewed by MX Partner Employer",
+      status: "Viewed today",
+      description: "Your profile was opened by MX Partner Employer. Keep your skills and availability updated so recruiters can shortlist faster.",
+      actionLabel: "Open profile",
+      action: () => setActiveTab("profile")
+    },
+    {
+      title: "AI resume scan improved ATS score by 6%",
+      status: "Resume health improved",
+      description: "Your latest profile data improved resume strength. Review the resume builder to download the updated ATS or customized CV.",
+      actionLabel: "Open resume builder",
+      action: () => setActiveTab("resume")
+    },
+    {
+      title: "Interview scheduled for Admin & Operations Manager",
+      status: "Interview scheduled",
+      description: "Interview preparation checklist and meeting details are available in your interview section.",
+      actionLabel: "View interview",
+      action: () => document.getElementById("candidate-interviews-section")?.scrollIntoView({ behavior: "smooth", block: "start" })
+    },
+    {
+      title: `New recommended job found with ${floatingMatches[0]?.match.score || 0}% match`,
+      status: `${floatingMatches.length} strong match${floatingMatches.length === 1 ? "" : "es"} available`,
+      description: floatingMatches[0] ? `${floatingMatches[0].job.title} is currently your strongest open-role fit based on skills and profile signals.` : "No 70%+ matches are available yet. Add more skills to improve recommendations.",
+      actionLabel: "Review matches",
+      action: () => setMatchPanelOpen(true)
+    }
+  ], [floatingMatches]);
 
   useEffect(() => {
     const nextProfile = loadSavedProfile(user);
@@ -1171,14 +1205,18 @@ export default function CandidateDashboard() {
                         Track profile strength, applications, interviews, resume health, and AI job recommendations from one place.
                       </p>
                       <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                        {["Improve profile", "Download CV", "Review matches"].map((action) => (
+                        {[
+                          { label: "Improve profile", onClick: () => setActiveTab("profile") },
+                          { label: "Download CV", onClick: () => setActiveTab("resume") },
+                          { label: "Review matches", onClick: () => setMatchPanelOpen(true) }
+                        ].map((action) => (
                           <button
-                            key={action}
+                            key={action.label}
                             type="button"
-                            onClick={() => setActiveTab(action === "Download CV" ? "resume" : action === "Review matches" ? "jobs" : "profile")}
-                            className="rounded-2xl bg-white/15 px-4 py-3 text-sm font-black backdrop-blur transition hover:bg-white/25"
+                            onClick={action.onClick}
+                            className="rounded-2xl bg-white/15 px-4 py-3 text-sm font-black backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/25"
                           >
-                            {action}
+                            {action.label}
                           </button>
                         ))}
                       </div>
@@ -1187,17 +1225,20 @@ export default function CandidateDashboard() {
 
                   <Card className="p-6 shadow-soft">
                     <Badge variant="primary">Recent activity</Badge>
-                    <div className="mt-5 space-y-4">
-                      {[
-                        "Profile viewed by MX Partner Employer",
-                        "AI resume scan improved ATS score by 6%",
-                        "Interview scheduled for Admin & Operations Manager",
-                        "New recommended job found with 94% match"
-                      ].map((item, index) => (
-                        <div key={item} className="flex gap-3">
-                          <span className="mt-1 grid h-7 w-7 place-items-center rounded-full bg-primary/10 text-xs font-black text-primary">{index + 1}</span>
-                          <p className="text-sm font-semibold leading-6 text-text-muted dark:text-slate-300">{item}</p>
-                        </div>
+                    <div className="mt-5 space-y-3">
+                      {recentActivities.map((item, index) => (
+                        <button
+                          key={item.title}
+                          type="button"
+                          onClick={() => setSelectedActivity(item)}
+                          className="group flex w-full gap-3 rounded-2xl border border-transparent p-2 text-left transition hover:border-primary/20 hover:bg-primary/5"
+                        >
+                          <span className="mt-1 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-black text-primary">{index + 1}</span>
+                          <span className="min-w-0">
+                            <span className="block text-sm font-bold leading-5 text-text-main transition group-hover:text-primary dark:text-white">{item.title}</span>
+                            <span className="mt-0.5 block text-xs font-semibold text-text-muted dark:text-slate-400">{item.status}</span>
+                          </span>
+                        </button>
                       ))}
                     </div>
                   </Card>
@@ -1406,6 +1447,86 @@ export default function CandidateDashboard() {
           </main>
         </div>
 
+        {selectedActivity ? (
+          <div className="fixed inset-0 z-[75] grid place-items-center bg-slate-950/25 p-4 backdrop-blur-sm" onMouseDown={() => setSelectedActivity(null)}>
+            <Card className="w-full max-w-lg p-6 shadow-hover" onMouseDown={(event) => event.stopPropagation()}>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <Badge variant="primary">Activity status</Badge>
+                  <h3 className="mt-3 text-xl font-black text-text-main dark:text-white">{selectedActivity.title}</h3>
+                  <p className="mt-1 text-sm font-bold text-success">{selectedActivity.status}</p>
+                </div>
+                <button type="button" onClick={() => setSelectedActivity(null)} className="rounded-full p-2 text-text-muted transition hover:bg-primary/10 hover:text-primary">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <p className="mt-4 text-sm leading-6 text-text-muted dark:text-slate-300">{selectedActivity.description}</p>
+              <div className="mt-5 flex flex-wrap justify-end gap-3">
+                <Button type="button" variant="secondary" onClick={() => setSelectedActivity(null)} className="rounded-xl">Close</Button>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    selectedActivity.action();
+                    setSelectedActivity(null);
+                  }}
+                  className="rounded-xl"
+                >
+                  {selectedActivity.actionLabel}
+                </Button>
+              </div>
+            </Card>
+          </div>
+        ) : null}
+
+        {matchPanelOpen ? (
+          <div className="fixed inset-0 z-[75] grid place-items-center bg-slate-950/25 p-4 backdrop-blur-sm" onMouseDown={() => setMatchPanelOpen(false)}>
+            <Card className="max-h-[86vh] w-full max-w-3xl overflow-hidden p-0 shadow-hover" onMouseDown={(event) => event.stopPropagation()}>
+              <div className="flex items-start justify-between gap-4 border-b border-border p-5 dark:border-white/10">
+                <div>
+                  <Badge variant="primary">AI matched jobs</Badge>
+                  <h3 className="mt-3 text-2xl font-black text-text-main dark:text-white">Best-fit roles above 70%</h3>
+                  <p className="mt-1 text-sm text-text-muted dark:text-slate-300">Review your strongest matches without leaving the dashboard.</p>
+                </div>
+                <button type="button" onClick={() => setMatchPanelOpen(false)} className="rounded-full p-2 text-text-muted transition hover:bg-primary/10 hover:text-primary">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="max-h-[58vh] space-y-3 overflow-y-auto p-5">
+                {floatingMatches.length ? floatingMatches.map(({ job, match }) => (
+                  <div key={job.id} className="rounded-2xl border border-border bg-surface p-4 transition hover:border-primary/30 hover:shadow-soft dark:border-white/10 dark:bg-surface-dark">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
+                        <h4 className="text-base font-black text-text-main dark:text-white">{job.title}</h4>
+                        <p className="mt-1 text-sm font-semibold text-text-muted">{job.company} - {job.location}</p>
+                      </div>
+                      <Badge variant="match-score" className="w-fit">{match.score}% match</Badge>
+                    </div>
+                    <p className="mt-3 rounded-xl bg-primary/8 px-3 py-2 text-xs font-semibold text-text-muted dark:bg-white/5 dark:text-slate-300">
+                      {match.matchedSkills.length}/{job.skills.length} required skills matched.
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {job.skills.slice(0, 5).map((skill) => (
+                        <Badge key={skill} variant={match.matchedSkills.includes(skill) ? "success" : "neutral"}>{skill}</Badge>
+                      ))}
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <LinkButton href={`/jobs?job=${job.id}`} className="rounded-xl px-4 py-2" onClick={() => setMatchPanelOpen(false)}>View job</LinkButton>
+                      <Button type="button" variant="secondary" onClick={() => { setActiveTab("jobs"); setMatchPanelOpen(false); }} className="rounded-xl px-4 py-2">Open jobs tab</Button>
+                    </div>
+                  </div>
+                )) : (
+                  <EmptyState
+                    icon={<Sparkles size={22} />}
+                    title="No 70%+ matches yet"
+                    message="Add more profile skills or broaden your preferred job location to unlock stronger recommendations."
+                    actionLabel="Improve profile"
+                    onAction={() => { setActiveTab("profile"); setMatchPanelOpen(false); }}
+                  />
+                )}
+              </div>
+            </Card>
+          </div>
+        ) : null}
         {editing ? (
           <div className="fixed inset-0 z-[80] grid place-items-center bg-slate-950/30 p-4 backdrop-blur-sm">
             <Card className="max-h-[90vh] w-full max-w-2xl overflow-y-auto p-6 shadow-elevated">
@@ -1645,4 +1766,9 @@ export default function CandidateDashboard() {
     </main>
   );
 }
+
+
+
+
+
 
