@@ -18,6 +18,7 @@ export default function ProfileInsightBadges({ analysis, promptsUsed, promptLimi
           <p className="text-xl font-black text-text-main dark:text-white">{promptsUsed}/{promptLimit}</p>
           <Badge variant={promptsUsed >= promptLimit ? "neutral" : "primary"}>{promptsUsed >= promptLimit ? "Limit" : "Ready"}</Badge>
         </div>
+        <p className="mt-1 text-[10px] font-bold text-text-muted dark:text-slate-400">Resets monthly</p>
       </div>
     </div>
   );

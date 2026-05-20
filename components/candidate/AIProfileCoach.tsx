@@ -13,9 +13,12 @@ import { analyzeCandidateProfile, type ProfileAnalysisInput } from "@/lib/ai/pro
 
 const FREE_PROMPT_LIMIT = 20;
 
+function getMonthlyUsagePeriod() {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Dhaka", year: "numeric", month: "2-digit" }).format(new Date());
+}
+
 function monthKey(userId?: string) {
-  const now = new Date();
-  return `mxvl-career-coach:${userId || "guest"}:${now.getFullYear()}-${now.getMonth() + 1}`;
+  return `mxvl-career-coach:${userId || "guest"}:${getMonthlyUsagePeriod()}`;
 }
 
 function formatTime() {
@@ -46,6 +49,7 @@ function fallbackReply(prompt: string, analysis: ReturnType<typeof analyzeCandid
 
 export default function AIProfileCoach({ profile, userId, plan = "Basic" }: { profile: ProfileAnalysisInput; userId?: string; plan?: string }) {
   const analysis = useMemo(() => analyzeCandidateProfile(profile), [profile]);
+  const usagePeriod = getMonthlyUsagePeriod();
   const storageKey = monthKey(userId);
   const isPro = plan.toLowerCase() === "pro";
   const [messages, setMessages] = useState<CoachMessage[]>([
@@ -63,9 +67,31 @@ export default function AIProfileCoach({ profile, userId, plan = "Basic" }: { pr
   const latestAssistant = [...messages].reverse().find((message) => message.role === "assistant")?.body || messages[0]?.body;
 
   useEffect(() => {
+    let cancelled = false;
     const saved = Number(window.localStorage.getItem(storageKey) || "0");
     setPromptsUsed(Number.isFinite(saved) ? saved : 0);
-  }, [storageKey]);
+
+    Object.keys(window.localStorage)
+      .filter((key) => key.startsWith(`mxvl-career-coach:${userId || "guest"}:`) && key !== storageKey)
+      .forEach((key) => window.localStorage.removeItem(key));
+
+    if (!userId) return () => { cancelled = true; };
+
+    fetch(`/api/ai/career-coach?userId=${encodeURIComponent(userId)}&period=${encodeURIComponent(usagePeriod)}`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        const used = Number(data?.usage?.used);
+        if (!cancelled && Number.isFinite(used)) {
+          setPromptsUsed(used);
+          window.localStorage.setItem(storageKey, String(used));
+        }
+      })
+      .catch(() => undefined);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [storageKey, usagePeriod, userId]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -91,9 +117,14 @@ export default function AIProfileCoach({ profile, userId, plan = "Basic" }: { pr
       const response = await fetch("/api/ai/career-coach", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: prompt, profile, analysis, userId, history: messages.slice(-8) })
+        body: JSON.stringify({ message: prompt, profile, analysis, userId, plan, usagePeriod, history: messages.slice(-8) })
       });
       const data = await response.json();
+      const monthlyUsed = Number(data?.usage?.used);
+      if (Number.isFinite(monthlyUsed)) {
+        setPromptsUsed(monthlyUsed);
+        window.localStorage.setItem(storageKey, String(monthlyUsed));
+      }
       setMessages((current) => [...current, { role: "assistant", body: data.reply || fallbackReply(prompt, analysis), createdAt: formatTime() }]);
     } catch {
       setMessages((current) => [...current, { role: "assistant", body: fallbackReply(prompt, analysis), createdAt: formatTime() }]);

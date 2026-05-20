@@ -9,8 +9,52 @@ type CoachRequest = {
   profile?: Record<string, unknown>;
   analysis?: ReturnType<typeof analyzeCandidateProfile>;
   userId?: string;
+  plan?: string;
+  usagePeriod?: string;
   history?: Array<{ role: string; body: string }>;
 };
+
+const FREE_PROMPT_LIMIT = 20;
+
+
+function getMonthlyUsagePeriod(date = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Dhaka", year: "numeric", month: "2-digit" }).format(date);
+}
+
+function getMonthRange(period = getMonthlyUsagePeriod()) {
+  const [year, month] = period.split("-").map(Number);
+  const start = new Date(Date.UTC(year, month - 1, 1));
+  const end = new Date(Date.UTC(year, month, 1));
+  return { period, start: start.toISOString(), end: end.toISOString() };
+}
+
+function getCoachClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) return null;
+  return createClient(url, key, { auth: { persistSession: false } });
+}
+
+async function getMonthlyPromptUsage(userId?: string, period?: string) {
+  const client = getCoachClient();
+  const range = getMonthRange(period);
+  if (!client || !userId) return { used: 0, limit: FREE_PROMPT_LIMIT, period: range.period };
+
+  try {
+    const { count, error } = await client
+      .from("career_coach_chats")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("role", "user")
+      .gte("created_at", range.start)
+      .lt("created_at", range.end);
+
+    if (error) throw error;
+    return { used: count || 0, limit: FREE_PROMPT_LIMIT, period: range.period };
+  } catch {
+    return { used: 0, limit: FREE_PROMPT_LIMIT, period: range.period };
+  }
+}
 
 function listOrFallback(items: string[], fallback: string) {
   return items.length ? items.join(", ") : fallback;
@@ -96,22 +140,36 @@ function fallbackReply(message: string, analysis: ReturnType<typeof analyzeCandi
 }
 
 async function saveCoachMessage(userId: string | undefined, role: "user" | "assistant", message: string) {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key || !userId) return;
+  const client = getCoachClient();
+  if (!client || !userId) return;
 
   try {
-    const client = createClient(url, key, { auth: { persistSession: false } });
     await client.from("career_coach_chats").insert({ user_id: userId, role, message });
   } catch {
     // Optional table: never block the coach response if storage is not deployed yet.
   }
 }
 
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const usage = await getMonthlyPromptUsage(searchParams.get("userId") || undefined, searchParams.get("period") || undefined);
+  return NextResponse.json({ usage });
+}
+
 export async function POST(request: Request) {
   const body = (await request.json()) as CoachRequest;
   const message = String(body.message || "").trim();
   if (!message) return NextResponse.json({ error: "Message is required" }, { status: 400 });
+
+  const isPro = String(body.plan || "").toLowerCase() === "pro";
+  const usageBefore = await getMonthlyPromptUsage(body.userId, body.usagePeriod);
+  if (!isPro && usageBefore.used >= FREE_PROMPT_LIMIT) {
+    return NextResponse.json({
+      error: "Monthly prompt limit reached",
+      reply: "You have reached this month's 20 free AI Career Coach prompts. Your limit resets next month, or you can upgrade to Pro for unlimited coaching.",
+      usage: usageBefore
+    }, { status: 429 });
+  }
 
   const analysis = body.analysis || analyzeCandidateProfile(body.profile || {});
   let reply = fallbackReply(message, analysis);
@@ -158,5 +216,9 @@ export async function POST(request: Request) {
     saveCoachMessage(body.userId, "assistant", reply)
   ]);
 
-  return NextResponse.json({ reply, analysis, aiEnabled: Boolean(process.env.OPENAI_API_KEY) });
+  const usageAfter = body.userId
+    ? await getMonthlyPromptUsage(body.userId, body.usagePeriod)
+    : { ...usageBefore, used: usageBefore.used + 1 };
+
+  return NextResponse.json({ reply, analysis, usage: usageAfter, aiEnabled: Boolean(process.env.OPENAI_API_KEY) });
 }
