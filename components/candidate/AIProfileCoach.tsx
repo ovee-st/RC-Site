@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
@@ -115,7 +115,7 @@ export default function AIProfileCoach({ profile, userId, plan = "Basic" }: { pr
         </div>
       </div>
 
-      <div className="border-b border-border px-3 py-2 dark:border-white/10">
+      <div className="border-b border-border bg-surface px-3 py-2 dark:border-white/10 dark:bg-surface-dark">
         <PromptChips disabled={limitReached || typing} onSelect={(prompt) => send(prompt)} />
       </div>
 
@@ -125,10 +125,10 @@ export default function AIProfileCoach({ profile, userId, plan = "Basic" }: { pr
         </div>
       ) : null}
 
-      <div ref={scrollRef} className="min-h-[160px] flex-1 space-y-3 overflow-y-auto bg-bg/70 p-3 dark:bg-white/[0.03]">
+      <div ref={scrollRef} className="min-h-[190px] flex-1 space-y-2.5 overflow-y-auto bg-[#f0f2f5] p-3 dark:bg-slate-950/60">
         {messages.map((message, index) => <ChatMessage key={`${message.role}-${index}-${message.createdAt}`} message={message} />)}
         {typing ? (
-          <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-2 text-xs font-black text-text-muted shadow-soft dark:border-white/10 dark:bg-slate-900 dark:text-slate-200">
+          <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="ml-9 inline-flex items-center gap-2 rounded-[18px] rounded-bl-md border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-500 shadow-sm dark:border-white/10 dark:bg-slate-800 dark:text-slate-200">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary [animation-delay:120ms]" />
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary [animation-delay:240ms]" />
@@ -137,7 +137,7 @@ export default function AIProfileCoach({ profile, userId, plan = "Basic" }: { pr
         ) : null}
       </div>
 
-      <div className="flex gap-2 border-t border-border bg-surface p-2.5 dark:border-white/10 dark:bg-surface-dark">
+      <div className="flex items-end gap-2 border-t border-border bg-white p-2.5 dark:border-white/10 dark:bg-surface-dark">
         <input
           value={input}
           disabled={limitReached}
@@ -146,12 +146,13 @@ export default function AIProfileCoach({ profile, userId, plan = "Basic" }: { pr
             if (event.key === "Enter") send();
           }}
           placeholder={limitReached ? "Upgrade to continue coaching" : "Ask the coach..."}
-          className="focus-ring min-w-0 flex-1 rounded-xl border border-border bg-bg px-3 py-2 text-xs font-semibold text-text-main outline-none dark:border-white/10 dark:bg-white/5 dark:text-white"
+          className="focus-ring min-w-0 flex-1 rounded-full border border-transparent bg-[#f0f2f5] px-4 py-2.5 text-xs font-semibold text-slate-800 outline-none placeholder:text-slate-400 dark:bg-white/10 dark:text-white"
         />
-        <Button type="button" disabled={limitReached || typing || !input.trim()} onClick={() => send()} className="gap-1.5 px-3 py-2 text-xs">
+        <Button type="button" disabled={limitReached || typing || !input.trim()} onClick={() => send()} className="h-10 rounded-full px-4 text-xs shadow-sm">
           <Send className="h-3.5 w-3.5" /> Send
         </Button>
       </div>
     </Card>
   );
 }
+
