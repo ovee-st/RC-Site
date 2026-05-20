@@ -1,0 +1,49 @@
+{
+  "name": "MX Venture Lab",
+  "short_name": "MXVL",
+  "description": "AI-powered hiring, candidate matching, ATS, support, and managed recruitment from MX Venture Lab.",
+  "id": "/",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "portrait-primary",
+  "background_color": "#F8FAFC",
+  "theme_color": "#2563EB",
+  "categories": ["business", "productivity", "utilities"],
+  "lang": "en",
+  "dir": "ltr",
+  "icons": [
+    { "src": "/android/icon-72.png", "sizes": "72x72", "type": "image/png", "purpose": "any" },
+    { "src": "/android/icon-96.png", "sizes": "96x96", "type": "image/png", "purpose": "any" },
+    { "src": "/android/icon-128.png", "sizes": "128x128", "type": "image/png", "purpose": "any" },
+    { "src": "/android/icon-144.png", "sizes": "144x144", "type": "image/png", "purpose": "any" },
+    { "src": "/android/icon-152.png", "sizes": "152x152", "type": "image/png", "purpose": "any" },
+    { "src": "/android/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/android/icon-384.png", "sizes": "384x384", "type": "image/png", "purpose": "any" },
+    { "src": "/android/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Browse Jobs",
+      "short_name": "Jobs",
+      "description": "Open available roles",
+      "url": "/jobs?source=pwa-shortcut",
+      "icons": [{ "src": "/android/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Candidate Dashboard",
+      "short_name": "Candidate",
+      "description": "Open candidate command center",
+      "url": "/candidate?source=pwa-shortcut",
+      "icons": [{ "src": "/android/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Employer Dashboard",
+      "short_name": "Employer",
+      "description": "Open employer command center",
+      "url": "/employer?source=pwa-shortcut",
+      "icons": [{ "src": "/android/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

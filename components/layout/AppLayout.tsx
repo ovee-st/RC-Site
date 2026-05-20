@@ -3,10 +3,12 @@ import Navbar from "@/components/layout/Navbar";
 import PageTransition from "@/components/layout/PageTransition";
 import ThemeToggle from "@/components/theme/ThemeToggle";
 import LazyChatWidget from "@/components/layout/LazyChatWidget";
+import ServiceWorkerRegister from "@/components/layout/ServiceWorkerRegister";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   return (
     <div className="depth-page min-h-screen text-text-main antialiased dark:text-white">
+      <ServiceWorkerRegister />
       <Navbar />
       <PageTransition>{children}</PageTransition>
       <LazyChatWidget />
