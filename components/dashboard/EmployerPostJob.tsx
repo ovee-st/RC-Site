@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { BriefcaseBusiness, Plus, Save, X } from "lucide-react";
+import { BriefcaseBusiness, Plus, Save, Sparkles, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { Job } from "@/types";
 import { Button } from "@/components/ui/Button";
@@ -103,12 +103,54 @@ export default function EmployerPostJob({ label = "Post New Job" }: { label?: st
 
   const selectedSkills = form.skills.split(",").map((skill) => skill.trim()).filter(Boolean);
 
+  const buildAiSampleJD = () => {
+    const fallback = sampleJds[form.category] || sampleJds["General Management/Admin"];
+    const title = form.title.trim() || fallback.title;
+    const department = form.category || "General Management/Admin";
+    const seniority = form.experience || "Mid Level";
+    const years = Number(form.experienceYears) || (seniority === "Entry Level" ? 0 : seniority === "Senior Level" ? 5 : 2);
+    const skills = selectedSkills.length ? selectedSkills : fallback.skills.split(",").map((skill) => skill.trim()).filter(Boolean);
+    const skillText = skills.slice(0, 6).join(", ");
+
+    const domain = department.toLowerCase();
+    const domainFocus = domain.includes("hr") || domain.includes("admin")
+      ? "HR operations, administrative coordination, documentation, vendor follow-up, reporting, and team support"
+      : domain.includes("customer") || domain.includes("call")
+        ? "customer communication, case handling, CRM updates, escalation follow-up, and service quality"
+        : domain.includes("it") || domain.includes("telecommunication")
+          ? "technical delivery, troubleshooting, documentation, user support, and system reliability"
+          : domain.includes("marketing") || domain.includes("sales")
+            ? "lead generation, campaign execution, client communication, pipeline tracking, and performance reporting"
+            : domain.includes("production") || domain.includes("operation")
+              ? "daily operations, process control, team coordination, quality tracking, and workflow improvement"
+              : "day-to-day execution, stakeholder coordination, reporting, documentation, and measurable business outcomes";
+
+    return {
+      title,
+      skills: skills.join(", "),
+      description: `${title} will support ${department} functions with strong ownership of ${domainFocus}. This role is designed for a ${seniority.toLowerCase()} professional who can work independently, communicate clearly, and keep operational priorities moving with accuracy and speed.
+
+Responsibilities:
+- Own daily execution for ${department} related tasks and follow-ups
+- Coordinate with internal teams, vendors, candidates, clients, or stakeholders as required
+- Maintain accurate documentation, reports, trackers, and process updates
+- Use ${skillText || "role-relevant tools and communication skills"} to complete work efficiently
+- Identify blockers early and support practical improvements to team workflow`,
+      requirements: `Requirements:
+- ${years}+ years of relevant experience preferred for this ${seniority.toLowerCase()} role
+- Practical knowledge of ${department} workflows and business communication
+- Hands-on capability in ${skillText || "the required role skills"}
+- Strong ownership, follow-up discipline, and problem-solving ability
+- Comfortable working in a fast-moving environment with clear reporting expectations`
+    };
+  };
+
   const applySampleJD = () => {
-    const sample = sampleJds[form.category] || sampleJds["General Management/Admin"];
+    const sample = buildAiSampleJD();
     setForm((current) => ({
       ...current,
       title: current.title || sample.title,
-      skills: sample.skills,
+      skills: current.skills.trim() ? current.skills : sample.skills,
       description: sample.description,
       requirements: sample.requirements
     }));
@@ -303,7 +345,8 @@ export default function EmployerPostJob({ label = "Post New Job" }: { label?: st
               </div>
               <div className="flex flex-wrap items-center justify-between gap-3 md:col-span-2">
                 <Button type="button" variant="secondary" onClick={applySampleJD} className="rounded-xl px-4 py-2">
-                  Use Sample JD
+                  <Sparkles className="h-4 w-4" />
+                  AI Sample JD
                 </Button>
                 <div className="flex flex-wrap gap-2">
                   <Button type="button" variant="ghost" onClick={() => insertFormatting("description", "Responsibilities:\n- \n- \n- ")} className="rounded-xl px-3 py-2">Add responsibilities</Button>
