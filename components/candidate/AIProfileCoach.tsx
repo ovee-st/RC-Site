@@ -11,7 +11,7 @@ import PromptChips from "@/components/candidate/PromptChips";
 import ProfileInsightBadges from "@/components/candidate/ProfileInsightBadges";
 import { analyzeCandidateProfile, type ProfileAnalysisInput } from "@/lib/ai/profile-analysis";
 
-const FREE_PROMPT_LIMIT = 10;
+const FREE_PROMPT_LIMIT = 20;
 
 function monthKey(userId?: string) {
   const now = new Date();
