@@ -1,4 +1,4 @@
-﻿export type CandidateProfile = {
+export type CandidateProfile = {
   id: string;
   userId?: string;
   name: string;
@@ -82,4 +82,10 @@ export type CandidateAnalytics = {
   recruiterResponseRate: number;
   profileViews: number;
   skillTrends: Array<{ skill: string; value: number }>;
+  resumeScore?: number;
+  atsOptimization?: number;
+  experienceStrength?: number;
+  skillsCoverage?: number;
+  keywordMatch?: number;
 };
+

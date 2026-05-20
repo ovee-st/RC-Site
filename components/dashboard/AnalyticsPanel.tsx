@@ -6,21 +6,33 @@ import type { CandidateAnalytics } from "@/types/candidate";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 
-const clamp = (value: number) => Math.max(0, Math.min(100, Math.round(value)));
+const clamp = (value: number) => Math.max(0, Math.min(100, Math.round(Number.isFinite(value) ? value : 0)));
+const positiveNumber = (value: number) => Math.max(0, Math.round(Number.isFinite(value) ? value : 0));
+
+function trendValue(analytics: CandidateAnalytics, label: string, fallback: number) {
+  const match = analytics.skillTrends.find((trend) => trend.skill.toLowerCase() === label.toLowerCase());
+  return clamp(match?.value ?? fallback);
+}
 
 export default function AnalyticsPanel({ analytics }: { analytics: CandidateAnalytics }) {
+  const resumeScore = clamp(analytics.resumeScore ?? analytics.applicationSuccessRate + 8);
+  const interviewsCompleted = positiveNumber(analytics.interviewsCompleted);
+  const recruiterResponseRate = clamp(analytics.recruiterResponseRate);
+  const profileViews = positiveNumber(analytics.profileViews);
+
   const metrics = [
-    { label: "Resume score", value: `${clamp(analytics.applicationSuccessRate + 8)}%`, icon: Percent, tone: "from-blue-500 to-cyan-400" },
-    { label: "Interviews", value: analytics.interviewsCompleted.toString(), icon: Activity, tone: "from-emerald-500 to-teal-400" },
-    { label: "Response rate", value: `${analytics.recruiterResponseRate}%`, icon: LineChart, tone: "from-amber-500 to-orange-400" },
-    { label: "Profile views", value: analytics.profileViews.toString(), icon: Eye, tone: "from-violet-500 to-blue-500" }
+    { label: "Resume score", value: `${resumeScore}%`, icon: Percent, tone: "from-blue-500 to-cyan-400" },
+    { label: "Interviews", value: interviewsCompleted.toString(), icon: Activity, tone: "from-emerald-500 to-teal-400" },
+    { label: "Response rate", value: `${recruiterResponseRate}%`, icon: LineChart, tone: "from-amber-500 to-orange-400" },
+    { label: "Profile views", value: profileViews.toString(), icon: Eye, tone: "from-violet-500 to-blue-500" }
   ];
 
+  const trendAverage = analytics.skillTrends.reduce((sum, trend) => sum + trend.value, 0) / Math.max(analytics.skillTrends.length, 1);
   const skillSignals = [
-    { label: "ATS Optimization", value: clamp(analytics.applicationSuccessRate + 12) },
-    { label: "Experience Strength", value: clamp(analytics.interviewsCompleted * 18 + 58) },
-    { label: "Skills Coverage", value: clamp(analytics.skillTrends.reduce((sum, trend) => sum + trend.value, 0) / Math.max(analytics.skillTrends.length, 1)) },
-    { label: "Keyword Match", value: clamp(analytics.recruiterResponseRate + 10) }
+    { label: "ATS Optimization", value: trendValue(analytics, "ATS Optimization", analytics.atsOptimization ?? resumeScore) },
+    { label: "Experience Strength", value: trendValue(analytics, "Experience Strength", analytics.experienceStrength ?? interviewsCompleted * 18 + 58) },
+    { label: "Skills Coverage", value: trendValue(analytics, "Skills Coverage", analytics.skillsCoverage ?? trendAverage) },
+    { label: "Keyword Match", value: trendValue(analytics, "Keyword Match", analytics.keywordMatch ?? recruiterResponseRate + 10) }
   ];
 
   return (
@@ -30,7 +42,7 @@ export default function AnalyticsPanel({ analytics }: { analytics: CandidateAnal
           <Badge variant="primary">Career performance</Badge>
           <h2 className="mt-2 text-lg font-black text-text-main dark:text-white">Performance snapshot</h2>
           <p className="mt-1 text-xs font-semibold text-text-muted dark:text-slate-400">
-            Compact signals from your CV, applications, interviews, and recruiter engagement.
+            Live signals from your CV, applications, interviews, and recruiter engagement.
           </p>
         </div>
       </div>

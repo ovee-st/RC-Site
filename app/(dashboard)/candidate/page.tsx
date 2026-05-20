@@ -160,19 +160,6 @@ const dashboardInterviews: InterviewEvent[] = [
   }
 ];
 
-const dashboardAnalytics: CandidateAnalytics = {
-  applicationSuccessRate: 64,
-  interviewsCompleted: 5,
-  recruiterResponseRate: 78,
-  profileViews: 143,
-  skillTrends: [
-    { skill: "Admin", value: 92 },
-    { skill: "Excel", value: 86 },
-    { skill: "Coordination", value: 89 },
-    { skill: "Communication", value: 74 }
-  ]
-};
-
 const dashboardRecommendedJobs: JobRecommendation[] = [
   { id: "rec-1", title: "Admin & Operations Manager", company: "MX Partner Employer", location: "Dhaka", workType: "On-site", matchScore: 94, salaryRange: "BDT 30k-50k", matchedSkills: ["Admin", "Excel", "Coordination"], missingSkills: ["ERP"], why: "Your operations and documentation background strongly matches this role." },
   { id: "rec-2", title: "HR & Admin Executive", company: "Growth Textile Ltd", location: "Savar", workType: "Hybrid", matchScore: 86, salaryRange: "BDT 25k-40k", matchedSkills: ["HR Operations", "Documentation"], missingSkills: ["Payroll"], why: "Strong HR administration overlap with manageable missing payroll exposure." }
@@ -1044,6 +1031,62 @@ export default function CandidateDashboard() {
     }
   ], [floatingMatches]);
 
+  const performanceAnalytics = useMemo<CandidateAnalytics>(() => {
+    const activeStatuses = ["Applied", "Under Review", "Shortlisted", "Interview", "Offer", "Hired"];
+    const responseStatuses = ["Under Review", "Shortlisted", "Interview", "Offer", "Hired"];
+    const filledExperience = profile.experience.filter((item) => item.role || item.company || item.description).length;
+    const filledEducation = profile.education.filter((item) => item.degree || item.institution).length;
+    const filledCertifications = profile.certifications.filter((item) => item.name || item.organization).length;
+    const skillCount = profile.skills.filter(Boolean).length;
+    const activeApplications = dashboardApplications.filter((application) => activeStatuses.includes(application.status)).length;
+    const responses = dashboardApplications.filter((application) => responseStatuses.includes(application.status)).length;
+    const interviewCount = Math.max(
+      dashboardInterviews.length,
+      dashboardApplications.filter((application) => /interview/i.test(application.status)).length
+    );
+    const responseRate = dashboardApplications.length ? Math.round((responses / dashboardApplications.length) * 100) : 0;
+    const averageMatchScore = dashboardApplications.length
+      ? Math.round(dashboardApplications.reduce((sum, application) => sum + application.matchScore, 0) / dashboardApplications.length)
+      : matchedJobs[0]?.match.score || 0;
+    const profileCompleteness = Math.min(100,
+      (profile.name ? 10 : 0) +
+      (profile.title ? 10 : 0) +
+      (profile.about ? 15 : 0) +
+      (profile.location ? 10 : 0) +
+      (skillCount ? 20 : 0) +
+      (filledExperience ? 20 : 0) +
+      (filledEducation ? 10 : 0) +
+      (filledCertifications ? 5 : 0)
+    );
+    const resumeScore = Math.min(100, Math.round(profileCompleteness * 0.55 + averageMatchScore * 0.3 + responseRate * 0.15));
+    const atsOptimization = Math.min(100, Math.round(resumeScore + Math.min(skillCount, 8)));
+    const experienceStrength = Math.min(100, Math.round(45 + filledExperience * 18 + interviewCount * 8));
+    const skillsCoverage = Math.min(100, Math.round(skillCount * 12 + averageMatchScore * 0.25));
+    const keywordMatch = Math.min(100, Math.round(averageMatchScore * 0.75 + responseRate * 0.25));
+    const profileViews = Math.max(
+      recentActivities.filter((activity) => /view/i.test(activity.title)).length,
+      activeApplications * 18 + matchedJobs.filter(({ match }) => match.score >= 70).length * 7
+    );
+
+    return {
+      applicationSuccessRate: resumeScore,
+      interviewsCompleted: interviewCount,
+      recruiterResponseRate: responseRate,
+      profileViews,
+      resumeScore,
+      atsOptimization,
+      experienceStrength,
+      skillsCoverage,
+      keywordMatch,
+      skillTrends: [
+        { skill: "ATS Optimization", value: atsOptimization },
+        { skill: "Experience Strength", value: experienceStrength },
+        { skill: "Skills Coverage", value: skillsCoverage },
+        { skill: "Keyword Match", value: keywordMatch }
+      ]
+    };
+  }, [matchedJobs, profile, recentActivities]);
+
   useEffect(() => {
     const nextProfile = loadSavedProfile(user);
     setProfile(nextProfile);
@@ -1285,7 +1328,7 @@ export default function CandidateDashboard() {
                   </div>
 
                   <div className="col-span-12 lg:col-span-6">
-                    <AnalyticsPanel analytics={dashboardAnalytics} />
+                    <AnalyticsPanel analytics={performanceAnalytics} />
                   </div>
 
                   <div className="col-span-12">
