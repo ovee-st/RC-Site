@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { ArrowRight, ChevronDown, MapPin, Sparkles } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -77,7 +77,7 @@ export default function JobRecommendations({ jobs, candidateProfile }: { jobs: J
   const visibleJobs = expanded ? recommendations : recommendations.slice(0, 2);
 
   return (
-    <Card className={cn("overflow-hidden p-4 transition-all", expanded ? "h-auto" : "h-[430px]")}>
+    <Card className="overflow-hidden p-4 transition-all">
       <div className="flex items-center justify-between gap-3">
         <div>
           <Badge variant="primary">AI job recommendations</Badge>
@@ -96,7 +96,7 @@ export default function JobRecommendations({ jobs, candidateProfile }: { jobs: J
           <ChevronDown className={cn("h-3.5 w-3.5 transition", expanded && "rotate-180")} />
         </Button>
       </div>
-      <div className={cn("mt-4 grid gap-3 overflow-y-auto pr-1", expanded ? "max-h-[720px]" : "max-h-[320px]")}>
+      <div className={cn("mt-3 grid gap-3 overflow-y-auto pr-1", expanded ? "max-h-[620px]" : "max-h-[300px]")}>
         {!visibleJobs.length ? (
           <div className="rounded-2xl border border-dashed border-border bg-bg p-4 text-sm font-semibold text-text-muted dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
             No 70%+ job matches yet. Add more skills or update your profile summary to improve AI matching.
@@ -117,7 +117,7 @@ export default function JobRecommendations({ jobs, candidateProfile }: { jobs: J
               {job.matchedSkills.map((skill) => <Badge key={skill} variant="success">{skill}</Badge>)}
               {job.missingSkills.map((skill) => <Badge key={skill}>{skill}</Badge>)}
             </div>
-            <LinkButton href={`/jobs?job=${encodeURIComponent(job.id)}`} className="mt-3 w-full gap-2 px-3 py-2 text-xs">View job <ArrowRight className="h-3.5 w-3.5" /></LinkButton>
+            <LinkButton href={`/jobs?job=${encodeURIComponent(job.id)}`} className="mt-2.5 w-full gap-2 px-3 py-2 text-xs">View job <ArrowRight className="h-3.5 w-3.5" /></LinkButton>
           </div>
         ))}
       </div>

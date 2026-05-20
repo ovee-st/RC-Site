@@ -24,7 +24,7 @@ export default function AnalyticsPanel({ analytics }: { analytics: CandidateAnal
   ];
 
   return (
-    <Card className="p-5 shadow-soft md:p-6">
+    <Card className="p-4 shadow-soft md:p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
           <Badge variant="primary">Career performance</Badge>
@@ -35,7 +35,7 @@ export default function AnalyticsPanel({ analytics }: { analytics: CandidateAnal
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {metrics.map((metric) => {
           const Icon = metric.icon;
           return (
@@ -54,7 +54,7 @@ export default function AnalyticsPanel({ analytics }: { analytics: CandidateAnal
         })}
       </div>
 
-      <div className="mt-4 rounded-2xl border border-border bg-bg p-4 dark:border-white/10 dark:bg-white/5">
+      <div className="mt-3 rounded-2xl border border-border bg-bg p-3.5 dark:border-white/10 dark:bg-white/5">
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-sm font-black text-text-main dark:text-white">Profile readiness signals</h3>
           <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-black text-primary">Live analysis</span>

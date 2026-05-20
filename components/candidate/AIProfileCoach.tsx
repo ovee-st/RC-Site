@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
@@ -127,7 +127,7 @@ export default function AIProfileCoach({ profile, userId, plan = "Basic" }: { pr
   return (
     <>
       <Card className="flex flex-col overflow-hidden p-0 shadow-soft">
-        <div className="border-b border-border bg-gradient-to-br from-primary/10 via-white to-success/10 p-4 dark:border-white/10 dark:from-blue-500/15 dark:via-surface-dark dark:to-emerald-400/10">
+        <div className="border-b border-border bg-gradient-to-br from-primary/10 via-white to-success/10 p-3.5 dark:border-white/10 dark:from-blue-500/15 dark:via-surface-dark dark:to-emerald-400/10">
           <div className="flex items-start justify-between gap-3">
             <div>
               <Badge variant="primary">AI Career Coach</Badge>
@@ -141,7 +141,7 @@ export default function AIProfileCoach({ profile, userId, plan = "Basic" }: { pr
           </div>
         </div>
 
-        <div className="space-y-3 p-4">
+        <div className="space-y-3 p-3.5">
           <div className="overflow-hidden border-b border-border pb-3 dark:border-white/10">
             <PromptChips disabled={limitReached || typing} onSelect={(prompt) => send(prompt)} />
           </div>
@@ -155,7 +155,7 @@ export default function AIProfileCoach({ profile, userId, plan = "Basic" }: { pr
           <button
             type="button"
             onClick={() => setChatOpen(true)}
-            className="group w-full rounded-3xl border border-slate-200 bg-[#f7f9fc] p-4 text-left transition hover:-translate-y-0.5 hover:border-primary/30 hover:bg-white hover:shadow-md dark:border-white/10 dark:bg-slate-950/50 dark:hover:bg-slate-900"
+            className="group w-full rounded-3xl border border-slate-200 bg-[#f7f9fc] p-3.5 text-left transition hover:-translate-y-0.5 hover:border-primary/30 hover:bg-white hover:shadow-md dark:border-white/10 dark:bg-slate-950/50 dark:hover:bg-slate-900"
           >
             <div className="flex items-start gap-3">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-primary shadow-sm ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-white/10">
@@ -190,7 +190,7 @@ export default function AIProfileCoach({ profile, userId, plan = "Basic" }: { pr
             exit={{ opacity: 0, y: 10, scale: 0.98 }}
             className="flex h-[86vh] w-full max-w-4xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950"
           >
-            <div className="border-b border-border bg-gradient-to-r from-primary/10 via-white to-success/10 p-4 dark:border-white/10 dark:via-slate-950">
+            <div className="border-b border-border bg-gradient-to-r from-primary/10 via-white to-success/10 p-3.5 dark:border-white/10 dark:via-slate-950">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <Badge variant="primary">AI Career Coach</Badge>

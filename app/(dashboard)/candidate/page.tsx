@@ -1151,15 +1151,15 @@ export default function CandidateDashboard() {
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-bg dark:bg-slate-950">
-      <Container className="py-6">
-        <div className="mb-6 border-b border-border pb-6">
+      <Container className="py-5">
+        <div className="mb-5 border-b border-border pb-5">
           <Badge variant="primary" className="type-label text-primary">Candidate Portal</Badge>
-          <h1 className="type-h1 mt-3">Your Career Command Center</h1>
-          <p className="type-body mt-3 max-w-xl">Manage your profile, discover matched jobs, track applications, and generate professional CVs.</p>
+          <h1 className="type-h1 mt-2">Your Career Command Center</h1>
+          <p className="type-body mt-2 max-w-xl">Manage your profile, discover matched jobs, track applications, and generate professional CVs.</p>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
-          <Card className="h-fit p-4 shadow-soft lg:sticky lg:top-24">
+        <div className="grid gap-4 lg:grid-cols-[200px_1fr]">
+          <Card className="h-fit p-3 shadow-soft lg:sticky lg:top-24">
             <div className="flex items-center gap-3">
               <ProfileAvatar src={profile.avatar} name={profile.name} className="h-12 w-12 text-sm" />
               <div className="min-w-0">
@@ -1168,7 +1168,7 @@ export default function CandidateDashboard() {
               </div>
             </div>
 
-            <div className="mt-5 grid gap-1">
+            <div className="mt-4 grid gap-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const active = activeTab === item.id;
@@ -1196,15 +1196,15 @@ export default function CandidateDashboard() {
               <div className="space-y-4">
                 <StatsCards profile={dashboardProfile} applications={dashboardApplications} />
 
-                <div className="grid grid-cols-12 gap-4 xl:gap-6">
-                  <Card className="col-span-12 overflow-hidden p-0 shadow-soft lg:col-span-6 xl:col-span-5">
-                    <div className="bg-gradient-to-br from-primary via-blue-500 to-success p-5 text-white md:p-6">
+                <div className="grid grid-cols-12 gap-4">
+                  <Card className="col-span-12 overflow-hidden p-0 shadow-soft lg:col-span-5">
+                    <div className="bg-gradient-to-br from-primary via-blue-500 to-success p-4 text-white md:p-5">
                       <p className="text-[11px] font-black uppercase tracking-[0.22em] text-white/75">Candidate home</p>
                       <h2 className="mt-2 text-2xl font-black tracking-tight md:text-3xl">Your AI hiring command center is ready.</h2>
                       <p className="mt-2 max-w-xl text-sm leading-6 text-white/85">
                         Track profile strength, applications, interviews, resume health, and AI job recommendations from one place.
                       </p>
-                      <div className="mt-5 grid gap-2 sm:grid-cols-3">
+                      <div className="mt-4 grid gap-2 sm:grid-cols-3">
                         {[
                           { label: "Improve profile", onClick: () => setActiveTab("profile") },
                           { label: "Download CV", onClick: () => setActiveTab("resume") },
@@ -1223,7 +1223,7 @@ export default function CandidateDashboard() {
                     </div>
                   </Card>
 
-                  <Card className="col-span-12 p-5 shadow-soft lg:col-span-6 xl:col-span-7">
+                  <Card className="col-span-12 p-4 shadow-soft lg:col-span-7">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <Badge variant="primary">Recent activity</Badge>
@@ -1237,7 +1237,7 @@ export default function CandidateDashboard() {
                         View matches
                       </button>
                     </div>
-                    <div className="mt-4 grid gap-2 md:grid-cols-2">
+                    <div className="mt-3 grid gap-2 md:grid-cols-2">
                       {recentActivities.map((item, index) => (
                         <button
                           key={item.title}
@@ -1280,15 +1280,15 @@ export default function CandidateDashboard() {
                     <JobRecommendations jobs={dashboardRecommendedJobs} />
                   </div>
 
-                  <div id="candidate-interviews-section" className="col-span-12 lg:col-span-5">
+                  <div id="candidate-interviews-section" className="col-span-12 lg:col-span-6">
                     <InterviewSection interviews={dashboardInterviews} />
                   </div>
 
-                  <div className="col-span-12 lg:col-span-7">
+                  <div className="col-span-12 lg:col-span-6">
                     <AnalyticsPanel analytics={dashboardAnalytics} />
                   </div>
 
-                  <div className="col-span-12 lg:col-span-8">
+                  <div className="col-span-12">
                     <ResumeSection profile={dashboardProfile} documents={dashboardDocuments} />
                   </div>
 
@@ -1808,6 +1808,9 @@ export default function CandidateDashboard() {
     </main>
   );
 }
+
+
+
 
 
 

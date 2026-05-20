@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useMemo, useState } from "react";
 import { DragDropContext, Draggable, Droppable, type DropResult } from "@hello-pangea/dnd";
@@ -22,7 +22,7 @@ export default function ApplicationPipeline({ applications: initialApplications 
 
   return (
     <Card className="p-4">
-      <div className="mb-4 flex items-start justify-between gap-4">
+      <div className="mb-3 flex items-start justify-between gap-4">
         <div>
           <Badge variant="primary">Application tracker</Badge>
           <h2 className="mt-1 text-lg font-black text-text-main dark:text-white">Hiring progress snapshot</h2>
@@ -34,12 +34,12 @@ export default function ApplicationPipeline({ applications: initialApplications 
           {stages.map((stage) => (
             <Droppable droppableId={stage} key={stage}>
               {(provided, snapshot) => (
-                <div ref={provided.innerRef} {...provided.droppableProps} className={`min-h-[220px] min-w-[190px] rounded-2xl border border-border bg-bg p-2.5 dark:border-white/10 dark:bg-white/5 ${snapshot.isDraggingOver ? "ring-2 ring-primary/30" : ""}`}>
+                <div ref={provided.innerRef} {...provided.droppableProps} className={`min-h-[190px] min-w-[170px] rounded-2xl border border-border bg-bg p-2.5 dark:border-white/10 dark:bg-white/5 ${snapshot.isDraggingOver ? "ring-2 ring-primary/30" : ""}`}>
                   <div className="mb-3 flex items-center justify-between">
                     <h3 className="text-xs font-black text-text-main dark:text-white">{stage}</h3>
                     <Badge>{grouped[stage].length}</Badge>
                   </div>
-                  <div className="max-h-[180px] space-y-2 overflow-y-auto pr-1">
+                  <div className="max-h-[150px] space-y-2 overflow-y-auto pr-1">
                     {grouped[stage].map((app, index) => (
                       <Draggable draggableId={app.id} index={index} key={app.id}>
                         {(dragProvided) => (
@@ -60,7 +60,7 @@ export default function ApplicationPipeline({ applications: initialApplications 
                       </Draggable>
                     ))}
                     {provided.placeholder}
-                    {!grouped[stage].length ? <div className="grid h-28 place-items-center rounded-2xl border border-dashed border-border px-3 text-center text-xs font-semibold text-text-muted dark:border-white/10">No {stage.toLowerCase()} applications</div> : null}
+                    {!grouped[stage].length ? <div className="grid h-24 place-items-center rounded-2xl border border-dashed border-border px-3 text-center text-xs font-semibold text-text-muted dark:border-white/10">No {stage.toLowerCase()} applications</div> : null}
                   </div>
                 </div>
               )}

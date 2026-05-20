@@ -65,22 +65,22 @@ export default function StatsCards({ profile, applications, upcomingInterviews =
         const Icon = stat.icon;
         return (
           <motion.div key={stat.label} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.06 }}>
-            <Card className="group min-h-[145px] overflow-hidden p-0">
+            <Card className="group min-h-[124px] overflow-hidden p-0">
               <button
                 type="button"
                 onClick={() => openTarget(stat)}
-                className="block h-full w-full p-4 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                className="block h-full w-full p-3.5 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                 aria-label={stat.targetLabel}
               >
                 <div className="flex items-start justify-between gap-3">
-                  <div className={`grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br ${stat.tone} text-white shadow-soft`}>
+                  <div className={`grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br ${stat.tone} text-white shadow-soft`}>
                     <Icon className="h-4 w-4" />
                   </div>
                   <ArrowUpRight className="h-4 w-4 text-text-muted transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-primary" />
                 </div>
-                <p className="mt-4 text-xs font-bold text-text-muted dark:text-slate-300">{stat.label}</p>
+                <p className="mt-3 text-xs font-bold text-text-muted dark:text-slate-300">{stat.label}</p>
                 <p className="mt-1 text-2xl font-black tracking-tight text-text-main dark:text-white">{stat.value}</p>
-                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-border dark:bg-white/10">
+                <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-border dark:bg-white/10">
                   <motion.div initial={{ width: 0 }} animate={{ width: `${stat.bar}%` }} transition={{ duration: 0.7, ease: "easeOut" }} className={`h-full rounded-full bg-gradient-to-r ${stat.tone}`} />
                 </div>
               </button>
