@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">MX Venture Lab</string>
+    <string name="title_activity_main">MX Venture Lab</string>
+    <string name="package_name">com.mxventurelab.app</string>
+    <string name="custom_url_scheme">com.mxventurelab.app</string>
+</resources>
