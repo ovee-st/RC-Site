@@ -1,4 +1,4 @@
-package com.mxventurelab.rc.feature.auth
+﻿package com.mxventurelab.rc.feature.auth
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -25,6 +25,7 @@ import com.mxventurelab.rc.navigation.RcRoutes
 @Composable
 fun LoginScreen(navController: NavController, viewModel: LoginViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsState()
+
     LaunchedEffect(state.role) {
         val route = when (state.role) {
             Role.Candidate -> RcRoutes.Candidate
@@ -34,8 +35,15 @@ fun LoginScreen(navController: NavController, viewModel: LoginViewModel = hiltVi
             Role.Recruiter -> RcRoutes.Recruiter
             else -> null
         }
-        if (route != null) navController.navigate(route) { popUpTo(RcRoutes.Home) }
+
+        if (route != null) {
+            navController.navigate(route) {
+                popUpTo(RcRoutes.Home) { inclusive = true }
+                launchSingleTop = true
+            }
+        }
     }
+
     Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.Center) {
         RcCard {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -50,3 +58,4 @@ fun LoginScreen(navController: NavController, viewModel: LoginViewModel = hiltVi
         }
     }
 }
+

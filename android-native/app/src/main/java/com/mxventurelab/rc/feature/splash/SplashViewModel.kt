@@ -1,4 +1,4 @@
-package com.mxventurelab.rc.feature.splash
+﻿package com.mxventurelab.rc.feature.splash
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -21,5 +21,5 @@ class SplashViewModel @Inject constructor(authRepository: AuthRepository) : View
             Role.Recruiter -> "recruiter"
             else -> "home"
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "home")
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, "loading")
 }

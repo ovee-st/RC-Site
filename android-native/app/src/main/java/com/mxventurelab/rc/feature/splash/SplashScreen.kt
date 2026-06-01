@@ -37,9 +37,11 @@ fun SplashScreen(navController: NavController, viewModel: SplashViewModel = hilt
     val logo = if (isSystemInDarkTheme()) R.drawable.mxvl_logo_dark else R.drawable.mxvl_logo
 
     LaunchedEffect(destination) {
+        if (destination == "loading") return@LaunchedEffect
         delay(2200)
         navController.navigate(destination.toRoute()) {
             popUpTo(RcRoutes.Splash) { inclusive = true }
+            launchSingleTop = true
         }
     }
 
@@ -67,3 +69,7 @@ private fun String.toRoute(): String = when (this) {
     "recruiter" -> RcRoutes.Recruiter
     else -> RcRoutes.Home
 }
+
+
+
+
