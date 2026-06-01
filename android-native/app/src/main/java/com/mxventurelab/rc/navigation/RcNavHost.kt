@@ -10,6 +10,7 @@ import com.mxventurelab.rc.feature.auth.RegisterScreen
 import com.mxventurelab.rc.feature.candidate.CandidateDashboardScreen
 import com.mxventurelab.rc.feature.employer.EmployerDashboardScreen
 import com.mxventurelab.rc.feature.home.HomeShell
+import com.mxventurelab.rc.feature.jobs.JobsScreen
 import com.mxventurelab.rc.feature.messaging.MessagingScreen
 import com.mxventurelab.rc.feature.notifications.NotificationCenterScreen
 import com.mxventurelab.rc.feature.recruiter.RecruiterDashboardScreen
@@ -31,5 +32,6 @@ fun RcNavHost() {
         composable(RcRoutes.Recruiter) { RecruiterDashboardScreen(navController) }
         composable(RcRoutes.Notifications) { NotificationCenterScreen(navController) }
         composable(RcRoutes.Messaging) { MessagingScreen(navController) }
+        composable(RcRoutes.Jobs) { JobsScreen(navController) }
     }
 }

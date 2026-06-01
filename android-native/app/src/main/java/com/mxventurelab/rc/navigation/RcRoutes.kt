@@ -12,4 +12,5 @@ object RcRoutes {
     const val Recruiter = "recruiter"
     const val Notifications = "notifications"
     const val Messaging = "messaging"
+    const val Jobs = "jobs"
 }
