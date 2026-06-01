@@ -1,4 +1,4 @@
-package com.mxventurelab.rc.data.repository
+﻿package com.mxventurelab.rc.data.repository
 
 import com.mxventurelab.rc.core.session.TokenStore
 import com.mxventurelab.rc.data.remote.LoginRequest
@@ -19,9 +19,10 @@ class AuthRepository @Inject constructor(
 
     suspend fun login(email: String, password: String): Result<UserSession> = runCatching {
         val response = api.login(LoginRequest(email, password))
-        val data = response.data ?: mockSession(email)
+        response.error?.let { throw IllegalStateException(it) }
+        val data = response.data ?: throw IllegalStateException("Login failed. Please try again.")
         val session = UserSession(
-            accessToken = data.accessToken ?: "mock-token",
+            accessToken = data.accessToken ?: throw IllegalStateException("Login session was not returned."),
             refreshToken = data.refreshToken,
             userId = data.userId ?: email,
             username = data.username ?: email.substringBefore("@"),
@@ -36,9 +37,10 @@ class AuthRepository @Inject constructor(
 
     suspend fun register(fullName: String, email: String, password: String, role: Role): Result<UserSession> = runCatching {
         val response = api.register(RegisterRequest(fullName, email, password, role.name.lowercase()))
-        val data = response.data ?: mockSession(email, role.name)
+        response.error?.let { throw IllegalStateException(it) }
+        val data = response.data ?: throw IllegalStateException("Registration failed. Please try again.")
         val session = UserSession(
-            accessToken = data.accessToken ?: "mock-token",
+            accessToken = data.accessToken ?: throw IllegalStateException("Registration session was not returned."),
             refreshToken = data.refreshToken,
             userId = data.userId ?: email,
             username = data.username ?: "${role.name.lowercase()}_${email.hashCode().toString().takeLast(6)}",
@@ -52,9 +54,6 @@ class AuthRepository @Inject constructor(
     }
 
     suspend fun logout() = tokenStore.clear()
-
-    private fun mockSession(email: String, role: String = inferRole(email)) =
-        com.mxventurelab.rc.data.remote.ApiSession("mock-token", null, email, email.substringBefore("@"), email.substringBefore("@"), email, role, null)
 
     private fun inferRole(email: String): String = when {
         email.contains("admin", true) -> "admin"
