@@ -1,0 +1,3 @@
+-keep class com.mxventurelab.rc.** { *; }
+-keep class com.squareup.moshi.** { *; }
+-dontwarn javax.annotation.**

@@ -9,3 +9,8 @@ build/
 *.log
 next-start-*
 next-dev*
+# Android local SDK path
+local.properties
+
+# Gradle local cache
+.gradle/
