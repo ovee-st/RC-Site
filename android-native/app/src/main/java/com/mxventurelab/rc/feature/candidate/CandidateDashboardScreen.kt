@@ -9,16 +9,19 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.DarkMode
-import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Work
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -28,20 +31,26 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.mxventurelab.rc.core.design.GradientHeader
 import com.mxventurelab.rc.core.design.LocalRcThemeController
 import com.mxventurelab.rc.core.design.RcBadge
 import com.mxventurelab.rc.core.design.RcCard
 import com.mxventurelab.rc.core.design.RcPrimaryButton
+import com.mxventurelab.rc.domain.model.UserSession
 import com.mxventurelab.rc.navigation.RcRoutes
 
 @Composable
@@ -50,16 +59,20 @@ fun CandidateDashboardScreen(
     viewModel: CandidateDashboardViewModel = hiltViewModel()
 ) {
     val theme = LocalRcThemeController.current
+    val session by viewModel.session.collectAsState()
 
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .statusBarsPadding()
+            .navigationBarsPadding()
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
             CandidateTopBar(
+                session = session,
                 isDark = theme.isDark,
                 onToggleTheme = theme.toggle,
                 onLogout = {
@@ -103,8 +116,7 @@ fun CandidateDashboardScreen(
         }
 
         item { MetricGrid() }
-        item { QuickActions(navController) }
-        item { CandidateProfileBuilder() }
+        item { CandidateProfileBuilder(session) }
         item { ApplicationTimeline() }
         item { AiCareerAssistant() }
         item { RecommendedJobs(navController) }
@@ -114,25 +126,23 @@ fun CandidateDashboardScreen(
 
 @Composable
 private fun CandidateTopBar(
+    session: UserSession?,
     isDark: Boolean,
     onToggleTheme: () -> Unit,
     onLogout: () -> Unit
 ) {
+    val displayName = session?.fullName?.takeIf { it.isNotBlank() } ?: "MXVL Candidate"
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("MX", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.ExtraBold)
-            }
+            CandidateAvatar(
+                avatarUrl = session?.avatarUrl,
+                name = displayName,
+                size = 40.dp
+            )
             Column {
                 Text("MXVL", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
                 Text("Candidate", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -148,6 +158,38 @@ private fun CandidateTopBar(
         }
     }
 }
+
+@Composable
+private fun CandidateAvatar(avatarUrl: String?, name: String, size: Dp) {
+    val cleanUrl = avatarUrl?.takeIf { it.isNotBlank() }
+    Box(
+        modifier = Modifier
+            .size(size)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+        contentAlignment = Alignment.Center
+    ) {
+        if (cleanUrl != null) {
+            AsyncImage(
+                model = cleanUrl,
+                contentDescription = "$name profile photo",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(CircleShape)
+            )
+        } else {
+            Text(initials(name), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.ExtraBold)
+        }
+    }
+}
+
+private fun initials(name: String): String = name
+    .split(" ")
+    .filter { it.isNotBlank() }
+    .take(2)
+    .joinToString("") { it.first().uppercase() }
+    .ifBlank { "MX" }
 
 @Composable
 private fun MetricGrid() {
@@ -178,25 +220,8 @@ private fun MetricCard(value: String, label: String, modifier: Modifier = Modifi
 }
 
 @Composable
-private fun QuickActions(navController: NavController) = RcCard {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("Quick actions", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            OutlinedButton(onClick = { navController.navigate(RcRoutes.Jobs) }, modifier = Modifier.weight(1f)) {
-                Icon(Icons.Outlined.Search, null, Modifier.size(16.dp))
-                Text(" Browse")
-            }
-            OutlinedButton(onClick = { navController.navigate(RcRoutes.Notifications) }, modifier = Modifier.weight(1f)) {
-                Icon(Icons.Outlined.Notifications, null, Modifier.size(16.dp))
-                Text(" Alerts")
-            }
-        }
-    }
-}
-
-@Composable
-private fun CandidateProfileBuilder() = RcCard {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+private fun CandidateProfileBuilder(session: UserSession?) = RcCard {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text("Profile Builder", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             RcBadge("88%")
@@ -207,6 +232,19 @@ private fun CandidateProfileBuilder() = RcCard {
             style = MaterialTheme.typography.bodyMedium
         )
         LinearProgressIndicator(progress = { 0.88f }, modifier = Modifier.fillMaxWidth())
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            OutlinedButton(onClick = { }, modifier = Modifier.weight(1f)) {
+                Icon(Icons.Outlined.Edit, null, Modifier.size(16.dp))
+                Text(" Edit profile", maxLines = 1)
+            }
+            OutlinedButton(onClick = { }, modifier = Modifier.weight(1f)) {
+                Icon(Icons.Outlined.Download, null, Modifier.size(16.dp))
+                Text(" Download CV", maxLines = 1)
+            }
+        }
+        session?.email?.takeIf { it.isNotBlank() }?.let {
+            Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 
