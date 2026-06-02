@@ -52,8 +52,12 @@ export async function syncMobileProfile(authUser: any, preferredRole?: string | 
   const avatarUrl =
     existingProfile?.avatar_url ||
     existingProfile?.photo_url ||
+    existingProfile?.profile_photo_url ||
+    existingProfile?.profile_image_url ||
     metadata.avatar_url ||
     metadata.photo_url ||
+    metadata.profile_photo_url ||
+    metadata.profile_image_url ||
     metadata.picture ||
     null;
 
@@ -94,6 +98,11 @@ export function toMobileSession(session: any, profile: any) {
     fullName: profile.full_name || profile.name || profile.email?.split("@")[0] || "MXVL User",
     email: profile.email,
     role: normalizeMobileRole(profile.role),
-    avatarUrl: profile.avatar_url || profile.photo_url || null
+    avatarUrl:
+      profile.avatar_url ||
+      profile.photo_url ||
+      profile.profile_photo_url ||
+      profile.profile_image_url ||
+      null
   };
 }

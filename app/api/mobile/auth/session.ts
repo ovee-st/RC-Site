@@ -70,8 +70,12 @@ export async function buildMobileSession(
   const avatarUrl =
     profile.avatar_url ||
     profile.photo_url ||
+    profile.profile_photo_url ||
     profile.profile_image_url ||
     metadata.avatar_url ||
+    metadata.photo_url ||
+    metadata.profile_photo_url ||
+    metadata.profile_image_url ||
     metadata.picture ||
     null;
 
@@ -110,6 +114,7 @@ export async function buildMobileSession(
     avatarUrl:
       finalProfile.avatar_url ||
       finalProfile.photo_url ||
+      finalProfile.profile_photo_url ||
       finalProfile.profile_image_url ||
       avatarUrl ||
       null,
