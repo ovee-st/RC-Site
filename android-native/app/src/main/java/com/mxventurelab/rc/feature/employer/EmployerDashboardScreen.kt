@@ -27,7 +27,7 @@ import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.LightMode
-import androidx.compose.material.icons.outlined.Logout
+import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.PersonSearch
 import androidx.compose.material.icons.outlined.WorkOutline
 import androidx.compose.material3.ButtonDefaults
@@ -35,7 +35,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -52,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.mxventurelab.rc.core.design.LocalRcThemeController
+import com.mxventurelab.rc.core.design.RcIconActionButton
 import com.mxventurelab.rc.navigation.RcRoutes
 
 @Composable
@@ -110,26 +110,16 @@ private fun DashboardTopBar(isDark: Boolean, onToggleTheme: () -> Unit, onLogout
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(
-                onClick = onToggleTheme,
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Icon(
-                    imageVector = if (isDark) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
-                    contentDescription = "Toggle theme",
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-            IconButton(
-                onClick = onLogout,
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Icon(Icons.Outlined.Logout, contentDescription = "Logout", tint = MaterialTheme.colorScheme.onSurface)
-            }
+            RcIconActionButton(
+                icon = if (isDark) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
+                contentDescription = "Toggle theme",
+                onClick = onToggleTheme
+            )
+            RcIconActionButton(
+                icon = Icons.AutoMirrored.Outlined.Logout,
+                contentDescription = "Logout",
+                onClick = onLogout
+            )
         }
     }
 }

@@ -25,7 +25,6 @@ import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Work
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -49,6 +48,7 @@ import com.mxventurelab.rc.core.design.GradientHeader
 import com.mxventurelab.rc.core.design.LocalRcThemeController
 import com.mxventurelab.rc.core.design.RcBadge
 import com.mxventurelab.rc.core.design.RcCard
+import com.mxventurelab.rc.core.design.RcIconActionButton
 import com.mxventurelab.rc.core.design.RcPrimaryButton
 import com.mxventurelab.rc.domain.model.UserSession
 import com.mxventurelab.rc.navigation.RcRoutes
@@ -144,17 +144,26 @@ private fun CandidateTopBar(
                 size = 40.dp
             )
             Column {
-                Text("MXVL", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
+                Text(
+                    "MXVL",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
                 Text("Candidate", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            IconButton(onClick = onToggleTheme) {
-                Icon(if (isDark) Icons.Outlined.LightMode else Icons.Outlined.DarkMode, contentDescription = "Toggle theme")
-            }
-            IconButton(onClick = onLogout) {
-                Icon(Icons.AutoMirrored.Outlined.Logout, contentDescription = "Logout")
-            }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            RcIconActionButton(
+                icon = if (isDark) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
+                contentDescription = "Toggle theme",
+                onClick = onToggleTheme
+            )
+            RcIconActionButton(
+                icon = Icons.AutoMirrored.Outlined.Logout,
+                contentDescription = "Logout",
+                onClick = onLogout
+            )
         }
     }
 }
