@@ -1,4 +1,4 @@
-﻿package com.mxventurelab.rc.feature.jobs
+package com.mxventurelab.rc.feature.jobs
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -156,7 +155,7 @@ private fun PremiumJobCard(
     onApply: () -> Unit
 ) {
     val borderColor = if (expanded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
-    val surface = if (expanded) MaterialTheme.colorScheme.primary.copy(alpha = 0.055f) else MaterialTheme.colorScheme.surface
+    val surface = if (expanded) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surface
 
     Card(
         modifier = Modifier
@@ -166,11 +165,11 @@ private fun PremiumJobCard(
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = surface),
         border = BorderStroke(if (expanded) 1.5.dp else 1.dp, borderColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (expanded) 8.dp else 3.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = if (expanded) 7.dp else 3.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -179,7 +178,7 @@ private fun PremiumJobCard(
             ) {
                 CompanyAvatar(job.company)
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
                             job.title,
                             modifier = Modifier.weight(1f),
@@ -192,14 +191,17 @@ private fun PremiumJobCard(
                         Icon(
                             imageVector = if (expanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
                             contentDescription = if (expanded) "Collapse job" else "Expand job",
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp)
                         )
                     }
                     Text(
                         job.company,
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         Icon(Icons.Outlined.LocationOn, contentDescription = null, modifier = Modifier.size(15.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -214,15 +216,8 @@ private fun PremiumJobCard(
                 }
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
-                RcBadge(job.experienceLevel)
-                RcBadge(job.jobType)
-                RcBadge(job.salary)
-            }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                job.skills.take(if (expanded) 5 else 3).forEach { skill -> RcBadge(skill) }
-            }
+            CompactBadgeRow(listOf(job.experienceLevel, job.jobType, job.salary).filter { it.isNotBlank() })
+            CompactBadgeRow(job.skills.take(if (expanded) 6 else 4))
 
             job.matchScore?.takeIf { it > 0 }?.let { score ->
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
@@ -237,20 +232,48 @@ private fun PremiumJobCard(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    JobInfoLine("About this role", job.description)
-                    JobInfoLine("Industry", job.industry)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.CalendarMonth, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            "Application deadline: ${job.deadline}",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                    Card(
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                        ),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            JobInfoLine("Role summary", job.description, maxLines = 7)
+                            if (job.industry.isNotBlank()) {
+                                JobInfoLine("Industry", job.industry, maxLines = 2)
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Outlined.CalendarMonth, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    "Deadline: ${job.deadline}",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
                     }
                     RcPrimaryButton("Apply now", Modifier.fillMaxWidth(), onClick = onApply)
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun CompactBadgeRow(labels: List<String>) {
+    if (labels.isEmpty()) return
+
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        items(labels) { label ->
+            RcBadge(label)
         }
     }
 }
@@ -266,7 +289,7 @@ private fun CompanyAvatar(company: String) {
 
     Box(
         modifier = Modifier
-            .size(54.dp)
+            .size(48.dp)
             .clip(CircleShape)
             .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
         contentAlignment = Alignment.Center
@@ -274,15 +297,15 @@ private fun CompanyAvatar(company: String) {
         Icon(
             imageVector = Icons.Outlined.Business,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
-            modifier = Modifier.size(38.dp)
+            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+            modifier = Modifier.size(34.dp)
         )
         Text(label, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
     }
 }
 
 @Composable
-private fun JobInfoLine(label: String, value: String) {
+private fun JobInfoLine(label: String, value: String, maxLines: Int) {
     Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
         Text(
             label.uppercase(),
@@ -293,7 +316,9 @@ private fun JobInfoLine(label: String, value: String) {
         Text(
             value.ifBlank { "Not provided" },
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = maxLines,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
