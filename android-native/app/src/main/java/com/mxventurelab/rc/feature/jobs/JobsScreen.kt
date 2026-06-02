@@ -34,7 +34,7 @@ import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material3.AssistChip
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -104,8 +104,21 @@ fun JobsScreen(navController: NavController, viewModel: JobsViewModel = hiltView
                     shape = RoundedCornerShape(18.dp)
                 )
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(listOf("Dhaka", "Remote", "Full Time", "Mid Level")) { label ->
-                        AssistChip(onClick = {}, label = { Text(label, maxLines = 1) })
+                    if (state.selectedFilters.isNotEmpty()) {
+                        item {
+                            FilterChip(
+                                selected = false,
+                                onClick = viewModel::clearFilters,
+                                label = { Text("Clear", maxLines = 1) }
+                            )
+                        }
+                    }
+                    items(state.filterOptions, key = { it.id }) { option ->
+                        FilterChip(
+                            selected = state.selectedFilters.contains(option.id),
+                            onClick = { viewModel.toggleFilter(option) },
+                            label = { Text(option.label, maxLines = 1) }
+                        )
                     }
                 }
             }
