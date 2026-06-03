@@ -283,11 +283,14 @@ private fun CandidateProfileBuilder(
 }
 
 @Composable
-private fun ApplicationTimeline() = RcCard {
+private fun ApplicationTimeline() = RcCard(Modifier.fillMaxWidth()) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("Application tracker", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         listOf("Applied", "Under Review", "Shortlisted", "Interview", "Selected", "Rejected").chunked(3).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 row.forEach { RcBadge(it) }
             }
         }
