@@ -1,22 +1,25 @@
-﻿import type { Session, SupabaseClient, User } from "@supabase/supabase-js";
+import type { Session, SupabaseClient, User } from "@supabase/supabase-js";
 import { createClient } from "@supabase/supabase-js";
-import {
-  createProfileUsername,
-  ensureRoleRecord,
-  getAuthDisplayName,
-} from "@/lib/authUserSync";
+import { createProfileUsername, ensureRoleRecord, getAuthDisplayName } from "@/lib/authUserSync";
+import { avatarAliases, fetchRoleProfileRows, resolveMobileAvatarUrl } from "./_shared/avatar";
 
 type JsonMap = Record<string, any>;
 
-export function createPublicAuthClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
-  if (!supabaseUrl || !anonKey) {
-    throw new Error("Supabase public auth credentials are missing.");
-  }
-
+export function createPublicAuthClient(accessToken?: string) {
   return createClient(supabaseUrl, anonKey, {
+    ...(accessToken
+      ? {
+          global: {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          },
+        }
+      : {}),
     auth: {
       persistSession: false,
       autoRefreshToken: false,
@@ -24,29 +27,41 @@ export function createPublicAuthClient() {
   });
 }
 
-export function normalizeMobileRole(value?: string | null) {
-  const role = String(value || "").trim().toLowerCase();
-
-  if (["admin", "super_admin"].includes(role)) return "admin";
-  if (["viewer", "admin_viewer", "admin-viewer", "admin (viewer)"].includes(role)) {
-    return "admin";
+export function createAdminClient() {
+  if (!supabaseUrl || !serviceKey) {
+    throw new Error("Supabase service role is not configured");
   }
-  if (["support", "support_user", "support_agent", "support_senior", "support_manager"].includes(role)) {
-    return role;
-  }
-  if (role === "employee") return "support_user";
-  if (["candidate", "employer", "recruiter"].includes(role)) return role;
 
+  return createClient(supabaseUrl, serviceKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+}
+
+export function normalizeMobileRole(role: any) {
+  const normalized = String(role || "candidate").toLowerCase().replace(/\s+/g, "_");
+  if (["employer", "employee", "admin", "admin_viewer", "support_agent", "support_senior", "support_manager"].includes(normalized)) {
+    return normalized;
+  }
   return "candidate";
 }
 
-export async function buildMobileSession(
-  adminClient: SupabaseClient,
-  authUser: User,
-  session: Session | null,
-  requestedRole?: string | null,
-) {
+export async function buildMobileSession({
+  adminClient,
+  authUser,
+  authSession,
+  preferredRole,
+}: {
+  adminClient: SupabaseClient;
+  authUser: User;
+  authSession: Session | null;
+  preferredRole?: string | null;
+}) {
   const metadata = (authUser.user_metadata || {}) as JsonMap;
+  const email = authUser.email || metadata.email || "";
+
   const { data: existingProfile } = await adminClient
     .from("profiles")
     .select("*")
@@ -54,40 +69,20 @@ export async function buildMobileSession(
     .maybeSingle();
 
   const profile = (existingProfile || {}) as JsonMap;
-  const fullName =
-    profile.full_name ||
-    profile.name ||
-    getAuthDisplayName(authUser) ||
-    metadata.full_name ||
-    metadata.name ||
-    authUser.email?.split("@")[0] ||
-    "MXVL User";
-  const role = normalizeMobileRole(profile.role || metadata.role || requestedRole);
-  const username =
-    profile.username ||
-    metadata.username ||
-    createProfileUsername(role, authUser.email || profile.email, fullName, authUser.id);
-  const avatarUrl =
-    profile.avatar_url ||
-    profile.photo_url ||
-    profile.profile_photo_url ||
-    profile.profile_image_url ||
-    metadata.avatar_url ||
-    metadata.photo_url ||
-    metadata.profile_photo_url ||
-    metadata.profile_image_url ||
-    metadata.picture ||
-    null;
+  const fullName = profile.full_name || profile.name || getAuthDisplayName(authUser as any);
+  const role = normalizeMobileRole(preferredRole || profile.role || metadata.role);
+  const username = profile.username || createProfileUsername(role, email, fullName, authUser.id);
+  const relatedProfileRows = await fetchRoleProfileRows(adminClient, authUser, role);
+  const avatarUrl = resolveMobileAvatarUrl(adminClient, authUser, profile, ...relatedProfileRows);
 
   const profilePayload = {
     id: authUser.id,
-    email: authUser.email || profile.email || null,
+    email,
     full_name: fullName,
     name: fullName,
     role,
     username,
-    avatar_url: avatarUrl,
-    photo_url: avatarUrl,
+    ...(avatarUrl ? avatarAliases(avatarUrl) : {}),
     updated_at: new Date().toISOString(),
   };
 
@@ -95,28 +90,29 @@ export async function buildMobileSession(
     .from("profiles")
     .upsert(profilePayload, { onConflict: "id" })
     .select("*")
-    .maybeSingle();
+    .single();
 
   const finalProfile = (savedProfile || { ...profile, ...profilePayload }) as JsonMap;
-
   if (!profileError) {
-    await ensureRoleRecord(adminClient, finalProfile);
+    await ensureRoleRecord(adminClient as any, finalProfile);
   }
 
+  const finalAvatarUrl = resolveMobileAvatarUrl(adminClient, authUser, finalProfile, ...relatedProfileRows) || avatarUrl;
+
   return {
-    accessToken: session?.access_token || null,
-    refreshToken: session?.refresh_token || null,
-    userId: authUser.id,
-    username: finalProfile.username || username,
-    fullName: finalProfile.full_name || finalProfile.name || fullName,
-    email: authUser.email || finalProfile.email || null,
-    role: normalizeMobileRole(finalProfile.role || role),
-    avatarUrl:
-      finalProfile.avatar_url ||
-      finalProfile.photo_url ||
-      finalProfile.profile_photo_url ||
-      finalProfile.profile_image_url ||
-      avatarUrl ||
-      null,
+    user: {
+      id: authUser.id,
+      email,
+      name: fullName,
+      fullName,
+      username,
+      role,
+      avatarUrl: finalAvatarUrl,
+      ...avatarAliases(finalAvatarUrl),
+      plan: finalProfile.plan || finalProfile.subscription_plan || "Basic",
+      verified: Boolean(finalProfile.verified || finalProfile.is_verified),
+    },
+    accessToken: authSession?.access_token || null,
+    refreshToken: authSession?.refresh_token || null,
   };
 }

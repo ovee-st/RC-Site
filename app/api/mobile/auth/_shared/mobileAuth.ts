@@ -1,41 +1,34 @@
-﻿import { createClient } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
 import { createServerSupabaseClient } from "@/lib/supabaseServer";
-import {
-  createProfileUsername,
-  ensureRoleRecord,
-  getAuthDisplayName,
-  normalizePlatformRole
-} from "@/lib/authUserSync";
+import { createProfileUsername, ensureRoleRecord, getAuthDisplayName } from "@/lib/authUserSync";
+import { avatarAliases, fetchRoleProfileRows, resolveMobileAvatarUrl } from "./avatar";
 
-const SUPPORT_ROLES = new Set(["support", "support_user", "support_agent", "support_senior", "support_manager", "employee"]);
-const ADMIN_ROLES = new Set(["admin", "super_admin"]);
+type JsonMap = Record<string, any>;
 
-export function createAnonSupabaseClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 
-  if (!supabaseUrl || !anonKey) {
-    throw new Error("Supabase public credentials are missing.");
-  }
-
+export function createAnonMobileClient() {
   return createClient(supabaseUrl, anonKey, {
     auth: {
       persistSession: false,
-      autoRefreshToken: false
-    }
+      autoRefreshToken: false,
+    },
   });
 }
 
-export function normalizeMobileRole(value?: string | null) {
-  const normalized = String(value || "").trim().toLowerCase();
-  if (ADMIN_ROLES.has(normalized)) return "admin";
-  if (SUPPORT_ROLES.has(normalized)) return "support_user";
-  return normalizePlatformRole(normalized) || "candidate";
+function normalizeMobileRole(role: any) {
+  const normalized = String(role || "candidate").toLowerCase().replace(/\s+/g, "_");
+  if (["employer", "employee", "admin", "admin_viewer", "support_agent", "support_senior", "support_manager"].includes(normalized)) {
+    return normalized;
+  }
+  return "candidate";
 }
 
 export async function syncMobileProfile(authUser: any, preferredRole?: string | null) {
   const adminClient = createServerSupabaseClient();
-  const metadata = authUser.user_metadata || {};
+  const metadata = (authUser.user_metadata || {}) as JsonMap;
+  const email = authUser.email || metadata.email || "";
 
   const { data: existingProfile } = await adminClient
     .from("profiles")
@@ -43,66 +36,67 @@ export async function syncMobileProfile(authUser: any, preferredRole?: string | 
     .eq("id", authUser.id)
     .maybeSingle();
 
-  const role = normalizeMobileRole(existingProfile?.role || metadata.role || preferredRole);
-  const fullName = existingProfile?.full_name || existingProfile?.name || getAuthDisplayName(authUser);
-  const username =
-    existingProfile?.username ||
-    metadata.username ||
-    createProfileUsername(role, authUser.email, fullName, authUser.id);
-  const avatarUrl =
-    existingProfile?.avatar_url ||
-    existingProfile?.photo_url ||
-    existingProfile?.profile_photo_url ||
-    existingProfile?.profile_image_url ||
-    metadata.avatar_url ||
-    metadata.photo_url ||
-    metadata.profile_photo_url ||
-    metadata.profile_image_url ||
-    metadata.picture ||
-    null;
+  const currentProfile = (existingProfile || {}) as JsonMap;
+  const role = normalizeMobileRole(preferredRole || currentProfile.role || metadata.role);
+  const fullName = currentProfile.full_name || currentProfile.name || getAuthDisplayName(authUser);
+  const username = currentProfile.username || createProfileUsername(role, email, fullName, authUser.id);
+  const relatedProfileRows = await fetchRoleProfileRows(adminClient, authUser, role);
+  const avatarUrl = resolveMobileAvatarUrl(adminClient, authUser, currentProfile, ...relatedProfileRows);
 
   const profilePayload = {
     id: authUser.id,
-    email: authUser.email || existingProfile?.email || "",
+    email,
     full_name: fullName,
     name: fullName,
     role,
     username,
-    avatar_url: avatarUrl,
-    photo_url: existingProfile?.photo_url || avatarUrl,
-    plan: existingProfile?.plan || metadata.plan || (role === "admin" || role === "support_user" ? "Internal" : "Basic"),
-    verified: existingProfile?.verified ?? metadata.verified ?? false,
-    updated_at: new Date().toISOString()
+    ...(avatarUrl ? avatarAliases(avatarUrl) : {}),
+    plan: currentProfile.plan || currentProfile.subscription_plan || "Basic",
+    updated_at: new Date().toISOString(),
   };
 
-  const { data: profile, error } = await adminClient
+  const { data: savedProfile, error } = await adminClient
     .from("profiles")
     .upsert(profilePayload, { onConflict: "id" })
     .select("*")
-    .maybeSingle();
+    .single();
 
-  if (error) {
-    throw new Error(error.message);
+  const profile = (savedProfile || { ...currentProfile, ...profilePayload }) as JsonMap;
+  if (!error) {
+    await ensureRoleRecord(adminClient as any, profile);
   }
 
-  await ensureRoleRecord(adminClient, profile || profilePayload);
-  return profile || profilePayload;
+  return profile;
 }
 
 export function toMobileSession(session: any, profile: any) {
+  const avatarUrl =
+    profile?.avatar_url ||
+    profile?.photo_url ||
+    profile?.profile_photo_url ||
+    profile?.profile_image_url ||
+    profile?.profile_image ||
+    profile?.profile_photo ||
+    profile?.avatar ||
+    profile?.picture ||
+    profile?.image_url ||
+    profile?.company_logo_url ||
+    null;
+
   return {
+    user: {
+      id: profile.id,
+      email: profile.email,
+      name: profile.full_name || profile.name || profile.email || "MXVL User",
+      fullName: profile.full_name || profile.name || profile.email || "MXVL User",
+      username: profile.username,
+      role: profile.role,
+      avatarUrl,
+      ...avatarAliases(avatarUrl),
+      plan: profile.plan || profile.subscription_plan || "Basic",
+      verified: Boolean(profile.verified || profile.is_verified),
+    },
     accessToken: session?.access_token || null,
     refreshToken: session?.refresh_token || null,
-    userId: profile.id,
-    username: profile.username || profile.email?.split("@")[0] || profile.id,
-    fullName: profile.full_name || profile.name || profile.email?.split("@")[0] || "MXVL User",
-    email: profile.email,
-    role: normalizeMobileRole(profile.role),
-    avatarUrl:
-      profile.avatar_url ||
-      profile.photo_url ||
-      profile.profile_photo_url ||
-      profile.profile_image_url ||
-      null
   };
 }

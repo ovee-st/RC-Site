@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabaseServer";
 import { buildMobileSession, createPublicAuthClient, normalizeMobileRole } from "../session";
 import { createProfileUsername } from "@/lib/authUserSync";
@@ -58,7 +58,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ data: null, error: signInError?.message || "Account created, but login failed." });
     }
 
-    const mobileSession = await buildMobileSession(adminClient, signedIn.user, signedIn.session, role);
+    const mobileSession = await buildMobileSession({ adminClient, authUser: signedIn.user, authSession: signedIn.session, preferredRole: role });
     return NextResponse.json({ data: mobileSession, error: null });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to register.";

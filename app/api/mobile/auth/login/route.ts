@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabaseServer";
 import { buildMobileSession, createPublicAuthClient } from "../session";
 
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     }
 
     const adminClient = createServerSupabaseClient();
-    const mobileSession = await buildMobileSession(adminClient, data.user, data.session);
+    const mobileSession = await buildMobileSession({ adminClient, authUser: data.user, authSession: data.session });
 
     return NextResponse.json({ data: mobileSession, error: null });
   } catch (error) {

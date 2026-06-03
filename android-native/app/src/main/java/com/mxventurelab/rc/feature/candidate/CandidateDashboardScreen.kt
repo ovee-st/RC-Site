@@ -1,5 +1,8 @@
-﻿package com.mxventurelab.rc.feature.candidate
+package com.mxventurelab.rc.feature.candidate
 
+import android.graphics.BitmapFactory
+import android.util.Base64
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -48,6 +51,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -326,7 +330,22 @@ private fun CandidateNotificationsDropdown(
 
 @Composable
 private fun CandidateAvatar(avatarUrl: String?, name: String, size: Dp) {
-    val cleanUrl = avatarUrl?.trim()?.takeIf { it.isNotBlank() }
+    val cleanUrl = avatarUrl
+        ?.trim()
+        ?.takeIf { it.isNotBlank() && !it.equals("null", ignoreCase = true) && !it.equals("undefined", ignoreCase = true) }
+    var imageFailed by remember(cleanUrl) { mutableStateOf(false) }
+    val dataBitmap = remember(cleanUrl) {
+        runCatching {
+            if (cleanUrl?.startsWith("data:image", ignoreCase = true) == true) {
+                val encodedImage = cleanUrl.substringAfter("base64,", "")
+                val bytes = Base64.decode(encodedImage, Base64.DEFAULT)
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
+            } else {
+                null
+            }
+        }.getOrNull()
+    }
+
     Box(
         modifier = Modifier
             .size(size)
@@ -334,21 +353,37 @@ private fun CandidateAvatar(avatarUrl: String?, name: String, size: Dp) {
             .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
         contentAlignment = Alignment.Center
     ) {
-        if (cleanUrl != null) {
-            AsyncImage(
-                model = cleanUrl,
-                contentDescription = "$name profile photo",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(CircleShape)
-            )
-        } else {
-            Text(initials(name), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.ExtraBold)
+        when {
+            dataBitmap != null -> {
+                Image(
+                    bitmap = dataBitmap,
+                    contentDescription = "$name profile photo",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(CircleShape)
+                )
+            }
+
+            cleanUrl != null && !imageFailed -> {
+                AsyncImage(
+                    model = cleanUrl,
+                    contentDescription = "$name profile photo",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(CircleShape),
+                    onError = { imageFailed = true },
+                    onSuccess = { imageFailed = false }
+                )
+            }
+
+            else -> {
+                Text(initials(name), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.ExtraBold)
+            }
         }
     }
 }
-
 private fun initials(name: String): String = name
     .split(" ")
     .filter { it.isNotBlank() }
