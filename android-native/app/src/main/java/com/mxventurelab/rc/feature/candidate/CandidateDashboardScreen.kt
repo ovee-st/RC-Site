@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -27,6 +28,7 @@ import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Work
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -352,16 +354,98 @@ private fun CandidateActionDialog(panel: String?, session: UserSession?, onDismi
 private fun ProfileEditorDialog(session: UserSession?, onDismiss: () -> Unit) {
     var displayName by rememberSaveable(session?.fullName) { mutableStateOf(session?.fullName ?: "") }
     var headline by rememberSaveable { mutableStateOf("Administrative Human Resources") }
+    var phone by rememberSaveable { mutableStateOf("") }
+    var location by rememberSaveable { mutableStateOf("Dhaka, Bangladesh") }
+    var careerLevel by rememberSaveable { mutableStateOf("Mid Level") }
+    var category by rememberSaveable { mutableStateOf("HR & Admin") }
+    var preferredLocation by rememberSaveable { mutableStateOf("On-site") }
+    var skills by rememberSaveable { mutableStateOf("Admin, Excel, Coordination, Documentation") }
+    var linkedIn by rememberSaveable { mutableStateOf("") }
+    var expectedSalary by rememberSaveable { mutableStateOf("") }
+    var summary by rememberSaveable {
+        mutableStateOf("I am an Assistant Manager - Administration with experience supporting fast-growing operations, vendor coordination, facilities, and daily reporting.")
+    }
+    var immediateAvailability by rememberSaveable { mutableStateOf(true) }
+    var noticePeriod by rememberSaveable { mutableStateOf("") }
+    var noticeUnit by rememberSaveable { mutableStateOf("Days") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Edit profile", fontWeight = FontWeight.ExtraBold) },
+        title = { Text("Edit full profile", fontWeight = FontWeight.ExtraBold) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Update your core candidate identity for the mobile profile view.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                TextField(value = displayName, onValueChange = { displayName = it }, label = { Text("Full name") }, singleLine = true)
-                TextField(value = headline, onValueChange = { headline = it }, label = { Text("Professional headline") }, singleLine = true)
-                Text("Profile photo is loaded from your MXVL web profile and syncs after login refresh.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 560.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    "Update the profile details employers see in the mobile app.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Text("Identity", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                TextField(value = displayName, onValueChange = { displayName = it }, label = { Text("Full name") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                TextField(value = headline, onValueChange = { headline = it }, label = { Text("Professional headline") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                TextField(value = phone, onValueChange = { phone = it }, label = { Text("Phone number") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                TextField(value = location, onValueChange = { location = it }, label = { Text("Current location") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+
+                Text("Career profile", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                TextField(value = careerLevel, onValueChange = { careerLevel = it }, label = { Text("Career level") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                TextField(value = category, onValueChange = { category = it }, label = { Text("Department / category") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                TextField(value = preferredLocation, onValueChange = { preferredLocation = it }, label = { Text("Preferred job location") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                TextField(value = expectedSalary, onValueChange = { expectedSalary = it }, label = { Text("Expected salary") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+
+                Text("Skills and links", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                TextField(value = skills, onValueChange = { skills = it }, label = { Text("Skills") }, modifier = Modifier.fillMaxWidth())
+                TextField(value = linkedIn, onValueChange = { linkedIn = it }, label = { Text("LinkedIn profile") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+
+                Text("Availability", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(checked = immediateAvailability, onCheckedChange = { immediateAvailability = it })
+                    Column {
+                        Text("Immediate availability", fontWeight = FontWeight.Bold)
+                        Text("Tick this if you can join immediately.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                if (!immediateAvailability) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                        TextField(
+                            value = noticePeriod,
+                            onValueChange = { noticePeriod = it },
+                            label = { Text("Notice period") },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f)
+                        )
+                        TextField(
+                            value = noticeUnit,
+                            onValueChange = { noticeUnit = it },
+                            label = { Text("Days / Months") },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                Text("About", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                TextField(
+                    value = summary,
+                    onValueChange = { summary = it },
+                    label = { Text("Professional summary") },
+                    minLines = 4,
+                    maxLines = 6,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Text(
+                    "Profile photo is loaded from your MXVL web profile and syncs after login refresh.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Save") } },
