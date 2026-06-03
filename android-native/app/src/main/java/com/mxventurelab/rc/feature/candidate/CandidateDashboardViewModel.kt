@@ -18,6 +18,12 @@ class CandidateDashboardViewModel @Inject constructor(
     val session: StateFlow<UserSession?> = authRepository.session
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
+    init {
+        viewModelScope.launch {
+            authRepository.refreshSession()
+        }
+    }
+
     fun logout(onComplete: () -> Unit) {
         viewModelScope.launch {
             authRepository.logout()

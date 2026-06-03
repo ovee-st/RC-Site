@@ -16,6 +16,9 @@ interface RcApiService {
     @POST("mobile/auth/register")
     suspend fun register(@Body request: RegisterRequest): ApiEnvelope<ApiSession>
 
+    @GET("mobile/auth/session")
+    suspend fun currentSession(): ApiEnvelope<ApiSession>
+
     @GET("mobile/jobs")
     suspend fun jobs(@Query("page") page: Int, @Query("search") search: String? = null): ApiEnvelope<List<Job>>
 
