@@ -1,6 +1,7 @@
 ﻿package com.mxventurelab.rc.feature.candidate
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -27,8 +29,8 @@ import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Work
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -63,6 +65,30 @@ import com.mxventurelab.rc.core.design.RcPrimaryButton
 import com.mxventurelab.rc.domain.model.UserSession
 import com.mxventurelab.rc.navigation.RcRoutes
 
+private data class CandidateNotification(
+    val title: String,
+    val message: String,
+    val time: String
+)
+
+private fun defaultCandidateNotifications() = listOf(
+    CandidateNotification(
+        title = "Interview scheduled",
+        message = "MX Partner Employer scheduled an interview for Admin & Operations Manager.",
+        time = "Today"
+    ),
+    CandidateNotification(
+        title = "Profile viewed",
+        message = "A recruiter viewed your candidate profile.",
+        time = "Yesterday"
+    ),
+    CandidateNotification(
+        title = "New best-fit role",
+        message = "Admin & Operations Manager is matching strongly with your profile.",
+        time = "2 days ago"
+    )
+)
+
 @Composable
 fun CandidateDashboardScreen(
     navController: NavController,
@@ -71,6 +97,10 @@ fun CandidateDashboardScreen(
     val theme = LocalRcThemeController.current
     val session by viewModel.session.collectAsState()
     var activePanel by rememberSaveable { mutableStateOf<String?>(null) }
+    var notificationsCleared by rememberSaveable { mutableStateOf(false) }
+    val notifications = remember(notificationsCleared) {
+        if (notificationsCleared) emptyList() else defaultCandidateNotifications()
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -86,6 +116,8 @@ fun CandidateDashboardScreen(
                 session = session,
                 isDark = theme.isDark,
                 onToggleTheme = theme.toggle,
+                notifications = notifications,
+                onClearNotifications = { notificationsCleared = true },
                 onLogout = {
                     viewModel.logout {
                         navController.navigate(RcRoutes.Login) {
@@ -110,23 +142,23 @@ fun CandidateDashboardScreen(
                         color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f),
                         style = MaterialTheme.typography.bodyMedium
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        RcPrimaryButton(
-                            "Browse Jobs",
-                            Modifier.weight(1f),
-                            onClick = { navController.navigate(RcRoutes.Jobs) }
-                        )
-                        OutlinedButton(
-                            onClick = { navController.navigate(RcRoutes.Notifications) },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onPrimary)
-                        ) { Text("Notifications", maxLines = 1) }
-                    }
+                    RcPrimaryButton(
+                        "Browse Jobs",
+                        Modifier.fillMaxWidth(),
+                        onClick = { navController.navigate(RcRoutes.Jobs) }
+                    )
                 }
             }
         }
 
-        item { MetricGrid() }
+        item {
+            MetricGrid(
+                onProfileClick = { activePanel = "profile" },
+                onApplicationsClick = { activePanel = "applications" },
+                onInterviewsClick = { activePanel = "applications" },
+                onBestFitClick = { navController.navigate(RcRoutes.Jobs) }
+            )
+        }
         item {
             CandidateProfileBuilder(
                 session = session,
@@ -134,7 +166,12 @@ fun CandidateDashboardScreen(
                 onDownloadCv = { activePanel = "cv" }
             )
         }
-        item { ApplicationTimeline() }
+        item {
+            ApplicationTimeline(
+                onBrowseJobs = { navController.navigate(RcRoutes.Jobs) },
+                onShowNotifications = { activePanel = "notifications" }
+            )
+        }
         item { AiCareerAssistant(onAskCoach = { activePanel = "coach" }) }
         item { RecommendedJobs(navController) }
         item { Spacer(Modifier.height(20.dp)) }
@@ -143,6 +180,8 @@ fun CandidateDashboardScreen(
     CandidateActionDialog(
         panel = activePanel,
         session = session,
+        notifications = notifications,
+        onClearNotifications = { notificationsCleared = true },
         onDismiss = { activePanel = null }
     )
 }
@@ -152,9 +191,13 @@ private fun CandidateTopBar(
     session: UserSession?,
     isDark: Boolean,
     onToggleTheme: () -> Unit,
+    notifications: List<CandidateNotification>,
+    onClearNotifications: () -> Unit,
     onLogout: () -> Unit
 ) {
     val displayName = session?.fullName?.takeIf { it.isNotBlank() } ?: "MXVL Candidate"
+    var showNotifications by rememberSaveable { mutableStateOf(false) }
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -176,7 +219,32 @@ private fun CandidateTopBar(
                 Text("Candidate", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box {
+                RcIconActionButton(
+                    icon = Icons.Outlined.Notifications,
+                    contentDescription = "Notifications",
+                    onClick = { showNotifications = true }
+                )
+                if (notifications.isNotEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .size(10.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.error)
+                    )
+                }
+                CandidateNotificationsDropdown(
+                    expanded = showNotifications,
+                    notifications = notifications,
+                    onDismiss = { showNotifications = false },
+                    onClear = {
+                        onClearNotifications()
+                        showNotifications = false
+                    }
+                )
+            }
             RcIconActionButton(
                 icon = if (isDark) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
                 contentDescription = "Toggle theme",
@@ -187,6 +255,71 @@ private fun CandidateTopBar(
                 contentDescription = "Logout",
                 onClick = onLogout
             )
+        }
+    }
+}
+
+@Composable
+private fun CandidateNotificationsDropdown(
+    expanded: Boolean,
+    notifications: List<CandidateNotification>,
+    onDismiss: () -> Unit,
+    onClear: () -> Unit
+) {
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = onDismiss,
+        modifier = Modifier.width(320.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text("Notifications", fontWeight = FontWeight.ExtraBold)
+                    Text(
+                        if (notifications.isEmpty()) "No new updates" else "${notifications.size} new updates",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                if (notifications.isNotEmpty()) {
+                    TextButton(onClick = onClear) { Text("Clear") }
+                }
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f))
+            )
+            if (notifications.isEmpty()) {
+                Text(
+                    "You are all caught up.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            } else {
+                notifications.forEach { item ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(MaterialTheme.shapes.medium)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.07f))
+                            .padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(item.title, fontWeight = FontWeight.Bold)
+                        Text(item.message, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                        Text(item.time, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
         }
     }
 }
@@ -224,27 +357,34 @@ private fun initials(name: String): String = name
     .ifBlank { "MX" }
 
 @Composable
-private fun MetricGrid() {
+private fun MetricGrid(
+    onProfileClick: () -> Unit,
+    onApplicationsClick: () -> Unit,
+    onInterviewsClick: () -> Unit,
+    onBestFitClick: () -> Unit
+) {
     val metrics = remember {
         listOf(
-            "88%" to "Profile",
-            "3" to "Applied",
-            "1" to "Interviews",
-            "94%" to "Best fit"
+            Triple("88%", "Profile", onProfileClick),
+            Triple("3", "Applied", onApplicationsClick),
+            Triple("1", "Interviews", onInterviewsClick),
+            Triple("94%", "Best fit", onBestFitClick)
         )
     }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            metrics.take(2).forEach { (value, label) -> MetricCard(value, label, Modifier.weight(1f)) }
+            metrics.take(2).forEach { (value, label, action) -> MetricCard(value, label, Modifier.weight(1f), action) }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            metrics.drop(2).forEach { (value, label) -> MetricCard(value, label, Modifier.weight(1f)) }
+            metrics.drop(2).forEach { (value, label, action) -> MetricCard(value, label, Modifier.weight(1f), action) }
         }
     }
 }
 
 @Composable
-private fun MetricCard(value: String, label: String, modifier: Modifier = Modifier) = RcCard(modifier) {
+private fun MetricCard(value: String, label: String, modifier: Modifier = Modifier, onClick: () -> Unit) = RcCard(
+    modifier = modifier.clickable(onClick = onClick)
+) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
         Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
@@ -285,8 +425,11 @@ private fun CandidateProfileBuilder(
 }
 
 @Composable
-private fun ApplicationTimeline() = RcCard(Modifier.fillMaxWidth()) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+private fun ApplicationTimeline(
+    onBrowseJobs: () -> Unit,
+    onShowNotifications: () -> Unit
+) = RcCard(Modifier.fillMaxWidth()) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Application tracker", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         listOf("Applied", "Under Review", "Shortlisted", "Interview", "Selected", "Rejected").chunked(3).forEach { row ->
             Row(
@@ -294,6 +437,16 @@ private fun ApplicationTimeline() = RcCard(Modifier.fillMaxWidth()) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 row.forEach { RcBadge(it) }
+            }
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            OutlinedButton(onClick = onBrowseJobs, modifier = Modifier.weight(1f)) {
+                Icon(Icons.Outlined.Work, null, Modifier.size(16.dp))
+                Text(" Jobs", maxLines = 1)
+            }
+            OutlinedButton(onClick = onShowNotifications, modifier = Modifier.weight(1f)) {
+                Icon(Icons.Outlined.Notifications, null, Modifier.size(16.dp))
+                Text(" Alerts", maxLines = 1)
             }
         }
     }
@@ -342,12 +495,98 @@ private fun RecommendedJobs(navController: NavController) = RcCard {
 }
 
 @Composable
-private fun CandidateActionDialog(panel: String?, session: UserSession?, onDismiss: () -> Unit) {
+private fun CandidateActionDialog(
+    panel: String?,
+    session: UserSession?,
+    notifications: List<CandidateNotification>,
+    onClearNotifications: () -> Unit,
+    onDismiss: () -> Unit
+) {
     when (panel) {
         "profile" -> ProfileEditorDialog(session, onDismiss)
         "cv" -> CvDownloadDialog(onDismiss)
         "coach" -> AiCoachDialog(onDismiss)
+        "applications" -> ApplicationsDialog(onDismiss)
+        "notifications" -> NotificationsDialog(notifications, onClearNotifications, onDismiss)
     }
+}
+
+@Composable
+private fun ApplicationsDialog(onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Application tracker", fontWeight = FontWeight.ExtraBold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    "Track each application stage from apply to interview, offer, or rejection.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                listOf(
+                    "Applied" to "3 applications submitted",
+                    "Under Review" to "Recruiters are checking fit",
+                    "Shortlisted" to "Strong matches move here",
+                    "Interview" to "Scheduled interview invitations"
+                ).forEach { (title, detail) ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(MaterialTheme.shapes.medium)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
+                            .padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        Text(title, fontWeight = FontWeight.Bold)
+                        Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } }
+    )
+}
+
+@Composable
+private fun NotificationsDialog(
+    notifications: List<CandidateNotification>,
+    onClearNotifications: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Notifications", fontWeight = FontWeight.ExtraBold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (notifications.isEmpty()) {
+                    Text("No new notifications.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    notifications.forEach { item ->
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(MaterialTheme.shapes.medium)
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.07f))
+                                .padding(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(item.title, fontWeight = FontWeight.Bold)
+                            Text(item.message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(item.time, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            if (notifications.isNotEmpty()) {
+                TextButton(onClick = {
+                    onClearNotifications()
+                    onDismiss()
+                }) { Text("Clear all") }
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Close") } }
+    )
 }
 
 @Composable
