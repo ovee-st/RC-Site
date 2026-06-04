@@ -641,8 +641,8 @@ export default function Navbar() {
         scrolled && "bg-white/64 shadow-md backdrop-blur-xl dark:bg-slate-950/62"
       )}
     >
-      <div className={cn("mx-auto flex h-16 max-w-7xl items-center justify-between px-6", isAdminNavigation ? "gap-4" : "gap-10")}>
-        <div className={cn("flex min-w-0 flex-1 items-center", isAdminNavigation ? "gap-5" : "gap-8")}>
+      <div className={cn("mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6", isAdminNavigation ? "gap-3 xl:gap-4" : "gap-4 xl:gap-6 2xl:gap-10")}>
+        <div className={cn("flex min-w-0 flex-1 items-center", isAdminNavigation ? "gap-4 xl:gap-5" : "gap-4 xl:gap-6 2xl:gap-8")}>
           <Link href={homeHref} className="flex shrink-0 items-center gap-3">
             <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-full border border-gray-200 bg-white p-1 shadow-secondary ring-1 ring-black/5 dark:border-white/20 dark:bg-white dark:ring-white/20">
               <Image src={SITE_LOGO_LIGHT} alt="MX Venture Lab logo" width={36} height={36} className="h-full w-full object-contain dark:hidden" priority />
@@ -651,7 +651,7 @@ export default function Navbar() {
             <span className="whitespace-nowrap text-sm font-black tracking-tight text-text-main dark:text-white">MX Venture Lab</span>
           </Link>
 
-          <nav className={cn("hidden items-center whitespace-nowrap lg:flex", isAdminNavigation ? "gap-4" : "gap-6")}>
+          <nav className={cn("hidden min-w-0 items-center whitespace-nowrap lg:flex", isAdminNavigation ? "gap-3 xl:gap-4" : "gap-3 xl:gap-5 2xl:gap-6")}>
             {navItems.map((item) => {
               const active = isActiveRoute(pathname, item.href);
               return (
@@ -659,7 +659,7 @@ export default function Navbar() {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "group relative whitespace-nowrap py-2 text-sm font-medium text-gray-600 no-underline transition hover:text-blue-600 dark:text-slate-300 dark:hover:text-blue-300",
+                    "group relative shrink-0 whitespace-nowrap py-2 text-sm font-medium text-gray-600 no-underline transition hover:text-blue-600 dark:text-slate-300 dark:hover:text-blue-300",
                     active && "text-blue-600 dark:text-blue-300"
                   )}
                 >
@@ -677,11 +677,11 @@ export default function Navbar() {
           </nav>
         </div>
 
-        <div className={cn("hidden shrink-0 justify-center md:flex", isAdminNavigation ? "w-[260px] lg:w-[300px]" : "w-[320px] lg:w-[420px]")}>
-          <GlobalSearch className={cn(isAdminNavigation ? "md:w-[260px] md:focus-within:w-[260px] lg:w-[300px] lg:focus-within:w-[300px]" : "md:w-[320px] md:focus-within:w-[320px] lg:focus-within:w-[420px]")} />
+        <div className={cn("hidden shrink-0 justify-center md:flex", isAdminNavigation ? "md:w-[220px] lg:w-[240px] xl:w-[280px]" : "md:w-[220px] lg:w-[240px] xl:w-[280px] 2xl:w-[360px]")}>
+          <GlobalSearch className={cn(isAdminNavigation ? "md:w-[220px] md:focus-within:w-[220px] lg:w-[240px] lg:focus-within:w-[240px] xl:w-[280px] xl:focus-within:w-[280px]" : "md:w-[220px] md:focus-within:w-[220px] lg:w-[240px] lg:focus-within:w-[240px] xl:w-[280px] xl:focus-within:w-[280px] 2xl:w-[360px] 2xl:focus-within:w-[380px]")} />
         </div>
 
-        <div className={cn("hidden shrink-0 items-center justify-end gap-3 md:flex", isAdminNavigation ? "w-[170px]" : "w-[280px]")}>
+        <div className={cn("hidden shrink-0 items-center justify-end gap-2 md:flex xl:gap-3", isAdminNavigation ? "w-[150px] xl:w-[170px]" : "w-[210px] xl:w-[240px] 2xl:w-[280px]")}>
           {!loading && !user ? (
             <LinkButton href="/login" className="whitespace-nowrap rounded-full px-5 py-2">Login</LinkButton>
           ) : null}
@@ -750,7 +750,7 @@ export default function Navbar() {
             className="fixed right-3 top-20 z-50 w-[calc(100vw-1.5rem)] max-w-sm rounded-3xl border border-gray-200 bg-white/95 p-4 shadow-elevated backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/95 md:hidden"
           >
             <div className="grid gap-2">
-              <GlobalSearch className="max-w-none" />
+              <GlobalSearch className="w-full max-w-none focus-within:w-full" />
               {navItems.map((item) => {
                 const active = isActiveRoute(pathname, item.href);
                 return (

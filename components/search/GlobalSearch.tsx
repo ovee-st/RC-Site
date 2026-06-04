@@ -167,7 +167,7 @@ export default function GlobalSearch({ className }: { className?: string }) {
   };
 
   return (
-    <div className={cn("relative w-[320px] max-w-full transition-all duration-300 focus-within:w-[420px]", className)}>
+    <div className={cn("relative w-[280px] max-w-full shrink-0 transition-all duration-300 focus-within:w-[320px]", className)}>
       <div className="group flex h-10 items-center gap-2 rounded-full border border-transparent bg-gray-100 px-5 py-2 shadow-none transition focus-within:border-primary/20 focus-within:bg-white focus-within:shadow-secondary focus-within:ring-4 focus-within:ring-primary/10 dark:bg-white/8 dark:focus-within:border-white/10 dark:focus-within:bg-slate-900">
         <Search size={17} className="text-text-muted transition group-focus-within:text-primary" />
         <input

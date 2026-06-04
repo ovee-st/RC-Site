@@ -50,7 +50,7 @@ export default function ChatWidget() {
   if (loading || !canUseChat) return null;
 
   return (
-    <div className="fixed inset-x-3 bottom-5 z-50 sm:inset-x-auto sm:right-6">
+    <div className="fixed inset-x-3 bottom-24 z-50 sm:inset-x-auto sm:bottom-24 sm:right-6">
       <AnimatePresence>
         {open ? (
           <motion.div
@@ -94,6 +94,3 @@ export default function ChatWidget() {
     </div>
   );
 }
-
-
-
