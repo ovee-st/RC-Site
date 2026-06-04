@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import RecruiterMatches from "@/components/dashboard/RecruiterMatches";
 import RecommendedActions from "@/components/dashboard/RecommendedActions";
@@ -6,6 +6,7 @@ import EmployerProfile from "@/components/dashboard/EmployerProfile";
 import EmployerPostJob from "@/components/dashboard/EmployerPostJob";
 import PipelineBoard from "@/components/pipeline/PipelineBoard";
 import AccountSettings from "@/components/account/AccountSettings";
+import EmployerSubscriptionWidget from "@/components/subscriptions/EmployerSubscriptionWidget";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import PageContainer from "@/components/layout/PageContainer";
@@ -131,3 +132,5 @@ export default function EmployerCommandCenter() {
     </PageContainer>
   );
 }
+
+
