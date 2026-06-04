@@ -677,11 +677,11 @@ export default function Navbar() {
           </nav>
         </div>
 
-        <div className={cn("hidden shrink-0 justify-center md:flex", isAdminNavigation ? "md:w-[220px] lg:w-[240px] xl:w-[280px]" : "md:w-[220px] lg:w-[240px] xl:w-[280px] 2xl:w-[360px]")}>
-          <GlobalSearch className={cn(isAdminNavigation ? "md:w-[220px] md:focus-within:w-[220px] lg:w-[240px] lg:focus-within:w-[240px] xl:w-[280px] xl:focus-within:w-[280px]" : "md:w-[220px] md:focus-within:w-[220px] lg:w-[240px] lg:focus-within:w-[240px] xl:w-[280px] xl:focus-within:w-[280px] 2xl:w-[360px] 2xl:focus-within:w-[380px]")} />
+        <div className={cn("hidden shrink-0 justify-center md:flex", isAdminNavigation ? "md:w-[220px] lg:w-[240px] xl:w-[280px]" : "md:w-[200px] lg:w-[220px] xl:w-[260px] 2xl:w-[320px]")}>
+          <GlobalSearch className={cn(isAdminNavigation ? "md:w-[220px] lg:w-[240px] xl:w-[280px]" : "md:w-[200px] lg:w-[220px] xl:w-[260px] 2xl:w-[320px]")} />
         </div>
 
-        <div className={cn("hidden shrink-0 items-center justify-end gap-2 md:flex xl:gap-3", isAdminNavigation ? "w-[150px] xl:w-[170px]" : "w-[210px] xl:w-[240px] 2xl:w-[280px]")}>
+        <div className={cn("hidden shrink-0 items-center justify-end gap-2 md:flex xl:gap-3", isAdminNavigation ? "w-[150px] xl:w-[170px]" : "w-[190px] xl:w-[220px] 2xl:w-[240px]")}>
           {!loading && !user ? (
             <LinkButton href="/login" className="whitespace-nowrap rounded-full px-5 py-2">Login</LinkButton>
           ) : null}
