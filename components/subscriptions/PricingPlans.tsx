@@ -63,11 +63,11 @@ export default function PricingPlans() {
             <p className="mt-3 text-sm font-bold text-emerald-600 dark:text-emerald-300">Annual Savings: 20% discount on yearly plans</p>
           </div>
 
-          <div className="relative mt-14 grid gap-5 lg:grid-cols-4 lg:items-stretch">
+          <div className="relative mt-14 grid gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5 2xl:items-stretch">
             {EMPLOYER_PLANS.map((plan) => {
               const monthlyEquivalent = getMonthlyEquivalent(plan, billingCycle);
               return (
-                <motion.div key={plan.id} whileHover={{ y: -8 }} transition={{ duration: 0.2 }} className={plan.highlight ? "lg:-mt-5" : ""}>
+                <motion.div key={plan.id} whileHover={{ y: -8 }} transition={{ duration: 0.2 }} className={plan.highlight ? "2xl:-mt-5" : ""}>
                   <Card
                     className={`flex h-full flex-col rounded-[20px] p-6 ${
                       plan.highlight
@@ -88,7 +88,9 @@ export default function PricingPlans() {
 
                     <div className="mt-6">
                       <p className={`text-3xl font-black ${plan.highlight ? "text-white" : "text-slate-950 dark:text-white"}`}>{getPlanPriceLabel(plan, billingCycle)}</p>
-                      {monthlyEquivalent ? (
+                      {plan.billingType === "one-time" ? (
+                        <p className={`mt-1 text-xs font-bold ${plan.highlight ? "text-blue-100" : "text-slate-500 dark:text-slate-400"}`}>Valid for 15 days</p>
+                      ) : monthlyEquivalent ? (
                         <p className={`mt-1 text-xs font-bold ${plan.highlight ? "text-blue-100" : "text-slate-500 dark:text-slate-400"}`}>
                           {billingCycle === "yearly" ? `${formatCurrencyBDT(monthlyEquivalent)}/month equivalent` : "Billed monthly"}
                         </p>

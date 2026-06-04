@@ -1,5 +1,5 @@
 ﻿export type BillingCycle = "monthly" | "yearly";
-export type EmployerPlanId = "starter" | "growth" | "elite" | "enterprise";
+export type EmployerPlanId = "starter" | "one_time" | "growth" | "elite" | "enterprise";
 export type UsageLimit = number | "unlimited";
 export type PaywallType = "candidateViews" | "aiMatching" | "resumeDatabase";
 
@@ -9,6 +9,7 @@ export interface EmployerPlan {
   tagline: string;
   badge?: string;
   monthlyPrice: number | null;
+  billingType?: "recurring" | "one-time";
   highlight?: boolean;
   aiCredits: number | "unlimited" | 0;
   recruiterSeats: UsageLimit;
@@ -44,6 +45,32 @@ export const EMPLOYER_PLANS: EmployerPlan[] = [
       "Standard Support"
     ],
     cta: "Start with Starter"
+  },
+  {
+    id: "one_time",
+    name: "MXVL One-Time",
+    tagline: "A short hiring sprint for urgent roles.",
+    badge: "15-DAY PASS",
+    billingType: "one-time",
+    monthlyPrice: 1500,
+    aiCredits: 0,
+    recruiterSeats: 1,
+    limits: {
+      activeJobs: 3,
+      candidateViews: 20,
+      resumeSearches: 20
+    },
+    features: [
+      "3 Job Posts",
+      "20 Candidate CV Access",
+      "15 Days Access",
+      "Basic ATS",
+      "Application Tracking",
+      "Email Notifications",
+      "Single Recruiter Account",
+      "Standard Support"
+    ],
+    cta: "Buy One-Time Pass"
   },
   {
     id: "growth",
@@ -184,12 +211,13 @@ export function formatCurrencyBDT(value: number) {
 
 export function getPlanPriceLabel(plan: EmployerPlan, billingCycle: BillingCycle) {
   if (plan.monthlyPrice === null) return "Contact Sales";
+  if (plan.billingType === "one-time") return `${formatCurrencyBDT(plan.monthlyPrice)} one-time`;
   if (billingCycle === "monthly") return `${formatCurrencyBDT(plan.monthlyPrice)}/month`;
   return `${formatCurrencyBDT(Math.round(plan.monthlyPrice * 12 * 0.8))}/year`;
 }
 
 export function getMonthlyEquivalent(plan: EmployerPlan, billingCycle: BillingCycle) {
-  if (plan.monthlyPrice === null) return null;
+  if (plan.monthlyPrice === null || plan.billingType === "one-time") return null;
   if (billingCycle === "monthly") return plan.monthlyPrice;
   return Math.round(plan.monthlyPrice * 0.8);
 }
