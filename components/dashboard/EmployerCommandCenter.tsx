@@ -1,4 +1,6 @@
-﻿"use client";
+"use client";
+
+import Link from "next/link";
 
 import RecruiterMatches from "@/components/dashboard/RecruiterMatches";
 import RecommendedActions from "@/components/dashboard/RecommendedActions";
@@ -103,7 +105,12 @@ export default function EmployerCommandCenter() {
           <Badge variant="primary" className="type-label text-primary">Recruiter Dashboard</Badge>
           <h1 className="type-h1 mt-3">Hiring command center</h1>
         </div>
-        <EmployerPostJob />
+        <div className="flex flex-wrap items-center gap-3">
+          <Link href="/subscriptions" className="inline-flex min-h-11 items-center justify-center rounded-full border border-slate-200 bg-white px-5 text-sm font-black text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:text-blue-600 hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:border-blue-400/60">
+            View Plans
+          </Link>
+          <EmployerPostJob />
+        </div>
       </div>
       <StaggerContainer className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((item) => (
@@ -132,5 +139,3 @@ export default function EmployerCommandCenter() {
     </PageContainer>
   );
 }
-
-

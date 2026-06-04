@@ -30,7 +30,8 @@ const navItemsByRole = {
     { label: "Home", href: "/employer" },
     { label: "Jobs", href: "/jobs" },
     { label: "Candidates", href: "/employer/candidates" },
-    { label: "We Hire for You", href: "/#pricing" }
+    { label: "We Hire for You", href: "/#pricing" },
+    { label: "Plans", href: "/subscriptions" }
   ],
   employee: [
     { label: "Support Desk", href: "/employee" },
@@ -801,13 +802,3 @@ export default function Navbar() {
     </header>
   );
 }
-
-
-
-
-
-
-
-
-
-
