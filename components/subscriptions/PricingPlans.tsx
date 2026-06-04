@@ -20,6 +20,9 @@ import UpgradeModal from "./UpgradeModal";
 export default function PricingPlans() {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
   const [modalOpen, setModalOpen] = useState(false);
+  const visiblePlans = EMPLOYER_PLANS.filter((plan) =>
+    billingCycle === "one_time" ? plan.billingType === "one-time" : plan.billingType !== "one-time"
+  );
   const [hiresPerMonth, setHiresPerMonth] = useState(8);
 
   const roi = useMemo(() => {
@@ -47,27 +50,41 @@ export default function PricingPlans() {
             </p>
 
             <div className="mx-auto mt-8 inline-flex rounded-full border border-slate-200 bg-white p-1 shadow-soft dark:border-slate-800 dark:bg-slate-900">
-              {(["monthly", "yearly"] as BillingCycle[]).map((cycle) => (
-                <button
-                  key={cycle}
-                  type="button"
-                  onClick={() => setBillingCycle(cycle)}
-                  className={`rounded-full px-5 py-2 text-sm font-black capitalize transition ${
-                    billingCycle === cycle ? "bg-blue-600 text-white shadow-md" : "text-slate-600 hover:text-blue-600 dark:text-slate-300"
-                  }`}
-                >
-                  {cycle}
-                </button>
-              ))}
+              {(["monthly", "yearly", "one_time"] as BillingCycle[]).map((cycle) => {
+                const label = cycle === "one_time" ? "One-Time" : cycle === "monthly" ? "Monthly" : "Yearly";
+
+                return (
+                  <button
+                    key={cycle}
+                    type="button"
+                    onClick={() => setBillingCycle(cycle)}
+                    className={`rounded-full px-4 py-2 text-sm font-black transition sm:px-5 ${
+                      billingCycle === cycle ? "bg-blue-600 text-white shadow-md" : "text-slate-600 hover:text-blue-600 dark:text-slate-300"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
-            <p className="mt-3 text-sm font-bold text-emerald-600 dark:text-emerald-300">Annual Savings: 20% discount on yearly plans</p>
+            <p className="mt-3 text-sm font-bold text-emerald-600 dark:text-emerald-300">
+              {billingCycle === "one_time"
+                ? "One-time hiring sprint: 3 job posts + 20 CV access for 15 days"
+                : "Annual Savings: 20% discount on yearly plans"}
+            </p>
           </div>
 
-          <div className="relative mt-14 grid gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5 2xl:items-stretch">
-            {EMPLOYER_PLANS.map((plan) => {
+          <div
+            className={`relative mt-14 grid gap-5 ${
+              billingCycle === "one_time"
+                ? "mx-auto max-w-md"
+                : "md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 2xl:items-stretch"
+            }`}
+          >
+            {visiblePlans.map((plan) => {
               const monthlyEquivalent = getMonthlyEquivalent(plan, billingCycle);
               return (
-                <motion.div key={plan.id} whileHover={{ y: -8 }} transition={{ duration: 0.2 }} className={plan.highlight ? "2xl:-mt-5" : ""}>
+                <motion.div key={plan.id} whileHover={{ y: -8 }} transition={{ duration: 0.2 }} className={plan.highlight ? "xl:-mt-5" : ""}>
                   <Card
                     className={`flex h-full flex-col rounded-[20px] p-6 ${
                       plan.highlight
