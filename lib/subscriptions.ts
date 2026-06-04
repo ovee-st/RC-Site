@@ -1,4 +1,4 @@
-﻿export type BillingCycle = "monthly" | "yearly";
+﻿export type BillingCycle = "monthly" | "yearly" | "one_time";
 export type EmployerPlanId = "starter" | "one_time" | "growth" | "elite" | "enterprise";
 export type UsageLimit = number | "unlimited";
 export type PaywallType = "candidateViews" | "aiMatching" | "resumeDatabase";
