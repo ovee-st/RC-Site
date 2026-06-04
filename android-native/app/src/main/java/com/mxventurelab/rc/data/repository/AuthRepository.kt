@@ -25,7 +25,7 @@ class AuthRepository @Inject constructor(
         val session = data.toUserSession(
             fallbackEmail = email,
             fallbackName = email.substringBefore("@").replace('.', ' ').replaceFirstChar { it.uppercase() },
-            fallbackRole = Role.fromApi(inferRole(email)),
+            fallbackRole = Role.Candidate,
             missingSessionMessage = "Login session was not returned."
         )
         tokenStore.save(session)
@@ -66,6 +66,8 @@ class AuthRepository @Inject constructor(
         missingSessionMessage: String
     ): UserSession {
         val resolvedEmail = email ?: fallbackEmail ?: username ?: "user@mxventurelab.com"
+        val apiRole = Role.fromApi(role)
+        val resolvedRole = if (apiRole != Role.Guest) apiRole else (fallbackRole ?: Role.Candidate)
         return UserSession(
             accessToken = resolvedAccessToken() ?: throw IllegalStateException(missingSessionMessage),
             refreshToken = resolvedRefreshToken(),
@@ -73,16 +75,8 @@ class AuthRepository @Inject constructor(
             username = username ?: fallbackUsername ?: resolvedEmail.substringBefore("@"),
             fullName = resolvedFullName() ?: fallbackName ?: resolvedEmail.substringBefore("@").replace('.', ' ').replaceFirstChar { it.uppercase() },
             email = resolvedEmail,
-            role = Role.fromApi(role ?: fallbackRole?.name ?: inferRole(resolvedEmail)),
+            role = resolvedRole,
             avatarUrl = resolvedAvatarUrl()
         )
-    }
-
-    private fun inferRole(email: String): String = when {
-        email.contains("admin", true) -> "admin"
-        email.contains("support", true) -> "support_user"
-        email.contains("employer", true) -> "employer"
-        email.contains("recruiter", true) -> "recruiter"
-        else -> "candidate"
     }
 }
