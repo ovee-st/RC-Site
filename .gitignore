@@ -14,3 +14,16 @@ local.properties
 
 # Gradle local cache
 .gradle/
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# Android generated artifacts
+*.apk
+*.aab
+android-native/**/build/
+android-native/.gradle/
+
+# Repo cleanup artifacts
+android-native/.gradle/
