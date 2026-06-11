@@ -2,6 +2,8 @@
 import { demoCandidates, demoJobs } from "@/lib/demoData";
 import { matchCandidateToJob } from "@/lib/ai/matching";
 import { createServerSupabaseClient } from "@/lib/supabaseServer";
+import { authorizeSubscriptionFeature } from "@/lib/subscriptionFeatureAuthorization";
+import { SubscriptionService } from "@/lib/subscriptionService";
 import type { Candidate, Job } from "@/types";
 
 function mapJob(row: any): Job {
@@ -41,17 +43,56 @@ export async function GET(request: NextRequest) {
   const jobId = searchParams.get("jobId");
   const candidateId = searchParams.get("candidateId");
   if (!jobId || !candidateId) return NextResponse.json({ error: "jobId and candidateId are required." }, { status: 400 });
+  const hasSupabaseServerConfig = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
 
   try {
-    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    if (hasSupabaseServerConfig) {
       const supabase = createServerSupabaseClient();
+      const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+      if (!token) {
+        return NextResponse.json({ error: "Missing session token.", code: "UNAUTHENTICATED" }, { status: 401 });
+      }
+
+      const { data: authData, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !authData.user) {
+        return NextResponse.json({ error: "Invalid session token.", code: "UNAUTHENTICATED" }, { status: 401 });
+      }
+
+      const subscriptionService = new SubscriptionService(supabase);
+      const authorization = await authorizeSubscriptionFeature(supabase, subscriptionService, authData.user.id, "ai_matching");
+      if (!authorization.allowed) {
+        return NextResponse.json(authorization.body, { status: authorization.status });
+      }
+
       const [{ data: job }, { data: candidate }] = await Promise.all([
         supabase.from("jobs").select("*").eq("id", jobId).single(),
         supabase.from("candidates").select("*").or(`id.eq.${candidateId},user_id.eq.${candidateId}`).single()
       ]);
-      if (job && candidate) return NextResponse.json(matchCandidateToJob(mapCandidate(candidate), mapJob(job)));
+
+      if (!job || !candidate) {
+        return NextResponse.json({ error: "Job or candidate was not found." }, { status: 404 });
+      }
+
+      const tracking = await subscriptionService.consumeAiCredit(authorization.employer.id);
+      if (!tracking.recorded) {
+        return NextResponse.json({
+          error: "subscription_limit_reached",
+          message: tracking.access.reason || "AI credit limit reached for the current subscription period.",
+          subscription: tracking
+        }, { status: 403 });
+      }
+
+      return NextResponse.json({
+        ...matchCandidateToJob(mapCandidate(candidate), mapJob(job)),
+        subscription: tracking
+      });
     }
-  } catch {
+  } catch (error) {
+    if (hasSupabaseServerConfig) {
+      return NextResponse.json({
+        error: error instanceof Error ? error.message : "Could not calculate AI match."
+      }, { status: 500 });
+    }
     // Demo fallback keeps local development working without credentials.
   }
 
