@@ -1899,10 +1899,10 @@ function SubscriptionPaymentsSection({
 
       <Card className="overflow-hidden rounded-3xl p-0">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1120px] text-left">
+          <table className="w-full min-w-[1440px] text-left">
             <thead className="bg-bg text-xs uppercase tracking-wider text-text-muted dark:bg-white/5">
               <tr>
-                {["Employer", "Company", "Plan", "Amount", "Transaction ID", "Sender", "Screenshot", "Submitted", "Status", "Actions"].map((head) => (
+                {["Employer", "Company", "Plan", "Coupon", "Original", "Discount", "Final", "Transaction ID", "Sender", "Screenshot", "Submitted", "Status", "Actions"].map((head) => (
                   <th key={head} className="px-5 py-4 font-black">{head}</th>
                 ))}
               </tr>
@@ -1917,6 +1917,9 @@ function SubscriptionPaymentsSection({
                     <td className="px-5 py-4 text-sm font-bold">{employer.official_email || employer.email || row.user_email || "Employer"}</td>
                     <td className="px-5 py-4 text-sm font-bold text-text-muted">{employer.company_name || "Company"}</td>
                     <td className="px-5 py-4 text-sm font-black">{plan.name || row.plan_id}</td>
+                    <td className="px-5 py-4 text-sm font-bold text-text-muted">{row.coupon_code || row.coupons?.code || "None"}</td>
+                    <td className="px-5 py-4 text-sm font-bold text-text-muted">BDT {Number(row.original_amount || row.amount || 0).toLocaleString()}</td>
+                    <td className="px-5 py-4 text-sm font-bold text-emerald-600">BDT {Number(row.discount_amount || 0).toLocaleString()}</td>
                     <td className="px-5 py-4 font-black">BDT {Number(row.final_amount || row.amount || 0).toLocaleString()}</td>
                     <td className="px-5 py-4 text-sm font-bold text-text-muted">{row.transaction_id}</td>
                     <td className="px-5 py-4 text-sm font-bold text-text-muted">{row.sender_last_3_digits}</td>

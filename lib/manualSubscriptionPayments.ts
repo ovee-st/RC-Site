@@ -31,7 +31,9 @@ export type PriceBreakdown = {
     id: string;
     code: string;
     name: string | null;
+    discountType: "percentage" | "fixed";
     discountPercentage: number;
+    discountAmount: number | null;
   } | null;
 };
 
@@ -50,6 +52,8 @@ type CouponRow = {
   coupon_name: string | null;
   code: string;
   discount_percentage: number;
+  discount_type?: "percentage" | "fixed" | null;
+  discount_amount?: number | null;
   active: boolean;
   usage_limit: number | null;
   used_count: number | null;
@@ -94,13 +98,21 @@ export function validateExistingCoupon(coupon: ExistingCoupon | null, now = new 
   if (coupon.usage_limit !== null && Number(coupon.used_count || 0) >= Number(coupon.usage_limit)) {
     throw new Error("Coupon usage limit has been reached.");
   }
-  if (!Number.isFinite(Number(coupon.discount_percentage)) || Number(coupon.discount_percentage) < 1 || Number(coupon.discount_percentage) > 100) {
+  const discountType = coupon.discount_type === "fixed" ? "fixed" : "percentage";
+  if (discountType === "fixed") {
+    if (!Number.isFinite(Number(coupon.discount_amount)) || Number(coupon.discount_amount) <= 0) {
+      throw new Error("Coupon discount is invalid.");
+    }
+  } else if (!Number.isFinite(Number(coupon.discount_percentage)) || Number(coupon.discount_percentage) < 1 || Number(coupon.discount_percentage) > 100) {
     throw new Error("Coupon discount is invalid.");
   }
   return coupon;
 }
 
 export function calculateCouponDiscount(originalAmount: number, coupon: ExistingCoupon) {
+  if (coupon.discount_type === "fixed") {
+    return Math.min(originalAmount, Math.round(Number(coupon.discount_amount || 0)));
+  }
   return Math.min(originalAmount, Math.round(originalAmount * (Number(coupon.discount_percentage) / 100)));
 }
 
@@ -115,8 +127,10 @@ export function calculateExpiryDate(plan: PlanRow, start = new Date(), billingCy
 }
 
 export async function getActivePlan(client: SupabaseClient, planIdOrSlug: string): Promise<PlanRow> {
-  const byId = await client.from("subscription_plans").select("*").eq("id", planIdOrSlug).eq("is_active", true).maybeSingle();
-  const plan = byId.data || (await client.from("subscription_plans").select("*").eq("slug", planIdOrSlug).eq("is_active", true).maybeSingle()).data;
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(planIdOrSlug);
+  const plan = isUuid
+    ? (await client.from("subscription_plans").select("*").eq("id", planIdOrSlug).eq("is_active", true).maybeSingle()).data
+    : (await client.from("subscription_plans").select("*").eq("slug", planIdOrSlug).eq("is_active", true).maybeSingle()).data;
   if (!plan) throw new Error("Selected subscription plan was not found.");
   return plan as PlanRow;
 }
@@ -147,7 +161,9 @@ export async function calculatePaymentBreakdown(
       id: row.id,
       code: row.code,
       name: row.coupon_name || null,
-      discountPercentage: Number(row.discount_percentage)
+      discountType: row.discount_type === "fixed" ? "fixed" : "percentage",
+      discountPercentage: Number(row.discount_percentage || 0),
+      discountAmount: row.discount_amount === undefined || row.discount_amount === null ? null : Number(row.discount_amount)
     }
   };
 }

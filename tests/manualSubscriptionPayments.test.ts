@@ -1,11 +1,56 @@
 import { describe, expect, it } from "vitest";
 import {
+  calculatePaymentBreakdown,
   calculateCouponDiscount,
+  getActivePlan,
   normalizeManualBillingCycle,
   normalizeCouponCode,
   validateExistingCoupon,
   type ExistingCoupon
 } from "@/lib/manualSubscriptionPayments";
+
+type Row = Record<string, any>;
+
+class FakeQuery {
+  private filters: Array<(row: Row) => boolean> = [];
+
+  constructor(private readonly rows: Row[]) {}
+
+  select() {
+    return this;
+  }
+
+  eq(column: string, value: unknown) {
+    this.filters.push((row) => row[column] === value);
+    return this;
+  }
+
+  maybeSingle() {
+    return Promise.resolve({
+      data: this.rows.find((row) => this.filters.every((filter) => filter(row))) ?? null,
+      error: null
+    });
+  }
+}
+
+function createClient(tables: Record<string, Row[]>) {
+  return {
+    from(table: string) {
+      return new FakeQuery(tables[table] || []);
+    }
+  };
+}
+
+const growthPlan = {
+  id: "11111111-1111-4111-8111-111111111111",
+  slug: "growth",
+  name: "MXVL Growth",
+  billing_type: "recurring",
+  monthly_price: 7500,
+  one_time_price: null,
+  access_days: null,
+  is_active: true
+};
 
 const validCoupon: ExistingCoupon = {
   id: "coupon-1",
@@ -46,5 +91,57 @@ describe("manual subscription coupon wiring", () => {
     expect(calculateCouponDiscount(7500, validCoupon)).toBe(1500);
     expect(calculateCouponDiscount(99, { ...validCoupon, discount_percentage: 50 })).toBe(50);
     expect(calculateCouponDiscount(1000, { ...validCoupon, discount_percentage: 100 })).toBe(1000);
+  });
+
+  it("looks up pricing plans by slug without querying the uuid id column first", async () => {
+    const client = createClient({ subscription_plans: [growthPlan] });
+
+    const plan = await getActivePlan(client as any, "growth");
+
+    expect(plan.id).toBe(growthPlan.id);
+    expect(plan.monthly_price).toBe(7500);
+  });
+
+  it("calculates a 10% coupon from database pricing", async () => {
+    const client = createClient({
+      subscription_plans: [growthPlan],
+      coupons: [{ ...validCoupon, code: "TENOFF", discount_percentage: 10 }]
+    });
+
+    const breakdown = await calculatePaymentBreakdown(client as any, growthPlan as any, "tenoff", "monthly");
+
+    expect(breakdown.originalAmount).toBe(7500);
+    expect(breakdown.discountAmount).toBe(750);
+    expect(breakdown.finalAmount).toBe(6750);
+    expect(breakdown.coupon?.code).toBe("TENOFF");
+  });
+
+  it("calculates a fixed amount coupon when configured on the coupon row", async () => {
+    const client = createClient({
+      subscription_plans: [growthPlan],
+      coupons: [{
+        ...validCoupon,
+        code: "FIXED500",
+        discount_type: "fixed",
+        discount_amount: 500
+      }]
+    });
+
+    const breakdown = await calculatePaymentBreakdown(client as any, growthPlan as any, "fixed500", "monthly");
+
+    expect(breakdown.originalAmount).toBe(7500);
+    expect(breakdown.discountAmount).toBe(500);
+    expect(breakdown.finalAmount).toBe(7000);
+    expect(breakdown.coupon?.discountType).toBe("fixed");
+  });
+
+  it("rejects expired, inactive, and usage-limit reached coupons during calculation", async () => {
+    const expiredClient = createClient({ coupons: [{ ...validCoupon, code: "EXPIRED", expires_at: "2026-01-01T00:00:00.000Z" }] });
+    const inactiveClient = createClient({ coupons: [{ ...validCoupon, code: "INACTIVE", active: false }] });
+    const exhaustedClient = createClient({ coupons: [{ ...validCoupon, code: "USEDUP", usage_limit: 4, used_count: 4 }] });
+
+    await expect(calculatePaymentBreakdown(expiredClient as any, growthPlan as any, "expired", "monthly")).rejects.toThrow("Coupon code has expired.");
+    await expect(calculatePaymentBreakdown(inactiveClient as any, growthPlan as any, "inactive", "monthly")).rejects.toThrow("Coupon code is not active.");
+    await expect(calculatePaymentBreakdown(exhaustedClient as any, growthPlan as any, "usedup", "monthly")).rejects.toThrow("Coupon usage limit has been reached.");
   });
 });

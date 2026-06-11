@@ -537,7 +537,9 @@ create table if not exists public.coupons (
   id uuid primary key default gen_random_uuid(),
   coupon_name text,
   code text unique not null,
+  discount_type text not null default 'percentage' check (discount_type in ('percentage', 'fixed')),
   discount_percentage integer not null check (discount_percentage between 1 and 100),
+  discount_amount numeric(12, 2),
   active boolean not null default true,
   usage_limit integer,
   used_count integer not null default 0,
@@ -546,6 +548,8 @@ create table if not exists public.coupons (
 );
 
 alter table public.coupons add column if not exists coupon_name text;
+alter table public.coupons add column if not exists discount_type text not null default 'percentage';
+alter table public.coupons add column if not exists discount_amount numeric(12, 2);
 
 create table if not exists public.transactions (
   id uuid primary key default gen_random_uuid(),

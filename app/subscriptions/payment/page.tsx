@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2, Copy, ReceiptText, UploadCloud } from "lucide-react";
 import Badge from "@/components/ui/Badge";
@@ -16,7 +16,7 @@ type Breakdown = {
   originalAmount: number;
   discountAmount: number;
   finalAmount: number;
-  coupon: { id: string; code: string; discountPercentage: number } | null;
+  coupon: { id: string; code: string; discountPercentage: number; discountType?: "percentage" | "fixed"; discountAmount?: number | null } | null;
 };
 
 function planPrice(plan: (typeof EMPLOYER_PLANS)[number]) {
@@ -48,6 +48,39 @@ export default function ManualSubscriptionPaymentPage() {
     return data.session?.access_token || "";
   }
 
+  function clearAppliedDiscount() {
+    setBreakdown((current) => ({
+      ...current,
+      discountAmount: 0,
+      finalAmount: current.originalAmount,
+      coupon: null
+    }));
+  }
+
+  async function refreshPlanAmount() {
+    const response = await fetch("/api/subscription-payments/apply-coupon", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plan_id: selectedPlan.id, coupon_code: "", billing_cycle: selectedPlan.billingType === "one-time" ? "one_time" : "monthly" })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (response.ok && payload.breakdown) {
+      setBreakdown(payload.breakdown);
+    } else {
+      setBreakdown({
+        originalAmount: planPrice(selectedPlan),
+        discountAmount: 0,
+        finalAmount: planPrice(selectedPlan),
+        coupon: null
+      });
+    }
+  }
+
+  useEffect(() => {
+    setCouponCode("");
+    refreshPlanAmount();
+  }, [selectedPlan.id]);
+
   async function applyCoupon() {
     setMessage("");
     const response = await fetch("/api/subscription-payments/apply-coupon", {
@@ -57,6 +90,7 @@ export default function ManualSubscriptionPaymentPage() {
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
+      clearAppliedDiscount();
       setMessage(payload.error || "Could not apply coupon.");
       return;
     }
@@ -134,7 +168,15 @@ export default function ManualSubscriptionPaymentPage() {
             <div className="mt-6">
               <label className="text-sm font-black text-text-main dark:text-white">Coupon Code</label>
               <div className="mt-2 flex gap-2">
-                <Input value={couponCode} onChange={(event) => setCouponCode(event.target.value.toUpperCase())} placeholder="WELCOME20" />
+                <Input
+                  value={couponCode}
+                  onChange={(event) => {
+                    const nextCode = event.target.value.toUpperCase();
+                    setCouponCode(nextCode);
+                    if (breakdown.coupon && nextCode.trim() !== breakdown.coupon.code) clearAppliedDiscount();
+                  }}
+                  placeholder="WELCOME20"
+                />
                 <Button type="button" onClick={applyCoupon}>Apply Coupon</Button>
               </div>
             </div>
