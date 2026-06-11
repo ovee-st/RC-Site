@@ -124,6 +124,9 @@ export default function EmployerCommandCenter() {
         ))}
       </StaggerContainer>
       <section className="mt-6">
+        <EmployerSubscriptionWidget />
+      </section>
+      <section className="mt-6">
         <RecommendedActions />
       </section>
       <div id="matches" className="mt-6"><RecruiterMatches /></div>

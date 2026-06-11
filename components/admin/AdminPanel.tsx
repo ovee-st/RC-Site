@@ -67,6 +67,7 @@ type AdminSection =
   | "employees"
   | "contact-requests"
   | "coupons"
+  | "subscription-payments"
   | "transactions";
 
 type AnyRecord = Record<string, any>;
@@ -97,6 +98,7 @@ type AdminState = {
   applications: AnyRecord[];
   contactRequests: AnyRecord[];
   coupons: AnyRecord[];
+  subscriptionPayments: AnyRecord[];
   transactions: AnyRecord[];
 };
 
@@ -109,6 +111,7 @@ const emptyState: AdminState = {
   applications: [],
   contactRequests: [],
   coupons: [],
+  subscriptionPayments: [],
   transactions: []
 };
 
@@ -147,6 +150,10 @@ const sectionMeta: Record<AdminSection, { title: string; description: string }> 
     title: "Coupon Management",
     description: "Create, copy, disable, and track promotional coupons for subscriptions."
   },
+  "subscription-payments": {
+    title: "Subscription Payments",
+    description: "Verify manual bKash payments, approve subscription activation, and review proof submissions."
+  },
   transactions: {
     title: "Transactions",
     description: "Search payments, coupon usage, upgrades, and subscription purchase history."
@@ -163,6 +170,7 @@ const navItems = [
   { label: "Support Tickets", href: "/admin/support", key: "support", icon: Bell },
   { label: "Contact Requests", href: "/admin/contact-requests", key: "contact-requests", icon: Mail },
   { label: "Coupons", href: "/admin/coupons", key: "coupons", icon: Gift },
+  { label: "Subscription Payments", href: "/admin/subscription-payments", key: "subscription-payments", icon: CircleDollarSign },
   { label: "Transactions", href: "/admin/transactions", key: "transactions", icon: CreditCard }
 ] as const;
 
@@ -450,7 +458,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
 
     async function loadAdminData() {
       setDataLoading(true);
-      const [profiles, candidates, employers, employees, jobs, applications, contactRequests, coupons, transactions] = await Promise.all([
+      const [profiles, candidates, employers, employees, jobs, applications, contactRequests, coupons, subscriptionPayments, transactions] = await Promise.all([
         safeSelect("profiles"),
         safeSelect("candidates"),
         safeSelect("employers"),
@@ -459,6 +467,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
         safeSelect("applications"),
         safeSelect("contact_requests"),
         safeSelect("coupons"),
+        safeSelect("subscription_payment_requests"),
         safeSelect("transactions")
       ]);
 
@@ -480,6 +489,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
         applications,
         contactRequests: contactRequests.length ? contactRequests : fallbackContacts,
         coupons: coupons.length ? coupons : fallbackCoupons,
+        subscriptionPayments,
         transactions: transactions.length ? transactions : fallbackTransactions
       });
       setDataLoading(false);
@@ -510,6 +520,22 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
             employees: current.employees
           })
         }));
+      }
+
+      if (isSupabaseConfigured && section === "subscription-payments") {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+        if (!token) return;
+
+        const response = await fetch("/api/admin/subscription-payments", {
+          headers: { Authorization: `Bearer ${token}` }
+        }).catch(() => null);
+
+        if (!active || !response?.ok) return;
+        const payload = await response.json().catch(() => ({}));
+        if (Array.isArray(payload.requests)) {
+          setAdminData((current) => ({ ...current, subscriptionPayments: payload.requests }));
+        }
       }
     }
 
@@ -591,10 +617,22 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
         created_at: tx.created_at
       }));
 
-    return [...contactItems, ...signupItems, ...transactionItems]
+    const subscriptionPaymentItems = adminData.subscriptionPayments
+      .filter((request) => ["pending", "more_info"].includes(String(request.status || "pending")))
+      .slice(0, 4)
+      .map((request) => ({
+        id: `subscription-payment-${request.id || request.transaction_id}`,
+        title: "Subscription payment needs review",
+        message: `${request.employers?.company_name || "Employer"} - BDT ${Number(request.final_amount || 0).toLocaleString()}`,
+        href: "/admin/subscription-payments",
+        icon: CircleDollarSign,
+        created_at: request.submitted_at || request.created_at
+      }));
+
+    return [...contactItems, ...signupItems, ...subscriptionPaymentItems, ...transactionItems]
       .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
       .slice(0, 10);
-  }, [adminData.contactRequests, adminData.profiles, adminData.transactions]);
+  }, [adminData.contactRequests, adminData.profiles, adminData.subscriptionPayments, adminData.transactions]);
 
   const visibleAdminNotifications = useMemo(() => (
     adminNotifications.filter((item) => !clearedNotificationIds.includes(item.id))
@@ -653,7 +691,8 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
       applications: "applications",
       contact_requests: "contactRequests",
       coupons: "coupons",
-      transactions: "transactions"
+      transactions: "transactions",
+      subscription_payment_requests: "subscriptionPayments"
     } as Record<string, keyof AdminState>)[table];
 
     if (stateKey) {
@@ -729,6 +768,43 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
       ))
     }));
     setNotice(`Candidate plan changed to ${nextPlan}.`);
+  }
+
+  async function updateSubscriptionPayment(request: AnyRecord, action: "approved" | "rejected" | "more_info", remarks: string) {
+    if (readOnly) {
+      setNotice("Viewer accounts can inspect payment requests, but cannot approve them.");
+      return;
+    }
+
+    if (!isSupabaseConfigured) {
+      setAdminData((current) => ({
+        ...current,
+        subscriptionPayments: current.subscriptionPayments.map((row) => row.id === request.id ? { ...row, status: action, remarks } : row)
+      }));
+      setNotice(`Payment request marked ${action}.`);
+      return;
+    }
+
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    const response = await fetch("/api/admin/subscription-payments", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({ id: request.id, action, remarks })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setNotice(payload.error || "Could not update subscription payment.");
+      return;
+    }
+    setAdminData((current) => ({
+      ...current,
+      subscriptionPayments: current.subscriptionPayments.map((row) => row.id === request.id ? { ...row, ...payload.request } : row)
+    }));
+    setNotice(action === "approved" ? "Subscription activated and invoice generated." : `Payment request marked ${action}.`);
   }
 
   async function updateUserRole(profile: AnyRecord, nextRole: PlatformRole) {
@@ -1046,6 +1122,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
               {section === "employees" ? <EmployeesSection rows={adminData.employees} onUpdate={updateRecord} onDelete={deleteRecord} readOnly={readOnly} /> : null}
               {section === "contact-requests" ? <ContactRequestsSection rows={adminData.contactRequests} onUpdate={updateRecord} onDelete={deleteRecord} /> : null}
               {section === "coupons" ? <CouponsSection rows={adminData.coupons} onCreate={createCoupon} onGenerate={generateCoupon} onUpdate={updateRecord} onDelete={deleteRecord} readOnly={readOnly} /> : null}
+              {section === "subscription-payments" ? <SubscriptionPaymentsSection rows={adminData.subscriptionPayments} onAction={updateSubscriptionPayment} readOnly={readOnly} /> : null}
               {section === "transactions" ? <TransactionsSection rows={adminData.transactions} /> : null}
             </>
           )}
@@ -1784,6 +1861,101 @@ function CouponsSection({
           );
         })}
       </div>
+    </div>
+  );
+}
+
+function SubscriptionPaymentsSection({
+  rows,
+  onAction,
+  readOnly
+}: {
+  rows: AnyRecord[];
+  onAction: (request: AnyRecord, action: "approved" | "rejected" | "more_info", remarks: string) => void;
+  readOnly: boolean;
+}) {
+  const [statusFilter, setStatusFilter] = useState("pending");
+  const [notes, setNotes] = useState<Record<string, string>>({});
+  const visibleRows = rows.filter((row) => statusFilter === "all" || String(row.status || "pending") === statusFilter);
+
+  return (
+    <div className="grid gap-5">
+      <Card className="rounded-3xl p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="type-label text-primary">Manual bKash verification</p>
+            <h2 className="mt-2 text-xl font-black text-text-main dark:text-white">Subscription Payments</h2>
+            <p className="type-body mt-1">Review pending, approved, rejected, and more-info payment requests.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {["pending", "approved", "rejected", "more_info", "all"].map((status) => (
+              <Button key={status} variant={statusFilter === status ? "primary" : "secondary"} className="px-3 py-2" onClick={() => setStatusFilter(status)}>
+                {status === "more_info" ? "More Info" : status}
+              </Button>
+            ))}
+          </div>
+        </div>
+      </Card>
+
+      <Card className="overflow-hidden rounded-3xl p-0">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[1120px] text-left">
+            <thead className="bg-bg text-xs uppercase tracking-wider text-text-muted dark:bg-white/5">
+              <tr>
+                {["Employer", "Company", "Plan", "Amount", "Transaction ID", "Sender", "Screenshot", "Submitted", "Status", "Actions"].map((head) => (
+                  <th key={head} className="px-5 py-4 font-black">{head}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border dark:divide-white/10">
+              {visibleRows.map((row) => {
+                const employer = row.employers || {};
+                const plan = row.subscription_plans || {};
+                const key = row.id || row.transaction_id;
+                return (
+                  <tr key={key} className="align-top hover:bg-primary/5">
+                    <td className="px-5 py-4 text-sm font-bold">{employer.official_email || employer.email || row.user_email || "Employer"}</td>
+                    <td className="px-5 py-4 text-sm font-bold text-text-muted">{employer.company_name || "Company"}</td>
+                    <td className="px-5 py-4 text-sm font-black">{plan.name || row.plan_id}</td>
+                    <td className="px-5 py-4 font-black">BDT {Number(row.final_amount || row.amount || 0).toLocaleString()}</td>
+                    <td className="px-5 py-4 text-sm font-bold text-text-muted">{row.transaction_id}</td>
+                    <td className="px-5 py-4 text-sm font-bold text-text-muted">{row.sender_last_3_digits}</td>
+                    <td className="px-5 py-4 text-sm font-bold">
+                      {row.payment_screenshot_url || row.payment_screenshot ? (
+                        <a className="text-primary underline" href={row.payment_screenshot_url || row.payment_screenshot} target="_blank" rel="noreferrer">Open</a>
+                      ) : "None"}
+                    </td>
+                    <td className="px-5 py-4 text-sm font-bold text-text-muted">{formatDate(row.submitted_at || row.created_at)}</td>
+                    <td className="px-5 py-4"><StatusBadge value={row.status || "pending"} /></td>
+                    <td className="px-5 py-4">
+                      <div className="grid min-w-64 gap-2">
+                        <Input
+                          value={notes[key] || ""}
+                          onChange={(event) => setNotes((current) => ({ ...current, [key]: event.target.value }))}
+                          placeholder="Admin notes"
+                          disabled={readOnly}
+                        />
+                        <div className="flex flex-wrap gap-2">
+                          <Button disabled={readOnly || row.status === "approved"} className="px-3 py-2" onClick={() => onAction(row, "approved", notes[key] || "")}>Approve</Button>
+                          <Button disabled={readOnly || row.status === "approved"} variant="secondary" className="px-3 py-2" onClick={() => onAction(row, "more_info", notes[key] || "Please provide more payment information.")}>More Info</Button>
+                          <Button disabled={readOnly || row.status === "approved"} variant="ghost" className="px-3 py-2 text-danger" onClick={() => onAction(row, "rejected", notes[key] || "Payment proof could not be verified.")}>Reject</Button>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        {!visibleRows.length ? (
+          <div className="p-8 text-center">
+            <CircleDollarSign className="mx-auto h-8 w-8 text-primary" />
+            <h3 className="mt-3 text-lg font-black text-text-main dark:text-white">No subscription payments found</h3>
+            <p className="type-body mt-2">Requests will appear here after employers submit payment proof.</p>
+          </div>
+        ) : null}
+      </Card>
     </div>
   );
 }

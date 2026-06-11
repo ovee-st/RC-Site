@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 import { ArrowRight, Calculator, Check, Sparkles, TrendingUp } from "lucide-react";
 import Container from "@/components/layout/Container";
 import Badge from "@/components/ui/Badge";
@@ -15,11 +16,10 @@ import {
   getPlanPriceLabel,
   type BillingCycle
 } from "@/lib/subscriptions";
-import UpgradeModal from "./UpgradeModal";
 
 export default function PricingPlans() {
+  const router = useRouter();
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
-  const [modalOpen, setModalOpen] = useState(false);
   const visiblePlans = EMPLOYER_PLANS.filter((plan) =>
     billingCycle === "one_time" ? plan.billingType === "one-time" : plan.billingType !== "one-time"
   );
@@ -135,7 +135,7 @@ export default function PricingPlans() {
                     <Button
                       variant={plan.highlight ? "secondary" : "primary"}
                       className={`mt-7 w-full justify-center ${plan.highlight ? "bg-white text-blue-700 hover:bg-blue-50" : ""}`}
-                      onClick={() => setModalOpen(true)}
+                      onClick={() => router.push(`/subscriptions/payment?plan=${encodeURIComponent(plan.id)}`)}
                     >
                       {plan.cta} <ArrowRight className="h-4 w-4" />
                     </Button>
@@ -225,7 +225,6 @@ export default function PricingPlans() {
           </div>
         </Container>
       </section>
-      <UpgradeModal open={modalOpen} onClose={() => setModalOpen(false)} />
     </main>
   );
 }

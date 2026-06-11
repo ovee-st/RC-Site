@@ -213,41 +213,38 @@ Responsibilities:
 
     if (user?.id && isSupabaseConfigured) {
       try {
-        const { data, error } = await supabase
-          .from("jobs")
-          .insert({
-            employer_id: user.id,
-            company_name: job.company,
-            job_title: job.title,
-            job_location: job.location,
-            category: job.category,
-            job_level: job.experience,
-            experience_level: job.experience,
-            job_type: job.workType,
-            employment_type: job.jobType,
-            salary_min: job.salaryMin,
-            salary_max: job.salaryMax,
-            salary_range: job.hideSalary ? "Hidden" : `${job.salaryMin}-${job.salaryMax}`,
-            salary_hidden: job.hideSalary,
-            required_skills: job.skills.join(", "),
-            required_skills_array: job.skills,
-            description: job.description,
-            requirements: job.requirements,
-            last_date: job.deadline,
-            status: "active"
-          })
-          .select("id, created_at")
-          .single();
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
 
-        if (error) throw error;
+        if (!token) {
+          throw new Error("Please sign in again before posting a job.");
+        }
+
+        const response = await fetch("/api/jobs", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify(job)
+        });
+
+        const payload = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(payload.error || "Could not publish job.");
+        }
+
+        const data = payload.job;
 
         addJob({
           ...job,
+          ...data,
           id: data?.id || job.id,
-          createdAt: data?.created_at || job.createdAt
+          createdAt: data?.createdAt || job.createdAt
         });
       } catch (error) {
-        const reason = error instanceof Error ? error.message : "Supabase rejected the job post.";
+        const reason = error instanceof Error ? error.message : "The job post was rejected.";
         setSaving(false);
         setMessage(`Could not publish job: ${reason}`);
         return;
