@@ -1,4 +1,4 @@
-﻿export type BillingCycle = "monthly" | "yearly" | "one_time";
+﻿export type BillingCycle = "monthly" | "one_time";
 export type EmployerPlanId = "starter" | "one_time" | "growth" | "elite" | "enterprise";
 export type UsageLimit = number | "unlimited";
 export type PaywallType = "candidateViews" | "aiMatching" | "resumeDatabase";
@@ -212,14 +212,12 @@ export function formatCurrencyBDT(value: number) {
 export function getPlanPriceLabel(plan: EmployerPlan, billingCycle: BillingCycle) {
   if (plan.monthlyPrice === null) return "Contact Sales";
   if (plan.billingType === "one-time") return `${formatCurrencyBDT(plan.monthlyPrice)} one-time`;
-  if (billingCycle === "monthly") return `${formatCurrencyBDT(plan.monthlyPrice)}/month`;
-  return `${formatCurrencyBDT(Math.round(plan.monthlyPrice * 12 * 0.8))}/year`;
+  return `${formatCurrencyBDT(plan.monthlyPrice)}/month`;
 }
 
 export function getMonthlyEquivalent(plan: EmployerPlan, billingCycle: BillingCycle) {
   if (plan.monthlyPrice === null || plan.billingType === "one-time") return null;
-  if (billingCycle === "monthly") return plan.monthlyPrice;
-  return Math.round(plan.monthlyPrice * 0.8);
+  return billingCycle === "monthly" ? plan.monthlyPrice : null;
 }
 
 export function getUsagePercent(used: number, limit: UsageLimit) {

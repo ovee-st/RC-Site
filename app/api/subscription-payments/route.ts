@@ -5,6 +5,7 @@ import {
   calculatePaymentBreakdown,
   getActivePlan,
   MANUAL_PAYMENT_METHODS,
+  normalizeManualBillingCycle,
   normalizeManualPaymentMethod
 } from "@/lib/manualSubscriptionPayments";
 import { createServerSupabaseClient } from "@/lib/supabaseServer";
@@ -54,9 +55,10 @@ export async function POST(request: Request) {
   const senderLast3Digits = String(body.sender_last_3_digits || body.senderLast3Digits || "").trim();
   const paymentScreenshot = String(body.payment_screenshot || body.paymentScreenshot || "").trim() || null;
   const paymentMethod = normalizeManualPaymentMethod(body.payment_method || body.paymentMethod);
-  const billingCycle = body.billing_cycle === "yearly" ? "yearly" : body.billing_cycle === "one_time" ? "one_time" : "monthly";
+  const rawBillingCycle = body.billing_cycle || body.billingCycle;
 
   try {
+    const billingCycle = normalizeManualBillingCycle(rawBillingCycle);
     assertValidTransactionId(transactionId);
     assertValidSenderDigits(senderLast3Digits);
 

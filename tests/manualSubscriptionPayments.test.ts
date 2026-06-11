@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   calculateCouponDiscount,
+  normalizeManualBillingCycle,
   normalizeCouponCode,
   validateExistingCoupon,
   type ExistingCoupon
@@ -22,6 +23,13 @@ describe("manual subscription coupon wiring", () => {
     expect(normalizeCouponCode(" welcome20 ")).toBe("WELCOME20");
     expect(normalizeCouponCode("")).toBe("");
     expect(normalizeCouponCode(null)).toBe("");
+  });
+
+  it("accepts only monthly and one-time billing cycles", () => {
+    expect(normalizeManualBillingCycle(undefined)).toBe("monthly");
+    expect(normalizeManualBillingCycle("monthly")).toBe("monthly");
+    expect(normalizeManualBillingCycle("one_time")).toBe("one_time");
+    expect(() => normalizeManualBillingCycle("yearly")).toThrow("Unsupported billing cycle.");
   });
 
   it("accepts active coupons that have not expired or reached their usage limit", () => {

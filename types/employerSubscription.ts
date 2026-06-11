@@ -1,5 +1,5 @@
 export type SubscriptionBillingType = "one_time" | "recurring" | "custom";
-export type EmployerSubscriptionBillingCycle = "one_time" | "monthly" | "yearly" | "custom";
+export type EmployerSubscriptionBillingCycle = "one_time" | "monthly";
 export type EmployerSubscriptionStatus = "trialing" | "active" | "past_due" | "cancelled" | "expired";
 
 export type SubscriptionPlan = {
@@ -13,7 +13,6 @@ export type SubscriptionPlan = {
   aiCreditLimit: number | null;
   recruiterLimit: number | null;
   monthlyPrice: number | null;
-  yearlyPrice: number | null;
   oneTimePrice: number | null;
   accessDays: number | null;
   isActive: boolean;

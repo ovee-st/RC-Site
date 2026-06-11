@@ -12,7 +12,6 @@ create table if not exists public.subscription_plans (
   ai_credit_limit integer,
   recruiter_limit integer,
   monthly_price numeric(12, 2),
-  yearly_price numeric(12, 2),
   one_time_price numeric(12, 2),
   access_days integer,
   is_active boolean not null default true,
@@ -31,7 +30,6 @@ create table if not exists public.subscription_plans (
   constraint subscription_plans_non_negative_prices_check
     check (
       (monthly_price is null or monthly_price >= 0)
-      and (yearly_price is null or yearly_price >= 0)
       and (one_time_price is null or one_time_price >= 0)
     )
 );
@@ -52,12 +50,19 @@ create table if not exists public.employer_subscriptions (
   constraint employer_subscriptions_status_check
     check (status in ('trialing', 'active', 'past_due', 'cancelled', 'expired')),
   constraint employer_subscriptions_billing_cycle_check
-    check (billing_cycle in ('one_time', 'monthly', 'yearly', 'custom')),
+    check (billing_cycle in ('one_time', 'monthly')),
   constraint employer_subscriptions_date_order_check
     check (ends_at is null or ends_at >= starts_at),
   constraint employer_subscriptions_cancelled_status_check
     check (cancelled_at is null or status in ('cancelled', 'expired'))
 );
+
+alter table public.employer_subscriptions
+drop constraint if exists employer_subscriptions_billing_cycle_check;
+
+alter table public.employer_subscriptions
+add constraint employer_subscriptions_billing_cycle_check
+check (billing_cycle in ('one_time', 'monthly'));
 
 create table if not exists public.employer_usage (
   id uuid primary key default gen_random_uuid(),
@@ -120,7 +125,6 @@ insert into public.subscription_plans (
   ai_credit_limit,
   recruiter_limit,
   monthly_price,
-  yearly_price,
   one_time_price,
   access_days,
   display_order
@@ -136,7 +140,6 @@ values
     0,
     1,
     null,
-    null,
     1500,
     15,
     10
@@ -151,7 +154,6 @@ values
     0,
     1,
     2500,
-    24000,
     null,
     null,
     20
@@ -166,7 +168,6 @@ values
     100,
     3,
     7500,
-    72000,
     null,
     null,
     30
@@ -181,7 +182,6 @@ values
     1000,
     10,
     15000,
-    144000,
     null,
     null,
     40
@@ -191,7 +191,6 @@ values
     'MXVL Enterprise',
     'Custom recruitment operating system for large teams.',
     'custom',
-    null,
     null,
     null,
     null,
@@ -211,7 +210,6 @@ set
   ai_credit_limit = excluded.ai_credit_limit,
   recruiter_limit = excluded.recruiter_limit,
   monthly_price = excluded.monthly_price,
-  yearly_price = excluded.yearly_price,
   one_time_price = excluded.one_time_price,
   access_days = excluded.access_days,
   display_order = excluded.display_order,

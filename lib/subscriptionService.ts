@@ -30,7 +30,6 @@ type SubscriptionPlanRow = {
   ai_credit_limit: LimitValue;
   recruiter_limit: LimitValue;
   monthly_price: number | null;
-  yearly_price: number | null;
   one_time_price: number | null;
   access_days: number | null;
   is_active: boolean;
@@ -79,7 +78,6 @@ export type SubscriptionPlanDto = {
   aiCreditLimit: LimitValue;
   recruiterLimit: LimitValue;
   monthlyPrice: number | null;
-  yearlyPrice: number | null;
   oneTimePrice: number | null;
   accessDays: number | null;
   isActive: boolean;
@@ -539,9 +537,7 @@ function getUsagePeriod(subscription: EmployerSubscriptionRow) {
   }
 
   const periodEnd = new Date(startsAt);
-  if (subscription.billing_cycle === "yearly") {
-    periodEnd.setFullYear(periodEnd.getFullYear() + 1);
-  } else if (subscription.billing_cycle === "one_time") {
+  if (subscription.billing_cycle === "one_time") {
     periodEnd.setTime(periodEnd.getTime() + 15 * ONE_DAY_IN_MS);
   } else {
     periodEnd.setMonth(periodEnd.getMonth() + 1);
@@ -605,7 +601,6 @@ function toPlanDto(row: SubscriptionPlanRow): SubscriptionPlanDto {
     aiCreditLimit: row.ai_credit_limit,
     recruiterLimit: row.recruiter_limit,
     monthlyPrice: row.monthly_price,
-    yearlyPrice: row.yearly_price,
     oneTimePrice: row.one_time_price,
     accessDays: row.access_days,
     isActive: row.is_active,

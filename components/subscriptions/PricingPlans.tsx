@@ -10,7 +10,6 @@ import Card from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import {
   EMPLOYER_PLANS,
-  formatCurrencyBDT,
   getLimitLabel,
   getMonthlyEquivalent,
   getPlanPriceLabel,
@@ -50,8 +49,8 @@ export default function PricingPlans() {
             </p>
 
             <div className="mx-auto mt-8 inline-flex rounded-full border border-slate-200 bg-white p-1 shadow-soft dark:border-slate-800 dark:bg-slate-900">
-              {(["monthly", "yearly", "one_time"] as BillingCycle[]).map((cycle) => {
-                const label = cycle === "one_time" ? "One-Time" : cycle === "monthly" ? "Monthly" : "Yearly";
+              {(["monthly", "one_time"] as BillingCycle[]).map((cycle) => {
+                const label = cycle === "one_time" ? "One-Time" : "Monthly";
 
                 return (
                   <button
@@ -70,7 +69,7 @@ export default function PricingPlans() {
             <p className="mt-3 text-sm font-bold text-emerald-600 dark:text-emerald-300">
               {billingCycle === "one_time"
                 ? "One-time hiring sprint: 3 job posts + 20 CV access for 15 days"
-                : "Annual Savings: 20% discount on yearly plans"}
+                : "Monthly subscriptions for ongoing hiring teams"}
             </p>
           </div>
 
@@ -109,10 +108,10 @@ export default function PricingPlans() {
                         <p className={`mt-1 text-xs font-bold ${plan.highlight ? "text-blue-100" : "text-slate-500 dark:text-slate-400"}`}>Valid for 15 days</p>
                       ) : monthlyEquivalent ? (
                         <p className={`mt-1 text-xs font-bold ${plan.highlight ? "text-blue-100" : "text-slate-500 dark:text-slate-400"}`}>
-                          {billingCycle === "yearly" ? `${formatCurrencyBDT(monthlyEquivalent)}/month equivalent` : "Billed monthly"}
+                          Billed monthly
                         </p>
                       ) : (
-                        <p className={`mt-1 text-xs font-bold ${plan.highlight ? "text-blue-100" : "text-slate-500 dark:text-slate-400"}`}>Custom annual agreement</p>
+                        <p className={`mt-1 text-xs font-bold ${plan.highlight ? "text-blue-100" : "text-slate-500 dark:text-slate-400"}`}>Custom monthly agreement</p>
                       )}
                     </div>
 
@@ -148,8 +147,8 @@ export default function PricingPlans() {
 
           <div className="mt-10 grid gap-5 lg:grid-cols-3">
             {[
-              { title: "Billing operations", items: ["Monthly and annual subscriptions", "Auto-renewal status", "Invoice generation", "Billing history"] },
-              { title: "Promo controls", items: ["Coupon codes", "Promo campaigns", "Annual savings badge", "Plan upgrade modals"] },
+              { title: "Billing operations", items: ["Monthly subscriptions", "One-time passes", "Invoice generation", "Billing history"] },
+              { title: "Promo controls", items: ["Coupon codes", "Promo campaigns", "Manual payment requests", "Plan upgrade flow"] },
               { title: "Usage tracking", items: ["Jobs posted", "Candidate views", "Resume searches", "Recruiter seats", "AI credits used"] }
             ].map((group) => (
               <Card key={group.title} className="rounded-[20px] p-5">

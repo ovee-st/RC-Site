@@ -41,7 +41,6 @@ type PlanRow = {
   name: string;
   billing_type: "one_time" | "recurring" | "custom";
   monthly_price: number | null;
-  yearly_price: number | null;
   one_time_price: number | null;
   access_days: number | null;
 };
@@ -71,9 +70,16 @@ export function assertValidSenderDigits(senderLast3Digits: string) {
   }
 }
 
-export function getPlanAmount(plan: PlanRow, billingCycle: "monthly" | "yearly" | "one_time" = "monthly") {
+export type ManualSubscriptionBillingCycle = "monthly" | "one_time";
+
+export function normalizeManualBillingCycle(value: unknown): ManualSubscriptionBillingCycle {
+  if (value === undefined || value === null || value === "") return "monthly";
+  if (value === "monthly" || value === "one_time") return value;
+  throw new Error("Unsupported billing cycle.");
+}
+
+export function getPlanAmount(plan: PlanRow, billingCycle: ManualSubscriptionBillingCycle = "monthly") {
   if (plan.billing_type === "one_time") return Number(plan.one_time_price || 0);
-  if (billingCycle === "yearly") return Number(plan.yearly_price || 0);
   return Number(plan.monthly_price || 0);
 }
 
@@ -98,12 +104,10 @@ export function calculateCouponDiscount(originalAmount: number, coupon: Existing
   return Math.min(originalAmount, Math.round(originalAmount * (Number(coupon.discount_percentage) / 100)));
 }
 
-export function calculateExpiryDate(plan: PlanRow, start = new Date(), billingCycle: "monthly" | "yearly" | "one_time" = "monthly") {
+export function calculateExpiryDate(plan: PlanRow, start = new Date(), billingCycle: ManualSubscriptionBillingCycle = "monthly") {
   const expiry = new Date(start);
   if (plan.billing_type === "one_time") {
     expiry.setDate(expiry.getDate() + Number(plan.access_days || 15));
-  } else if (billingCycle === "yearly") {
-    expiry.setFullYear(expiry.getFullYear() + 1);
   } else {
     expiry.setMonth(expiry.getMonth() + 1);
   }
@@ -121,7 +125,7 @@ export async function calculatePaymentBreakdown(
   client: SupabaseClient,
   plan: PlanRow,
   couponCode?: string | null,
-  billingCycle: "monthly" | "yearly" | "one_time" = "monthly"
+  billingCycle: ManualSubscriptionBillingCycle = "monthly"
 ): Promise<PriceBreakdown> {
   const originalAmount = getPlanAmount(plan, billingCycle);
   const code = normalizeCouponCode(couponCode);
