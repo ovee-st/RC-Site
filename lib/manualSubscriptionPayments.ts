@@ -30,6 +30,7 @@ export type PriceBreakdown = {
   coupon: {
     id: string;
     code: string;
+    name: string | null;
     discountPercentage: number;
   } | null;
 };
@@ -47,6 +48,7 @@ type PlanRow = {
 
 type CouponRow = {
   id: string;
+  coupon_name: string | null;
   code: string;
   discount_percentage: number;
   active: boolean;
@@ -54,6 +56,8 @@ type CouponRow = {
   used_count: number | null;
   expires_at: string | null;
 };
+
+export type ExistingCoupon = CouponRow;
 
 export function assertValidTransactionId(transactionId: string) {
   if (!/^[A-Za-z0-9]{6,32}$/.test(transactionId)) {
@@ -71,6 +75,27 @@ export function getPlanAmount(plan: PlanRow, billingCycle: "monthly" | "yearly" 
   if (plan.billing_type === "one_time") return Number(plan.one_time_price || 0);
   if (billingCycle === "yearly") return Number(plan.yearly_price || 0);
   return Number(plan.monthly_price || 0);
+}
+
+export function normalizeCouponCode(couponCode?: string | null) {
+  return String(couponCode || "").trim().toUpperCase();
+}
+
+export function validateExistingCoupon(coupon: ExistingCoupon | null, now = new Date()) {
+  if (!coupon) throw new Error("Coupon code is invalid.");
+  if (!coupon.active) throw new Error("Coupon code is not active.");
+  if (coupon.expires_at && new Date(coupon.expires_at) < now) throw new Error("Coupon code has expired.");
+  if (coupon.usage_limit !== null && Number(coupon.used_count || 0) >= Number(coupon.usage_limit)) {
+    throw new Error("Coupon usage limit has been reached.");
+  }
+  if (!Number.isFinite(Number(coupon.discount_percentage)) || Number(coupon.discount_percentage) < 1 || Number(coupon.discount_percentage) > 100) {
+    throw new Error("Coupon discount is invalid.");
+  }
+  return coupon;
+}
+
+export function calculateCouponDiscount(originalAmount: number, coupon: ExistingCoupon) {
+  return Math.min(originalAmount, Math.round(originalAmount * (Number(coupon.discount_percentage) / 100)));
 }
 
 export function calculateExpiryDate(plan: PlanRow, start = new Date(), billingCycle: "monthly" | "yearly" | "one_time" = "monthly") {
@@ -99,7 +124,7 @@ export async function calculatePaymentBreakdown(
   billingCycle: "monthly" | "yearly" | "one_time" = "monthly"
 ): Promise<PriceBreakdown> {
   const originalAmount = getPlanAmount(plan, billingCycle);
-  const code = String(couponCode || "").trim().toUpperCase();
+  const code = normalizeCouponCode(couponCode);
 
   if (!code) {
     return { originalAmount, discountAmount: 0, finalAmount: originalAmount, coupon: null };
@@ -108,12 +133,8 @@ export async function calculatePaymentBreakdown(
   const { data: coupon, error } = await client.from("coupons").select("*").eq("code", code).maybeSingle();
   if (error || !coupon) throw new Error("Coupon code is invalid.");
 
-  const row = coupon as CouponRow;
-  if (!row.active) throw new Error("Coupon code is not active.");
-  if (row.expires_at && new Date(row.expires_at) < new Date()) throw new Error("Coupon code has expired.");
-  if (row.usage_limit !== null && Number(row.used_count || 0) >= Number(row.usage_limit)) throw new Error("Coupon usage limit has been reached.");
-
-  const discountAmount = Math.min(originalAmount, Math.round(originalAmount * (Number(row.discount_percentage) / 100)));
+  const row = validateExistingCoupon(coupon as CouponRow);
+  const discountAmount = calculateCouponDiscount(originalAmount, row);
   return {
     originalAmount,
     discountAmount,
@@ -121,7 +142,20 @@ export async function calculatePaymentBreakdown(
     coupon: {
       id: row.id,
       code: row.code,
+      name: row.coupon_name || null,
       discountPercentage: Number(row.discount_percentage)
     }
   };
+}
+
+export async function recordCouponUsage(client: SupabaseClient, couponId: string) {
+  const { data: coupon, error } = await client.from("coupons").select("used_count").eq("id", couponId).maybeSingle();
+  if (error) throw error;
+  if (!coupon) throw new Error("Coupon was not found.");
+
+  const { error: updateError } = await client
+    .from("coupons")
+    .update({ used_count: Number((coupon as { used_count?: number | null }).used_count || 0) + 1 })
+    .eq("id", couponId);
+  if (updateError) throw updateError;
 }

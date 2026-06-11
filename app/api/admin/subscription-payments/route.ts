@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { calculateExpiryDate } from "@/lib/manualSubscriptionPayments";
+import { calculateExpiryDate, recordCouponUsage } from "@/lib/manualSubscriptionPayments";
 import { createServerSupabaseClient } from "@/lib/supabaseServer";
 
 async function requireAdmin(adminClient: ReturnType<typeof createServerSupabaseClient>, token: string) {
@@ -155,8 +155,7 @@ export async function PATCH(request: Request) {
     });
 
     if (paymentRequest.coupon_id) {
-      const { data: coupon } = await adminClient.from("coupons").select("used_count").eq("id", paymentRequest.coupon_id).maybeSingle();
-      await adminClient.from("coupons").update({ used_count: Number(coupon?.used_count || 0) + 1 }).eq("id", paymentRequest.coupon_id);
+      await recordCouponUsage(adminClient, paymentRequest.coupon_id);
     }
 
     const { data: updatedRequest, error: updateError } = await adminClient
