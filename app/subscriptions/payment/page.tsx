@@ -38,6 +38,7 @@ export default function ManualSubscriptionPaymentPage() {
   const [transactionId, setTransactionId] = useState("");
   const [senderDigits, setSenderDigits] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<ManualPaymentMethod>("bkash");
+  const [resolvedPlanId, setResolvedPlanId] = useState("");
   const [screenshot, setScreenshot] = useState<File | null>(null);
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
@@ -65,8 +66,10 @@ export default function ManualSubscriptionPaymentPage() {
     });
     const payload = await response.json().catch(() => ({}));
     if (response.ok && payload.breakdown) {
+      if (payload.plan?.id) setResolvedPlanId(payload.plan.id);
       setBreakdown(payload.breakdown);
     } else {
+      setResolvedPlanId("");
       setBreakdown({
         originalAmount: planPrice(selectedPlan),
         discountAmount: 0,
@@ -78,6 +81,7 @@ export default function ManualSubscriptionPaymentPage() {
 
   useEffect(() => {
     setCouponCode("");
+    setResolvedPlanId("");
     refreshPlanAmount();
   }, [selectedPlan.id]);
 
@@ -94,6 +98,7 @@ export default function ManualSubscriptionPaymentPage() {
       setMessage(payload.error || "Could not apply coupon.");
       return;
     }
+    if (payload.plan?.id) setResolvedPlanId(payload.plan.id);
     setBreakdown(payload.breakdown);
     setMessage(payload.breakdown.coupon ? `Coupon ${payload.breakdown.coupon.code} applied.` : "Coupon cleared.");
   }
@@ -126,7 +131,7 @@ export default function ManualSubscriptionPaymentPage() {
           Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
-          plan_id: selectedPlan.id,
+          plan_id: resolvedPlanId || selectedPlan.id,
           coupon_code: breakdown.coupon?.code || couponCode,
           payment_method: paymentMethod,
           transaction_id: transactionId,

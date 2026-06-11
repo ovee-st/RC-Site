@@ -47,6 +47,14 @@ type PlanRow = {
   access_days: number | null;
 };
 
+const PLAN_LOOKUP_ALIASES: Record<string, string[]> = {
+  one_time: ["one_time", "one-time", "mxvl-one-time", "mxvl one-time", "mxvl one-time pass"],
+  starter: ["starter", "mxvl-starter", "mxvl starter"],
+  growth: ["growth", "mxvl-growth", "mxvl growth"],
+  elite: ["elite", "mxvl-elite", "mxvl elite"],
+  enterprise: ["enterprise", "mxvl-enterprise", "mxvl enterprise"]
+};
+
 type CouponRow = {
   id: string;
   coupon_name: string | null;
@@ -91,6 +99,28 @@ export function normalizeCouponCode(couponCode?: string | null) {
   return String(couponCode || "").trim().toUpperCase();
 }
 
+function normalizePlanLookupValue(value?: string | null) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[_\s]+/g, "-")
+    .replace(/[^a-z0-9-]/g, "");
+}
+
+function buildPlanLookupValues(planIdOrSlug: string) {
+  const normalized = normalizePlanLookupValue(planIdOrSlug);
+  const values = new Set([planIdOrSlug.trim(), normalized, normalized.replace(/-/g, "_")]);
+
+  Object.entries(PLAN_LOOKUP_ALIASES).forEach(([canonical, aliases]) => {
+    if (canonical === normalized.replace(/-/g, "_") || aliases.some((alias) => normalizePlanLookupValue(alias) === normalized)) {
+      values.add(canonical);
+      aliases.forEach((alias) => values.add(alias));
+    }
+  });
+
+  return [...values].filter(Boolean);
+}
+
 export function validateExistingCoupon(coupon: ExistingCoupon | null, now = new Date()) {
   if (!coupon) throw new Error("Coupon code is invalid.");
   if (!coupon.active) throw new Error("Coupon code is not active.");
@@ -128,9 +158,24 @@ export function calculateExpiryDate(plan: PlanRow, start = new Date(), billingCy
 
 export async function getActivePlan(client: SupabaseClient, planIdOrSlug: string): Promise<PlanRow> {
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(planIdOrSlug);
-  const plan = isUuid
+  let plan = isUuid
     ? (await client.from("subscription_plans").select("*").eq("id", planIdOrSlug).eq("is_active", true).maybeSingle()).data
-    : (await client.from("subscription_plans").select("*").eq("slug", planIdOrSlug).eq("is_active", true).maybeSingle()).data;
+    : null;
+
+  if (!plan) {
+    const lookupValues = buildPlanLookupValues(planIdOrSlug);
+    const { data } = await client
+      .from("subscription_plans")
+      .select("*")
+      .eq("is_active", true);
+
+    const activePlans = (Array.isArray(data) ? data : []) as PlanRow[];
+    plan = activePlans.find((row) => {
+      const rowValues = [row.id, row.slug, row.name].map(normalizePlanLookupValue);
+      return lookupValues.some((value) => rowValues.includes(normalizePlanLookupValue(value)));
+    }) ?? null;
+  }
+
   if (!plan) throw new Error("Selected subscription plan was not found.");
   return plan as PlanRow;
 }

@@ -31,6 +31,16 @@ class FakeQuery {
       error: null
     });
   }
+
+  then<TResult1 = { data: Row[]; error: null }, TResult2 = never>(
+    onfulfilled?: ((value: { data: Row[]; error: null }) => TResult1 | PromiseLike<TResult1>) | null,
+    onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+  ) {
+    return Promise.resolve({
+      data: this.rows.filter((row) => this.filters.every((filter) => filter(row))),
+      error: null
+    }).then(onfulfilled, onrejected);
+  }
 }
 
 function createClient(tables: Record<string, Row[]>) {
@@ -47,6 +57,17 @@ const growthPlan = {
   name: "MXVL Growth",
   billing_type: "recurring",
   monthly_price: 7500,
+  one_time_price: null,
+  access_days: null,
+  is_active: true
+};
+
+const elitePlan = {
+  id: "22222222-2222-4222-8222-222222222222",
+  slug: "mxvl-elite",
+  name: "MXVL Elite",
+  billing_type: "recurring",
+  monthly_price: 15000,
   one_time_price: null,
   access_days: null,
   is_active: true
@@ -100,6 +121,15 @@ describe("manual subscription coupon wiring", () => {
 
     expect(plan.id).toBe(growthPlan.id);
     expect(plan.monthly_price).toBe(7500);
+  });
+
+  it("keeps selected MXVL plan aliases attached during lookup", async () => {
+    const client = createClient({ subscription_plans: [elitePlan] });
+
+    const plan = await getActivePlan(client as any, "elite");
+
+    expect(plan.id).toBe(elitePlan.id);
+    expect(plan.name).toBe("MXVL Elite");
   });
 
   it("calculates a 10% coupon from database pricing", async () => {

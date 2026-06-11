@@ -64,8 +64,26 @@ export async function POST(request: Request) {
 
     const adminClient = createServerSupabaseClient();
     const { user, employer } = await getEmployerContext(adminClient, token);
+    console.info("[subscription-payments/create] request", {
+      employerId: employer.id,
+      planId,
+      couponCode,
+      billingCycle,
+      paymentMethod
+    });
     const plan = await getActivePlan(adminClient, planId);
     const breakdown = await calculatePaymentBreakdown(adminClient, plan, couponCode, billingCycle);
+    console.info("[subscription-payments/create] resolved", {
+      employerId: employer.id,
+      requestedPlanId: planId,
+      resolvedPlanId: plan.id,
+      resolvedPlanSlug: plan.slug,
+      couponId: breakdown.coupon?.id ?? null,
+      couponCode: breakdown.coupon?.code ?? null,
+      originalAmount: breakdown.originalAmount,
+      discountAmount: breakdown.discountAmount,
+      finalAmount: breakdown.finalAmount
+    });
 
     const duplicate = await adminClient
       .from("subscription_payment_requests")
@@ -124,6 +142,13 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true, request: requestRow, breakdown });
   } catch (error) {
+    console.warn("[subscription-payments/create] failed", {
+      planId,
+      couponCode,
+      billingCycle: rawBillingCycle,
+      paymentMethod,
+      error: error instanceof Error ? error.message : error
+    });
     return NextResponse.json({ error: error instanceof Error ? error.message : "Could not submit payment request." }, { status: 400 });
   }
 }
