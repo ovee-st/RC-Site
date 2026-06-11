@@ -98,6 +98,7 @@ type AdminState = {
   applications: AnyRecord[];
   contactRequests: AnyRecord[];
   coupons: AnyRecord[];
+  employerSubscriptions: AnyRecord[];
   subscriptionPayments: AnyRecord[];
   transactions: AnyRecord[];
 };
@@ -111,6 +112,7 @@ const emptyState: AdminState = {
   applications: [],
   contactRequests: [],
   coupons: [],
+  employerSubscriptions: [],
   subscriptionPayments: [],
   transactions: []
 };
@@ -489,6 +491,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
         applications,
         contactRequests: contactRequests.length ? contactRequests : fallbackContacts,
         coupons: coupons.length ? coupons : fallbackCoupons,
+        employerSubscriptions: [],
         subscriptionPayments,
         transactions: transactions.length ? transactions : fallbackTransactions
       });
@@ -520,6 +523,22 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
             employees: current.employees
           })
         }));
+      }
+
+      if (isSupabaseConfigured && ["employers", "dashboard"].includes(section)) {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+        if (!token) return;
+
+        const response = await fetch("/api/admin/employer-subscriptions", {
+          headers: { Authorization: `Bearer ${token}` }
+        }).catch(() => null);
+
+        if (!active || !response?.ok) return;
+        const payload = await response.json().catch(() => ({}));
+        if (Array.isArray(payload.subscriptions)) {
+          setAdminData((current) => ({ ...current, employerSubscriptions: payload.subscriptions }));
+        }
       }
 
       if (isSupabaseConfigured && section === "subscription-payments") {
@@ -805,6 +824,49 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
       subscriptionPayments: current.subscriptionPayments.map((row) => row.id === request.id ? { ...row, ...payload.request } : row)
     }));
     setNotice(action === "approved" ? "Subscription activated and invoice generated." : `Payment request marked ${action}.`);
+  }
+
+  async function updateEmployerSubscriptionStatus(subscription: AnyRecord, status: string) {
+    if (readOnly) {
+      setNotice("Viewer accounts can inspect employer subscriptions, but cannot change plan status.");
+      return;
+    }
+
+    if (!subscription?.id) {
+      setNotice("This employer does not have an active subscription record to update.");
+      return;
+    }
+
+    if (!isSupabaseConfigured) {
+      setAdminData((current) => ({
+        ...current,
+        employerSubscriptions: current.employerSubscriptions.map((row) => row.id === subscription.id ? { ...row, status } : row)
+      }));
+      setNotice(`Employer subscription marked ${status}.`);
+      return;
+    }
+
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    const response = await fetch("/api/admin/employer-subscriptions", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({ id: subscription.id, status })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setNotice(payload.error || "Could not update employer subscription status.");
+      return;
+    }
+
+    setAdminData((current) => ({
+      ...current,
+      employerSubscriptions: current.employerSubscriptions.map((row) => row.id === subscription.id ? { ...row, ...payload.subscription } : row)
+    }));
+    setNotice(`Employer subscription marked ${status}.`);
   }
 
   async function updateUserRole(profile: AnyRecord, nextRole: PlatformRole) {
@@ -1117,7 +1179,17 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
               {section === "dashboard" ? <DashboardSection analytics={analytics} chartData={chartData} revenueData={revenueData} data={adminData} /> : null}
               {section === "users" ? <UsersSection rows={filteredProfiles} query={query} roleFilter={roleFilter} setRoleFilter={setRoleFilter} onUpdate={updateRecord} onRoleChange={updateUserRole} onDelete={deleteRecord} readOnly={readOnly} onNotice={setNotice} /> : null}
               {section === "candidates" ? <CandidatesSection rows={adminData.candidates} profiles={adminData.profiles} applications={adminData.applications} onUpdate={updateRecord} onPlanChange={updateCandidatePlan} onDelete={deleteRecord} readOnly={readOnly} /> : null}
-              {section === "employers" ? <EmployersSection rows={adminData.employers} jobs={adminData.jobs} onUpdate={updateRecord} onDelete={deleteRecord} readOnly={readOnly} /> : null}
+              {section === "employers" ? (
+                <EmployersSection
+                  rows={adminData.employers}
+                  jobs={adminData.jobs}
+                  subscriptions={adminData.employerSubscriptions}
+                  onUpdate={updateRecord}
+                  onSubscriptionStatusChange={updateEmployerSubscriptionStatus}
+                  onDelete={deleteRecord}
+                  readOnly={readOnly}
+                />
+              ) : null}
               {section === "jobs" ? <JobsSection rows={adminData.jobs} onUpdate={updateRecord} readOnly={readOnly} /> : null}
               {section === "employees" ? <EmployeesSection rows={adminData.employees} onUpdate={updateRecord} onDelete={deleteRecord} readOnly={readOnly} /> : null}
               {section === "contact-requests" ? <ContactRequestsSection rows={adminData.contactRequests} onUpdate={updateRecord} onDelete={deleteRecord} /> : null}
@@ -1477,7 +1549,25 @@ function CandidatesSection({
   );
 }
 
-function EmployersSection({ rows, jobs, onUpdate, onDelete, readOnly }: { rows: AnyRecord[]; jobs: AnyRecord[]; onUpdate: (table: string, id: string, patch: AnyRecord) => void; onDelete: (table: string, id: string) => void; readOnly: boolean }) {
+const employerSubscriptionStatuses = ["trialing", "active", "past_due", "cancelled", "expired"];
+
+function EmployersSection({
+  rows,
+  jobs,
+  subscriptions,
+  onUpdate,
+  onSubscriptionStatusChange,
+  onDelete,
+  readOnly
+}: {
+  rows: AnyRecord[];
+  jobs: AnyRecord[];
+  subscriptions: AnyRecord[];
+  onUpdate: (table: string, id: string, patch: AnyRecord) => void;
+  onSubscriptionStatusChange: (subscription: AnyRecord, status: string) => void;
+  onDelete: (table: string, id: string) => void;
+  readOnly: boolean;
+}) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<AnyRecord>({});
 
@@ -1504,6 +1594,14 @@ function EmployersSection({ rows, jobs, onUpdate, onDelete, readOnly }: { rows: 
       {rows.length ? rows.map((employer) => {
         const recordKey = employer.id || employer.user_id || employer.email;
         const employerJobs = jobs.filter((job) => job.employer_id === employer.user_id || job.employer_id === employer.id);
+        const subscription = subscriptions.find((row) =>
+          row.employer_id === employer.id ||
+          row.employer_id === employer.employer_id ||
+          row.employer_user_id === employer.user_id ||
+          row.employers?.user_id === employer.user_id ||
+          row.employers?.id === employer.id
+        );
+        const subscriptionPlan = subscription?.subscription_plans;
         const editing = editingId === recordKey;
         return (
           <Card key={recordKey} className="rounded-3xl p-5">
@@ -1522,7 +1620,26 @@ function EmployersSection({ rows, jobs, onUpdate, onDelete, readOnly }: { rows: 
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
               <AdminStatCard label="Jobs" value={employerJobs.length} detail="Posted roles" icon={FileText} accent="bg-primary/10" />
               <AdminStatCard label="Active" value={employerJobs.filter((job) => (job.status || "active") === "active").length} detail="Visible roles" icon={CheckCircle2} accent="bg-success/10" />
-              <AdminStatCard label="Plan" value={employer.plan || "Free"} detail="Subscription" icon={Sparkles} accent="bg-purple-400/10" />
+              <AdminStatCard label="Plan" value={subscriptionPlan?.name || employer.plan || "Free"} detail={subscription?.status || "No subscription"} icon={Sparkles} accent="bg-purple-400/10" />
+            </div>
+            <div className="mt-4 grid gap-3 rounded-2xl border border-border bg-bg p-4 dark:border-white/10 dark:bg-white/5 md:grid-cols-[1fr_220px] md:items-center">
+              <div>
+                <p className="type-label">Employer subscription</p>
+                <p className="mt-1 text-sm font-bold text-text-muted">
+                  {subscription ? `${subscriptionPlan?.name || "Subscription plan"} - ${formatDate(subscription.ends_at || subscription.renews_at || subscription.expiry_date)}` : "No employer subscription record found."}
+                </p>
+              </div>
+              <select
+                value={subscription?.status || ""}
+                disabled={readOnly || !subscription?.id}
+                onChange={(event) => onSubscriptionStatusChange(subscription || {}, event.target.value)}
+                className="rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-bold dark:border-white/10 dark:bg-slate-900"
+              >
+                <option value="" disabled>No subscription</option>
+                {employerSubscriptionStatuses.map((status) => (
+                  <option key={status} value={status}>{status.replace(/_/g, " ")}</option>
+                ))}
+              </select>
             </div>
             {editing ? (
               <div className="mt-5 rounded-3xl border border-border bg-bg p-4 dark:border-white/10 dark:bg-white/5">
