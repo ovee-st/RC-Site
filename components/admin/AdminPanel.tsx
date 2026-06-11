@@ -50,6 +50,7 @@ import { Button, LinkButton } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import { getBestAvatarUrl, mergeRowsWithProfiles } from "@/lib/authUserSync";
 import { normalizeDateValue, normalizeJobPatch, normalizeJobStatus } from "@/lib/jobUpdate";
+import { EMPLOYER_PLANS } from "@/lib/subscriptions";
 import {
   buildAtsResumeHtml,
   buildCustomizedResumeHtml,
@@ -869,6 +870,63 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
     setNotice(`Employer subscription marked ${status}.`);
   }
 
+  async function updateEmployerSubscriptionPlan(employer: AnyRecord, subscription: AnyRecord, planSlug: string) {
+    if (readOnly) {
+      setNotice("Viewer accounts can inspect employer subscriptions, but cannot change plans.");
+      return;
+    }
+
+    if (!planSlug) {
+      setNotice("Choose a valid employer plan.");
+      return;
+    }
+
+    if (!isSupabaseConfigured) {
+      const plan = EMPLOYER_PLANS.find((item) => item.id === planSlug);
+      setAdminData((current) => ({
+        ...current,
+        employerSubscriptions: subscription?.id
+          ? current.employerSubscriptions.map((row) => row.id === subscription.id ? { ...row, subscription_plans: { ...(row.subscription_plans || {}), slug: planSlug, name: plan?.name || planSlug }, status: "active" } : row)
+          : current.employerSubscriptions
+      }));
+      setNotice(`Employer plan changed to ${plan?.name || planSlug}.`);
+      return;
+    }
+
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    const response = await fetch("/api/admin/employer-subscriptions", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({
+        id: subscription?.id,
+        employer_id: employer.id || employer.employer_id,
+        employer_user_id: employer.user_id,
+        plan_slug: planSlug,
+        status: "active"
+      })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setNotice(payload.error || "Could not change employer subscription plan.");
+      return;
+    }
+
+    setAdminData((current) => {
+      const exists = current.employerSubscriptions.some((row) => row.id === payload.subscription?.id);
+      return {
+        ...current,
+        employerSubscriptions: exists
+          ? current.employerSubscriptions.map((row) => row.id === payload.subscription.id ? { ...row, ...payload.subscription } : row)
+          : [payload.subscription, ...current.employerSubscriptions].filter(Boolean)
+      };
+    });
+    setNotice(`Employer plan changed to ${payload.subscription?.subscription_plans?.name || planSlug}.`);
+  }
+
   async function updateUserRole(profile: AnyRecord, nextRole: PlatformRole) {
     if (readOnly) {
       setNotice("Viewer accounts can inspect admin data, but cannot change roles.");
@@ -1186,6 +1244,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
                   subscriptions={adminData.employerSubscriptions}
                   onUpdate={updateRecord}
                   onSubscriptionStatusChange={updateEmployerSubscriptionStatus}
+                  onSubscriptionPlanChange={updateEmployerSubscriptionPlan}
                   onDelete={deleteRecord}
                   readOnly={readOnly}
                 />
@@ -1557,6 +1616,7 @@ function EmployersSection({
   subscriptions,
   onUpdate,
   onSubscriptionStatusChange,
+  onSubscriptionPlanChange,
   onDelete,
   readOnly
 }: {
@@ -1565,6 +1625,7 @@ function EmployersSection({
   subscriptions: AnyRecord[];
   onUpdate: (table: string, id: string, patch: AnyRecord) => void;
   onSubscriptionStatusChange: (subscription: AnyRecord, status: string) => void;
+  onSubscriptionPlanChange: (employer: AnyRecord, subscription: AnyRecord, planSlug: string) => void;
   onDelete: (table: string, id: string) => void;
   readOnly: boolean;
 }) {
@@ -1622,13 +1683,24 @@ function EmployersSection({
               <AdminStatCard label="Active" value={employerJobs.filter((job) => (job.status || "active") === "active").length} detail="Visible roles" icon={CheckCircle2} accent="bg-success/10" />
               <AdminStatCard label="Plan" value={subscriptionPlan?.name || employer.plan || "Free"} detail={subscription?.status || "No subscription"} icon={Sparkles} accent="bg-purple-400/10" />
             </div>
-            <div className="mt-4 grid gap-3 rounded-2xl border border-border bg-bg p-4 dark:border-white/10 dark:bg-white/5 md:grid-cols-[1fr_220px] md:items-center">
+            <div className="mt-4 grid gap-3 rounded-2xl border border-border bg-bg p-4 dark:border-white/10 dark:bg-white/5 md:grid-cols-[1fr_220px_220px] md:items-center">
               <div>
                 <p className="type-label">Employer subscription</p>
                 <p className="mt-1 text-sm font-bold text-text-muted">
                   {subscription ? `${subscriptionPlan?.name || "Subscription plan"} - ${formatDate(subscription.ends_at || subscription.renews_at || subscription.expiry_date)}` : "No employer subscription record found."}
                 </p>
               </div>
+              <select
+                value={subscriptionPlan?.slug || ""}
+                disabled={readOnly}
+                onChange={(event) => onSubscriptionPlanChange(employer, subscription || {}, event.target.value)}
+                className="rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-bold dark:border-white/10 dark:bg-slate-900"
+              >
+                <option value="" disabled>Change plan</option>
+                {EMPLOYER_PLANS.map((plan) => (
+                  <option key={plan.id} value={plan.id}>{plan.name}</option>
+                ))}
+              </select>
               <select
                 value={subscription?.status || ""}
                 disabled={readOnly || !subscription?.id}

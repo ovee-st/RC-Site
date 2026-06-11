@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { calculateExpiryDate, getActivePlan } from "@/lib/manualSubscriptionPayments";
 import { createServerSupabaseClient } from "@/lib/supabaseServer";
 import type { EmployerSubscriptionStatus } from "@/types/employerSubscription";
 
@@ -39,17 +40,43 @@ export async function PATCH(request: Request) {
 
   const body = await request.json().catch(() => ({}));
   const subscriptionId = String(body.id || body.subscription_id || "").trim();
-  const status = String(body.status || "").trim() as EmployerSubscriptionStatus;
+  const requestedStatus = String(body.status || "").trim() as EmployerSubscriptionStatus;
+  const planIdOrSlug = String(body.plan_id || body.planId || body.plan_slug || body.planSlug || "").trim();
+  const employerId = String(body.employer_id || body.employerId || "").trim();
+  const employerUserId = String(body.employer_user_id || body.employerUserId || "").trim();
 
-  if (!subscriptionId || !SUBSCRIPTION_STATUSES.includes(status)) {
-    return NextResponse.json({ error: "Valid subscription id and status are required." }, { status: 400 });
+  if (!subscriptionId && !employerId && !employerUserId) {
+    return NextResponse.json({ error: "Subscription id or employer id is required." }, { status: 400 });
+  }
+
+  if (requestedStatus && !SUBSCRIPTION_STATUSES.includes(requestedStatus)) {
+    return NextResponse.json({ error: "Valid subscription status is required." }, { status: 400 });
+  }
+
+  if (!requestedStatus && !planIdOrSlug) {
+    return NextResponse.json({ error: "Plan or status is required." }, { status: 400 });
   }
 
   try {
     const adminClient = createServerSupabaseClient();
     await requireAdmin(adminClient, token);
     const now = new Date().toISOString();
+    const plan = planIdOrSlug ? await getActivePlan(adminClient, planIdOrSlug) : null;
+    const status = requestedStatus || "active";
     const patch: Record<string, string | null> = { status, updated_at: now };
+
+    if (plan) {
+      const start = new Date();
+      const billingCycle = plan.billing_type === "one_time" ? "one_time" : "monthly";
+      const expiry = calculateExpiryDate(plan, start, billingCycle);
+      patch.plan_id = plan.id;
+      patch.billing_cycle = billingCycle;
+      patch.starts_at = start.toISOString();
+      patch.ends_at = expiry.toISOString();
+      patch.renews_at = plan.billing_type === "one_time" ? null : expiry.toISOString();
+      patch.start_date = start.toISOString().slice(0, 10);
+      patch.expiry_date = expiry.toISOString().slice(0, 10);
+    }
 
     if (status === "cancelled") {
       patch.cancelled_at = now;
@@ -60,14 +87,69 @@ export async function PATCH(request: Request) {
       patch.cancelled_at = null;
     }
 
-    const { data, error } = await adminClient
-      .from("employer_subscriptions")
-      .update(patch)
-      .eq("id", subscriptionId)
-      .select("*, employers(id, user_id, company_name, email, official_email), subscription_plans(*)")
-      .single();
+    let existingSubscriptionId = subscriptionId;
+    let resolvedEmployerId = employerId;
+    let resolvedEmployerUserId = employerUserId;
+
+    if (!existingSubscriptionId) {
+      const { data: employerById } = resolvedEmployerId
+        ? await adminClient.from("employers").select("id, user_id").eq("id", resolvedEmployerId).maybeSingle()
+        : { data: null };
+      const { data: employerByUserId } = !employerById && resolvedEmployerUserId
+        ? await adminClient.from("employers").select("id, user_id").eq("user_id", resolvedEmployerUserId).maybeSingle()
+        : { data: null };
+      const employer = employerById || employerByUserId;
+      if (!employer?.id) throw new Error("Employer profile was not found.");
+      resolvedEmployerId = employer.id;
+      resolvedEmployerUserId = employer.user_id || resolvedEmployerUserId;
+
+      const { data: latestSubscription } = await adminClient
+        .from("employer_subscriptions")
+        .select("id")
+        .eq("employer_id", resolvedEmployerId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      existingSubscriptionId = latestSubscription?.id || "";
+    }
+
+    let data;
+    let error;
+
+    if (existingSubscriptionId) {
+      const result = await adminClient
+        .from("employer_subscriptions")
+        .update(patch)
+        .eq("id", existingSubscriptionId)
+        .select("*, employers(id, user_id, company_name, email, official_email), subscription_plans(*)")
+        .single();
+      data = result.data;
+      error = result.error;
+    } else {
+      if (!plan) throw new Error("A plan is required to create an employer subscription.");
+      const result = await adminClient
+        .from("employer_subscriptions")
+        .insert({
+          employer_id: resolvedEmployerId,
+          employer_user_id: resolvedEmployerUserId || null,
+          ...patch
+        })
+        .select("*, employers(id, user_id, company_name, email, official_email), subscription_plans(*)")
+        .single();
+      data = result.data;
+      error = result.error;
+    }
 
     if (error) throw error;
+
+    if (plan && data?.id) {
+      await adminClient.from("employer_usage").insert({
+        employer_id: data.employer_id,
+        subscription_id: data.id,
+        period_start: data.starts_at,
+        period_end: data.ends_at || data.renews_at
+      }).then(() => null);
+    }
 
     return NextResponse.json({ ok: true, subscription: data });
   } catch (error) {
