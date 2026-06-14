@@ -169,7 +169,7 @@ describe("manual subscription coupon wiring", () => {
     expect(breakdown.originalAmount).toBe(7500);
     expect(breakdown.discountAmount).toBe(7500);
     expect(breakdown.finalAmount).toBe(0);
-    expect(breakdown.coupon?.code).toBe(" mxvlFull ");
+    expect(breakdown.coupon?.code).toBe("mxvlFull");
   });
 
   it("keeps percentage coupons working when optional coupon columns are not deployed", async () => {
@@ -184,6 +184,29 @@ describe("manual subscription coupon wiring", () => {
     expect(breakdown.discountAmount).toBe(7500);
     expect(breakdown.finalAmount).toBe(0);
     expect(breakdown.coupon?.discountType).toBe("percentage");
+  });
+
+  it("normalizes existing coupon rows with alternate admin field names", async () => {
+    const client = createClient({
+      subscription_plans: [elitePlan],
+      coupons: [{
+        id: "coupon-alt",
+        name: "Full Discount",
+        code: " mxvlFull ",
+        value: 100,
+        is_active: true,
+        usage_limit: null,
+        used_count: null,
+        expires_at: null
+      }]
+    });
+
+    const breakdown = await calculatePaymentBreakdown(client as any, elitePlan as any, "MXVLFULL", "monthly");
+
+    expect(breakdown.originalAmount).toBe(15000);
+    expect(breakdown.discountAmount).toBe(15000);
+    expect(breakdown.finalAmount).toBe(0);
+    expect(breakdown.coupon?.code).toBe("mxvlFull");
   });
 
   it("calculates a fixed amount coupon when configured on the coupon row", async () => {

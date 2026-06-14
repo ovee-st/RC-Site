@@ -25,6 +25,18 @@ function planPrice(plan: (typeof EMPLOYER_PLANS)[number]) {
   return plan.monthlyPrice || 0;
 }
 
+function getCouponErrorMessage(responsePayload: any, responseText: string, status: number) {
+  const message =
+    responsePayload?.error ||
+    responsePayload?.rejectionReason ||
+    responsePayload?.message ||
+    responsePayload?.details?.rejectionReason ||
+    responseText;
+
+  if (typeof message === "string" && message.trim()) return message.trim();
+  return `Could not apply coupon. API returned status ${status}.`;
+}
+
 export default function ManualSubscriptionPaymentPage() {
   const params = useSearchParams();
   const { user: authUser, role: authRole, loading: authLoading } = useAuth();
@@ -155,7 +167,14 @@ export default function ManualSubscriptionPaymentPage() {
       if (!response.ok) {
         resetBreakdown();
         setMessageTone("error");
-        setMessage(responsePayload.error || responsePayload.rejectionReason || "Could not apply coupon.");
+        setMessage(getCouponErrorMessage(responsePayload, responseText, response.status));
+        return;
+      }
+
+      if (!responsePayload.breakdown) {
+        resetBreakdown();
+        setMessageTone("error");
+        setMessage("Coupon response did not include a price breakdown.");
         return;
       }
 

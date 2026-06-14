@@ -74,9 +74,6 @@ export type SubscriptionDebugEvent = {
   details: Record<string, unknown>;
 };
 
-const BASE_COUPON_COLUMNS = "id,coupon_name,code,discount_percentage,active,usage_limit,used_count,expires_at";
-const OPTIONAL_COUPON_COLUMNS = "discount_type,discount_amount";
-
 function logSubscriptionDebug(message: string, details: Record<string, unknown>, debugTrail?: SubscriptionDebugEvent[]) {
   console.info(`[subscription-payments/debug] ${message}`, details);
   debugTrail?.push({ step: message, details });
@@ -109,6 +106,25 @@ export function getPlanAmount(plan: PlanRow, billingCycle: ManualSubscriptionBil
 
 export function normalizeCouponCode(couponCode?: string | null) {
   return String(couponCode || "").trim().toUpperCase();
+}
+
+function normalizeCouponRow(row: Record<string, unknown>): CouponRow {
+  const discountType = String(row.discount_type || row.discountType || "percentage").toLowerCase() === "fixed" ? "fixed" : "percentage";
+  const percentageValue = row.discount_percentage ?? row.discountPercent ?? row.discount ?? row.value ?? row.amount;
+  const fixedValue = row.discount_amount ?? row.discountAmount ?? (discountType === "fixed" ? percentageValue : null);
+
+  return {
+    id: String(row.id || ""),
+    coupon_name: row.coupon_name === undefined || row.coupon_name === null ? String(row.name || "") || null : String(row.coupon_name),
+    code: String(row.code || "").trim(),
+    discount_percentage: Number(percentageValue || 0),
+    discount_type: discountType,
+    discount_amount: fixedValue === undefined || fixedValue === null || fixedValue === "" ? null : Number(fixedValue),
+    active: row.active === undefined || row.active === null ? row.is_active !== false : row.active !== false,
+    usage_limit: row.usage_limit === undefined || row.usage_limit === null || row.usage_limit === "" ? null : Number(row.usage_limit),
+    used_count: row.used_count === undefined || row.used_count === null || row.used_count === "" ? 0 : Number(row.used_count),
+    expires_at: row.expires_at === undefined || row.expires_at === null || row.expires_at === "" ? null : String(row.expires_at)
+  };
 }
 
 function normalizePlanLookupValue(value?: string | null) {
@@ -201,40 +217,19 @@ export function calculateCouponDiscount(originalAmount: number, coupon: Existing
   return Math.min(originalAmount, Math.round(originalAmount * (Number(coupon.discount_percentage) / 100)));
 }
 
-async function withOptionalCouponColumns(client: SupabaseClient, coupon: CouponRow, debugTrail?: SubscriptionDebugEvent[]) {
-  const { data, error } = await client.from("coupons").select(OPTIONAL_COUPON_COLUMNS).eq("id", coupon.id).maybeSingle();
-  if (error) {
-    logSubscriptionDebug("coupon optional columns unavailable", {
-      couponId: coupon.id,
-      code: coupon.code,
-      requestedColumns: OPTIONAL_COUPON_COLUMNS,
-      error: error.message
-    }, debugTrail);
-    return coupon;
-  }
-  logSubscriptionDebug("coupon optional query result", {
-    couponId: coupon.id,
-    code: coupon.code,
-    found: Boolean(data),
-    discountType: (data as Partial<CouponRow> | null)?.discount_type ?? null,
-    discountAmount: (data as Partial<CouponRow> | null)?.discount_amount ?? null
-  }, debugTrail);
-  return { ...coupon, ...(data || {}) } as CouponRow;
-}
-
 async function findCouponByCode(client: SupabaseClient, couponCode: string, debugTrail?: SubscriptionDebugEvent[]) {
   const code = normalizeCouponCode(couponCode);
-  const exact = await client.from("coupons").select(BASE_COUPON_COLUMNS).eq("code", code).maybeSingle();
+  const exact = await client.from("coupons").select("*").eq("code", code).maybeSingle();
   if (exact.error) {
     logSubscriptionDebug("coupon exact lookup failed", {
       requestedCode: code,
-      selectedColumns: BASE_COUPON_COLUMNS,
+      selectedColumns: "*",
       error: exact.error.message
     }, debugTrail);
     throw exact.error;
   }
   if (exact.data) {
-    const coupon = await withOptionalCouponColumns(client, exact.data as CouponRow, debugTrail);
+    const coupon = normalizeCouponRow(exact.data as Record<string, unknown>);
     logSubscriptionDebug("coupon exact match", {
       requestedCode: code,
       couponId: coupon.id,
@@ -251,19 +246,18 @@ async function findCouponByCode(client: SupabaseClient, couponCode: string, debu
     return coupon;
   }
 
-  const { data, error } = await client.from("coupons").select(BASE_COUPON_COLUMNS);
+  const { data, error } = await client.from("coupons").select("*");
   if (error) {
     logSubscriptionDebug("coupon fallback lookup failed", {
       requestedCode: code,
-      selectedColumns: BASE_COUPON_COLUMNS,
+      selectedColumns: "*",
       error: error.message
     }, debugTrail);
     throw error;
   }
 
-  const rows = (Array.isArray(data) ? data : []) as CouponRow[];
-  const baseCoupon = rows.find((row) => normalizeCouponCode(row.code) === code) ?? null;
-  const coupon = baseCoupon ? await withOptionalCouponColumns(client, baseCoupon, debugTrail) : null;
+  const rows = (Array.isArray(data) ? data : []).map((row) => normalizeCouponRow(row as Record<string, unknown>));
+  const coupon = rows.find((row) => normalizeCouponCode(row.code) === code) ?? null;
   logSubscriptionDebug("coupon normalized fallback", {
     requestedCode: code,
     scannedRows: rows.length,
