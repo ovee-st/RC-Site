@@ -146,6 +146,18 @@ export function calculateCouponDiscount(originalAmount: number, coupon: Existing
   return Math.min(originalAmount, Math.round(originalAmount * (Number(coupon.discount_percentage) / 100)));
 }
 
+async function findCouponByCode(client: SupabaseClient, couponCode: string) {
+  const code = normalizeCouponCode(couponCode);
+  const exact = await client.from("coupons").select("*").eq("code", code).maybeSingle();
+  if (exact.error) throw exact.error;
+  if (exact.data) return exact.data as CouponRow;
+
+  const { data, error } = await client.from("coupons").select("*");
+  if (error) throw error;
+
+  return ((Array.isArray(data) ? data : []) as CouponRow[]).find((coupon) => normalizeCouponCode(coupon.code) === code) ?? null;
+}
+
 export function calculateExpiryDate(plan: PlanRow, start = new Date(), billingCycle: ManualSubscriptionBillingCycle = "monthly") {
   const expiry = new Date(start);
   if (plan.billing_type === "one_time") {
@@ -193,8 +205,8 @@ export async function calculatePaymentBreakdown(
     return { originalAmount, discountAmount: 0, finalAmount: originalAmount, coupon: null };
   }
 
-  const { data: coupon, error } = await client.from("coupons").select("*").eq("code", code).maybeSingle();
-  if (error || !coupon) throw new Error("Coupon code is invalid.");
+  const coupon = await findCouponByCode(client, code);
+  if (!coupon) throw new Error("Coupon code is invalid.");
 
   const row = validateExistingCoupon(coupon as CouponRow);
   const discountAmount = calculateCouponDiscount(originalAmount, row);

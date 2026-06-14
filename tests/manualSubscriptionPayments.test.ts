@@ -146,6 +146,20 @@ describe("manual subscription coupon wiring", () => {
     expect(breakdown.coupon?.code).toBe("TENOFF");
   });
 
+  it("resolves existing coupon rows regardless of stored casing", async () => {
+    const client = createClient({
+      subscription_plans: [growthPlan],
+      coupons: [{ ...validCoupon, code: " mxvlFull ", discount_percentage: 100 }]
+    });
+
+    const breakdown = await calculatePaymentBreakdown(client as any, growthPlan as any, "MXVLFULL", "monthly");
+
+    expect(breakdown.originalAmount).toBe(7500);
+    expect(breakdown.discountAmount).toBe(7500);
+    expect(breakdown.finalAmount).toBe(0);
+    expect(breakdown.coupon?.code).toBe(" mxvlFull ");
+  });
+
   it("calculates a fixed amount coupon when configured on the coupon row", async () => {
     const client = createClient({
       subscription_plans: [growthPlan],
