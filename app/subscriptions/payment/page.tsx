@@ -44,6 +44,8 @@ export default function ManualSubscriptionPaymentPage() {
   const [paymentMethod, setPaymentMethod] = useState<ManualPaymentMethod>("bkash");
   const [screenshot, setScreenshot] = useState<File | null>(null);
   const [message, setMessage] = useState("");
+  const [messageTone, setMessageTone] = useState<"success" | "error">("success");
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
   const [saving, setSaving] = useState(false);
   const selectedPayment = MANUAL_PAYMENT_METHODS[paymentMethod];
   const selectedPlanPrice = planPrice(selectedPlan);
@@ -116,50 +118,64 @@ export default function ManualSubscriptionPaymentPage() {
 
   async function applyCoupon() {
     setMessage("");
+    setMessageTone("success");
     setCouponDebugResponse(null);
     const code = couponCode.trim();
     if (!code) {
       resetBreakdown();
+      setMessageTone("error");
       setMessage("Enter a coupon code before applying.");
       return;
     }
 
-    const payload = {
-      plan_id: resolvedPlanId || selectedPlan.id,
-      plan_slug: selectedPlan.id,
-      selected_plan: selectedPlan,
-      coupon_code: code,
-      billing_cycle: selectedPlan.billingType === "one-time" ? "one_time" : "monthly"
-    };
-
-    const response = await fetch("/api/subscription-payments/apply-coupon", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-    const responseText = await response.text();
-    let responsePayload: any = {};
+    setApplyingCoupon(true);
     try {
-      responsePayload = responseText ? JSON.parse(responseText) : {};
-    } catch {
-      responsePayload = { error: responseText || "Could not apply coupon." };
-    }
-    setCouponDebugResponse({ status: response.status, ok: response.ok, body: responsePayload, raw: responseText });
+      const payload = {
+        plan_id: resolvedPlanId || selectedPlan.id,
+        plan_slug: selectedPlan.id,
+        selected_plan: selectedPlan,
+        coupon_code: code,
+        billing_cycle: selectedPlan.billingType === "one-time" ? "one_time" : "monthly"
+      };
 
-    if (!response.ok) {
+      const response = await fetch("/api/subscription-payments/apply-coupon", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const responseText = await response.text();
+      let responsePayload: any = {};
+      try {
+        responsePayload = responseText ? JSON.parse(responseText) : {};
+      } catch {
+        responsePayload = { error: responseText || "Could not apply coupon." };
+      }
+      setCouponDebugResponse({ status: response.status, ok: response.ok, body: responsePayload, raw: responseText });
+
+      if (!response.ok) {
+        resetBreakdown();
+        setMessageTone("error");
+        setMessage(responsePayload.error || responsePayload.rejectionReason || "Could not apply coupon.");
+        return;
+      }
+
+      if (responsePayload.plan?.id) setResolvedPlanId(responsePayload.plan.id);
+      setBreakdown(responsePayload.breakdown);
+      setMessageTone("success");
+      setMessage(responsePayload.breakdown?.coupon ? `Coupon ${responsePayload.breakdown.coupon.code} applied successfully.` : "Coupon cleared.");
+    } catch (error) {
       resetBreakdown();
-      setMessage(responsePayload.error || responsePayload.rejectionReason || "Could not apply coupon.");
-      return;
+      setMessageTone("error");
+      setMessage(error instanceof Error ? error.message : "Could not apply coupon.");
+    } finally {
+      setApplyingCoupon(false);
     }
-
-    if (responsePayload.plan?.id) setResolvedPlanId(responsePayload.plan.id);
-    setBreakdown(responsePayload.breakdown);
-    setMessage(responsePayload.breakdown?.coupon ? `Coupon ${responsePayload.breakdown.coupon.code} applied successfully.` : "Coupon cleared.");
   }
 
   async function submitRequest() {
     setSaving(true);
     setMessage("");
+    setMessageTone("success");
     try {
       if (authLoading) throw new Error("Checking your employer account. Please try again in a moment.");
       if (!isEmployer) {
@@ -200,11 +216,13 @@ export default function ManualSubscriptionPaymentPage() {
         responsePayload
       });
       if (!response.ok) throw new Error(responsePayload.error || "Could not submit payment request.");
+      setMessageTone("success");
       setMessage("Payment request submitted successfully. MXVL admin will verify it shortly.");
       setTransactionId("");
       setSenderDigits("");
       setScreenshot(null);
     } catch (error) {
+      setMessageTone("error");
       setMessage(error instanceof Error ? error.message : "Could not submit payment request.");
     } finally {
       setSaving(false);
@@ -240,7 +258,7 @@ export default function ManualSubscriptionPaymentPage() {
                   }}
                   placeholder="WELCOME20"
                 />
-                <Button type="button" onClick={applyCoupon}>Apply Coupon</Button>
+                <Button type="button" onClick={applyCoupon} disabled={applyingCoupon}>{applyingCoupon ? "Applying..." : "Apply Coupon"}</Button>
               </div>
             </div>
 
@@ -327,7 +345,9 @@ export default function ManualSubscriptionPaymentPage() {
             ) : null}
 
             {message ? (
-              <div className="mt-5 flex gap-2 rounded-md bg-success/10 p-4 text-sm font-bold text-success">
+              <div className={`mt-5 flex gap-2 rounded-md p-4 text-sm font-bold ${
+                messageTone === "success" ? "bg-success/10 text-success" : "bg-danger/10 text-danger dark:text-red-300"
+              }`}>
                 <CheckCircle2 className="h-5 w-5" />
                 {message}
               </div>
