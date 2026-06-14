@@ -70,6 +70,9 @@ type CouponRow = {
 
 export type ExistingCoupon = CouponRow;
 
+const BASE_COUPON_COLUMNS = "id,coupon_name,code,discount_percentage,active,usage_limit,used_count,expires_at";
+const OPTIONAL_COUPON_COLUMNS = "discount_type,discount_amount";
+
 function logSubscriptionDebug(message: string, details: Record<string, unknown>) {
   console.info(`[subscription-payments/debug] ${message}`, details);
 }
@@ -126,21 +129,62 @@ function buildPlanLookupValues(planIdOrSlug: string) {
 }
 
 export function validateExistingCoupon(coupon: ExistingCoupon | null, now = new Date()) {
-  if (!coupon) throw new Error("Coupon code is invalid.");
-  if (!coupon.active) throw new Error("Coupon code is not active.");
-  if (coupon.expires_at && new Date(coupon.expires_at) < now) throw new Error("Coupon code has expired.");
+  if (!coupon) {
+    logSubscriptionDebug("coupon validation failed", { reason: "not_found" });
+    throw new Error("Coupon code is invalid.");
+  }
+  if (!coupon.active) {
+    logSubscriptionDebug("coupon validation failed", { couponId: coupon.id, code: coupon.code, reason: "inactive" });
+    throw new Error("Coupon code is not active.");
+  }
+  if (coupon.expires_at && new Date(coupon.expires_at) < now) {
+    logSubscriptionDebug("coupon validation failed", { couponId: coupon.id, code: coupon.code, reason: "expired", expiresAt: coupon.expires_at });
+    throw new Error("Coupon code has expired.");
+  }
   if (coupon.usage_limit !== null && Number(coupon.used_count || 0) >= Number(coupon.usage_limit)) {
+    logSubscriptionDebug("coupon validation failed", {
+      couponId: coupon.id,
+      code: coupon.code,
+      reason: "usage_limit_reached",
+      usageLimit: coupon.usage_limit,
+      usedCount: coupon.used_count
+    });
     throw new Error("Coupon usage limit has been reached.");
   }
   const discountType = coupon.discount_type === "fixed" ? "fixed" : "percentage";
   if (discountType === "fixed") {
     const fixedAmount = Number(coupon.discount_amount || coupon.discount_percentage || 0);
     if (!Number.isFinite(fixedAmount) || fixedAmount <= 0) {
+      logSubscriptionDebug("coupon validation failed", {
+        couponId: coupon.id,
+        code: coupon.code,
+        reason: "invalid_fixed_discount",
+        discountAmount: coupon.discount_amount ?? null,
+        discountPercentage: coupon.discount_percentage
+      });
       throw new Error("Coupon discount is invalid.");
     }
   } else if (!Number.isFinite(Number(coupon.discount_percentage)) || Number(coupon.discount_percentage) < 1 || Number(coupon.discount_percentage) > 100) {
+    logSubscriptionDebug("coupon validation failed", {
+      couponId: coupon.id,
+      code: coupon.code,
+      reason: "invalid_percentage_discount",
+      discountPercentage: coupon.discount_percentage
+    });
     throw new Error("Coupon discount is invalid.");
   }
+  logSubscriptionDebug("coupon validation passed", {
+    couponId: coupon.id,
+    code: coupon.code,
+    active: coupon.active,
+    expiresAt: coupon.expires_at,
+    discountType,
+    discountPercentage: coupon.discount_percentage,
+    discountAmount: coupon.discount_amount ?? null,
+    usageLimit: coupon.usage_limit,
+    usedCount: coupon.used_count,
+    applicableModules: "platform-wide"
+  });
   return coupon;
 }
 
@@ -152,27 +196,62 @@ export function calculateCouponDiscount(originalAmount: number, coupon: Existing
   return Math.min(originalAmount, Math.round(originalAmount * (Number(coupon.discount_percentage) / 100)));
 }
 
+async function withOptionalCouponColumns(client: SupabaseClient, coupon: CouponRow) {
+  const { data, error } = await client.from("coupons").select(OPTIONAL_COUPON_COLUMNS).eq("id", coupon.id).maybeSingle();
+  if (error) {
+    logSubscriptionDebug("coupon optional columns unavailable", {
+      couponId: coupon.id,
+      code: coupon.code,
+      requestedColumns: OPTIONAL_COUPON_COLUMNS,
+      error: error.message
+    });
+    return coupon;
+  }
+  return { ...coupon, ...(data || {}) } as CouponRow;
+}
+
 async function findCouponByCode(client: SupabaseClient, couponCode: string) {
   const code = normalizeCouponCode(couponCode);
-  const exact = await client.from("coupons").select("*").eq("code", code).maybeSingle();
-  if (exact.error) throw exact.error;
+  const exact = await client.from("coupons").select(BASE_COUPON_COLUMNS).eq("code", code).maybeSingle();
+  if (exact.error) {
+    logSubscriptionDebug("coupon exact lookup failed", {
+      requestedCode: code,
+      selectedColumns: BASE_COUPON_COLUMNS,
+      error: exact.error.message
+    });
+    throw exact.error;
+  }
   if (exact.data) {
+    const coupon = await withOptionalCouponColumns(client, exact.data as CouponRow);
     logSubscriptionDebug("coupon exact match", {
       requestedCode: code,
-      couponId: (exact.data as CouponRow).id,
-      storedCode: (exact.data as CouponRow).code,
-      discountType: (exact.data as CouponRow).discount_type ?? "percentage",
-      discountPercentage: (exact.data as CouponRow).discount_percentage,
-      discountAmount: (exact.data as CouponRow).discount_amount ?? null
+      couponId: coupon.id,
+      storedCode: coupon.code,
+      active: coupon.active,
+      expiresAt: coupon.expires_at,
+      discountType: coupon.discount_type ?? "percentage",
+      discountPercentage: coupon.discount_percentage,
+      discountAmount: coupon.discount_amount ?? null,
+      usageLimit: coupon.usage_limit,
+      usedCount: coupon.used_count,
+      applicableModules: "platform-wide"
     });
-    return exact.data as CouponRow;
+    return coupon;
   }
 
-  const { data, error } = await client.from("coupons").select("*");
-  if (error) throw error;
+  const { data, error } = await client.from("coupons").select(BASE_COUPON_COLUMNS);
+  if (error) {
+    logSubscriptionDebug("coupon fallback lookup failed", {
+      requestedCode: code,
+      selectedColumns: BASE_COUPON_COLUMNS,
+      error: error.message
+    });
+    throw error;
+  }
 
   const rows = (Array.isArray(data) ? data : []) as CouponRow[];
-  const coupon = rows.find((row) => normalizeCouponCode(row.code) === code) ?? null;
+  const baseCoupon = rows.find((row) => normalizeCouponCode(row.code) === code) ?? null;
+  const coupon = baseCoupon ? await withOptionalCouponColumns(client, baseCoupon) : null;
   logSubscriptionDebug("coupon normalized fallback", {
     requestedCode: code,
     scannedRows: rows.length,

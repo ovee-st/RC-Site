@@ -13,10 +13,15 @@ type Row = Record<string, any>;
 
 class FakeQuery {
   private filters: Array<(row: Row) => boolean> = [];
+  private selectedColumns = "*";
 
-  constructor(private readonly rows: Row[]) {}
+  constructor(
+    private readonly rows: Row[],
+    private readonly options: { failOptionalCouponColumns?: boolean } = {}
+  ) {}
 
-  select() {
+  select(columns = "*") {
+    this.selectedColumns = columns;
     return this;
   }
 
@@ -26,6 +31,13 @@ class FakeQuery {
   }
 
   maybeSingle() {
+    if (this.options.failOptionalCouponColumns && this.selectedColumns === "discount_type,discount_amount") {
+      return Promise.resolve({
+        data: null,
+        error: { message: "column coupons.discount_type does not exist" }
+      });
+    }
+
     return Promise.resolve({
       data: this.rows.find((row) => this.filters.every((filter) => filter(row))) ?? null,
       error: null
@@ -43,10 +55,10 @@ class FakeQuery {
   }
 }
 
-function createClient(tables: Record<string, Row[]>) {
+function createClient(tables: Record<string, Row[]>, options: { failOptionalCouponColumns?: boolean } = {}) {
   return {
     from(table: string) {
-      return new FakeQuery(tables[table] || []);
+      return new FakeQuery(tables[table] || [], table === "coupons" ? options : {});
     }
   };
 }
@@ -158,6 +170,20 @@ describe("manual subscription coupon wiring", () => {
     expect(breakdown.discountAmount).toBe(7500);
     expect(breakdown.finalAmount).toBe(0);
     expect(breakdown.coupon?.code).toBe(" mxvlFull ");
+  });
+
+  it("keeps percentage coupons working when optional coupon columns are not deployed", async () => {
+    const client = createClient({
+      subscription_plans: [growthPlan],
+      coupons: [{ ...validCoupon, code: "MXVLFULL", discount_percentage: 100 }]
+    }, { failOptionalCouponColumns: true });
+
+    const breakdown = await calculatePaymentBreakdown(client as any, growthPlan as any, "MXVLFULL", "monthly");
+
+    expect(breakdown.originalAmount).toBe(7500);
+    expect(breakdown.discountAmount).toBe(7500);
+    expect(breakdown.finalAmount).toBe(0);
+    expect(breakdown.coupon?.discountType).toBe("percentage");
   });
 
   it("calculates a fixed amount coupon when configured on the coupon row", async () => {
