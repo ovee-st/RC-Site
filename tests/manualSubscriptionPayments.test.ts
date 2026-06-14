@@ -179,6 +179,26 @@ describe("manual subscription coupon wiring", () => {
     expect(breakdown.coupon?.discountType).toBe("fixed");
   });
 
+  it("uses the legacy percentage value when a fixed coupon has no discount_amount", async () => {
+    const client = createClient({
+      subscription_plans: [growthPlan],
+      coupons: [{
+        ...validCoupon,
+        code: "FIXEDLEGACY",
+        discount_type: "fixed",
+        discount_percentage: 100,
+        discount_amount: null
+      }]
+    });
+
+    const breakdown = await calculatePaymentBreakdown(client as any, growthPlan as any, "fixedlegacy", "monthly");
+
+    expect(breakdown.originalAmount).toBe(7500);
+    expect(breakdown.discountAmount).toBe(100);
+    expect(breakdown.finalAmount).toBe(7400);
+    expect(breakdown.coupon?.discountType).toBe("fixed");
+  });
+
   it("rejects expired, inactive, and usage-limit reached coupons during calculation", async () => {
     const expiredClient = createClient({ coupons: [{ ...validCoupon, code: "EXPIRED", expires_at: "2026-01-01T00:00:00.000Z" }] });
     const inactiveClient = createClient({ coupons: [{ ...validCoupon, code: "INACTIVE", active: false }] });

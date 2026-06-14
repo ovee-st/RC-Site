@@ -50,6 +50,8 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => ({}));
   const planId = String(body.plan_id || body.planId || "").trim();
+  const planSlug = String(body.plan_slug || body.planSlug || "").trim();
+  const selectedPlan = body.selected_plan || body.selectedPlan || null;
   const couponCode = String(body.coupon_code || body.couponCode || "").trim();
   const transactionId = String(body.transaction_id || body.transactionId || "").trim();
   const senderLast3Digits = String(body.sender_last_3_digits || body.senderLast3Digits || "").trim();
@@ -58,20 +60,34 @@ export async function POST(request: Request) {
   const rawBillingCycle = body.billing_cycle || body.billingCycle;
 
   try {
+    if (!planId && !planSlug) throw new Error("Plan is required.");
     const billingCycle = normalizeManualBillingCycle(rawBillingCycle);
     assertValidTransactionId(transactionId);
     assertValidSenderDigits(senderLast3Digits);
 
     const adminClient = createServerSupabaseClient();
     const { user, employer } = await getEmployerContext(adminClient, token);
-    console.info("[subscription-payments/create] request", {
+    console.info("[subscription-payments/create] payload received", {
       employerId: employer.id,
       planId,
+      planSlug,
+      selectedPlan,
       couponCode,
       billingCycle,
       paymentMethod
     });
-    const plan = await getActivePlan(adminClient, planId);
+    let plan;
+    try {
+      plan = await getActivePlan(adminClient, planId || planSlug);
+    } catch (error) {
+      if (!planSlug || planSlug === planId) throw error;
+      console.warn("[subscription-payments/create] plan_id lookup failed, retrying plan_slug", {
+        planId,
+        planSlug,
+        error: error instanceof Error ? error.message : error
+      });
+      plan = await getActivePlan(adminClient, planSlug);
+    }
     const breakdown = await calculatePaymentBreakdown(adminClient, plan, couponCode, billingCycle);
     console.info("[subscription-payments/create] resolved", {
       employerId: employer.id,
@@ -144,6 +160,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.warn("[subscription-payments/create] failed", {
       planId,
+      planSlug,
       couponCode,
       billingCycle: rawBillingCycle,
       paymentMethod,

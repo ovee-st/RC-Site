@@ -59,15 +59,32 @@ export default function ManualSubscriptionPaymentPage() {
   }
 
   async function refreshPlanAmount() {
+    const payload = {
+      plan_id: selectedPlan.id,
+      plan_slug: selectedPlan.id,
+      selected_plan: selectedPlan,
+      coupon_code: "",
+      billing_cycle: selectedPlan.billingType === "one-time" ? "one_time" : "monthly"
+    };
+    console.info("[subscription-payment-ui] refresh plan amount", {
+      selectedPlan,
+      resolvedPlanId,
+      payload
+    });
     const response = await fetch("/api/subscription-payments/apply-coupon", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ plan_id: selectedPlan.id, coupon_code: "", billing_cycle: selectedPlan.billingType === "one-time" ? "one_time" : "monthly" })
+      body: JSON.stringify(payload)
     });
-    const payload = await response.json().catch(() => ({}));
-    if (response.ok && payload.breakdown) {
-      if (payload.plan?.id) setResolvedPlanId(payload.plan.id);
-      setBreakdown(payload.breakdown);
+    const responsePayload = await response.json().catch(() => ({}));
+    console.info("[subscription-payment-ui] refresh plan response", {
+      ok: response.ok,
+      status: response.status,
+      responsePayload
+    });
+    if (response.ok && responsePayload.breakdown) {
+      if (responsePayload.plan?.id) setResolvedPlanId(responsePayload.plan.id);
+      setBreakdown(responsePayload.breakdown);
     } else {
       setResolvedPlanId("");
       setBreakdown({
@@ -87,20 +104,38 @@ export default function ManualSubscriptionPaymentPage() {
 
   async function applyCoupon() {
     setMessage("");
+    const payload = {
+      plan_id: resolvedPlanId || selectedPlan.id,
+      plan_slug: selectedPlan.id,
+      selected_plan: selectedPlan,
+      coupon_code: couponCode,
+      billing_cycle: selectedPlan.billingType === "one-time" ? "one_time" : "monthly"
+    };
+    console.info("[subscription-payment-ui] apply coupon request", {
+      selectedPlan,
+      resolvedPlanId,
+      couponCode,
+      payload
+    });
     const response = await fetch("/api/subscription-payments/apply-coupon", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ plan_id: selectedPlan.id, coupon_code: couponCode, billing_cycle: selectedPlan.billingType === "one-time" ? "one_time" : "monthly" })
+      body: JSON.stringify(payload)
     });
-    const payload = await response.json().catch(() => ({}));
+    const responsePayload = await response.json().catch(() => ({}));
+    console.info("[subscription-payment-ui] apply coupon response", {
+      ok: response.ok,
+      status: response.status,
+      responsePayload
+    });
     if (!response.ok) {
       clearAppliedDiscount();
-      setMessage(payload.error || "Could not apply coupon.");
+      setMessage(responsePayload.error || "Could not apply coupon.");
       return;
     }
-    if (payload.plan?.id) setResolvedPlanId(payload.plan.id);
-    setBreakdown(payload.breakdown);
-    setMessage(payload.breakdown.coupon ? `Coupon ${payload.breakdown.coupon.code} applied.` : "Coupon cleared.");
+    if (responsePayload.plan?.id) setResolvedPlanId(responsePayload.plan.id);
+    setBreakdown(responsePayload.breakdown);
+    setMessage(responsePayload.breakdown.coupon ? `Coupon ${responsePayload.breakdown.coupon.code} applied.` : "Coupon cleared.");
   }
 
   async function uploadScreenshot(token: string) {
@@ -124,24 +159,38 @@ export default function ManualSubscriptionPaymentPage() {
       const token = await getToken();
       if (!token) throw new Error("Please sign in as an employer before submitting payment proof.");
       const paymentScreenshot = await uploadScreenshot(token);
+      const payload = {
+        plan_id: resolvedPlanId || selectedPlan.id,
+        plan_slug: selectedPlan.id,
+        selected_plan: selectedPlan,
+        coupon_code: breakdown.coupon?.code || couponCode,
+        payment_method: paymentMethod,
+        transaction_id: transactionId,
+        sender_last_3_digits: senderDigits,
+        payment_screenshot: paymentScreenshot,
+        billing_cycle: selectedPlan.billingType === "one-time" ? "one_time" : "monthly"
+      };
+      console.info("[subscription-payment-ui] submit payment request", {
+        selectedPlan,
+        resolvedPlanId,
+        breakdown,
+        payload
+      });
       const response = await fetch("/api/subscription-payments", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({
-          plan_id: resolvedPlanId || selectedPlan.id,
-          coupon_code: breakdown.coupon?.code || couponCode,
-          payment_method: paymentMethod,
-          transaction_id: transactionId,
-          sender_last_3_digits: senderDigits,
-          payment_screenshot: paymentScreenshot,
-          billing_cycle: selectedPlan.billingType === "one-time" ? "one_time" : "monthly"
-        })
+        body: JSON.stringify(payload)
       });
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(payload.error || "Could not submit payment request.");
+      const responsePayload = await response.json().catch(() => ({}));
+      console.info("[subscription-payment-ui] submit payment response", {
+        ok: response.ok,
+        status: response.status,
+        responsePayload
+      });
+      if (!response.ok) throw new Error(responsePayload.error || "Could not submit payment request.");
       setMessage("Payment request submitted successfully. MXVL admin will verify it shortly.");
       setTransactionId("");
       setSenderDigits("");

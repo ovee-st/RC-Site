@@ -70,6 +70,10 @@ type CouponRow = {
 
 export type ExistingCoupon = CouponRow;
 
+function logSubscriptionDebug(message: string, details: Record<string, unknown>) {
+  console.info(`[subscription-payments/debug] ${message}`, details);
+}
+
 export function assertValidTransactionId(transactionId: string) {
   if (!/^[A-Za-z0-9]{6,32}$/.test(transactionId)) {
     throw new Error("Transaction ID must be 6-32 letters or numbers.");
@@ -130,7 +134,8 @@ export function validateExistingCoupon(coupon: ExistingCoupon | null, now = new 
   }
   const discountType = coupon.discount_type === "fixed" ? "fixed" : "percentage";
   if (discountType === "fixed") {
-    if (!Number.isFinite(Number(coupon.discount_amount)) || Number(coupon.discount_amount) <= 0) {
+    const fixedAmount = Number(coupon.discount_amount || coupon.discount_percentage || 0);
+    if (!Number.isFinite(fixedAmount) || fixedAmount <= 0) {
       throw new Error("Coupon discount is invalid.");
     }
   } else if (!Number.isFinite(Number(coupon.discount_percentage)) || Number(coupon.discount_percentage) < 1 || Number(coupon.discount_percentage) > 100) {
@@ -141,7 +146,8 @@ export function validateExistingCoupon(coupon: ExistingCoupon | null, now = new 
 
 export function calculateCouponDiscount(originalAmount: number, coupon: ExistingCoupon) {
   if (coupon.discount_type === "fixed") {
-    return Math.min(originalAmount, Math.round(Number(coupon.discount_amount || 0)));
+    const fixedAmount = Number(coupon.discount_amount || coupon.discount_percentage || 0);
+    return Math.min(originalAmount, Math.round(fixedAmount));
   }
   return Math.min(originalAmount, Math.round(originalAmount * (Number(coupon.discount_percentage) / 100)));
 }
@@ -150,12 +156,33 @@ async function findCouponByCode(client: SupabaseClient, couponCode: string) {
   const code = normalizeCouponCode(couponCode);
   const exact = await client.from("coupons").select("*").eq("code", code).maybeSingle();
   if (exact.error) throw exact.error;
-  if (exact.data) return exact.data as CouponRow;
+  if (exact.data) {
+    logSubscriptionDebug("coupon exact match", {
+      requestedCode: code,
+      couponId: (exact.data as CouponRow).id,
+      storedCode: (exact.data as CouponRow).code,
+      discountType: (exact.data as CouponRow).discount_type ?? "percentage",
+      discountPercentage: (exact.data as CouponRow).discount_percentage,
+      discountAmount: (exact.data as CouponRow).discount_amount ?? null
+    });
+    return exact.data as CouponRow;
+  }
 
   const { data, error } = await client.from("coupons").select("*");
   if (error) throw error;
 
-  return ((Array.isArray(data) ? data : []) as CouponRow[]).find((coupon) => normalizeCouponCode(coupon.code) === code) ?? null;
+  const rows = (Array.isArray(data) ? data : []) as CouponRow[];
+  const coupon = rows.find((row) => normalizeCouponCode(row.code) === code) ?? null;
+  logSubscriptionDebug("coupon normalized fallback", {
+    requestedCode: code,
+    scannedRows: rows.length,
+    matchedCouponId: coupon?.id ?? null,
+    storedCode: coupon?.code ?? null,
+    discountType: coupon?.discount_type ?? "percentage",
+    discountPercentage: coupon?.discount_percentage ?? null,
+    discountAmount: coupon?.discount_amount ?? null
+  });
+  return coupon;
 }
 
 export function calculateExpiryDate(plan: PlanRow, start = new Date(), billingCycle: ManualSubscriptionBillingCycle = "monthly") {
@@ -170,18 +197,37 @@ export function calculateExpiryDate(plan: PlanRow, start = new Date(), billingCy
 
 export async function getActivePlan(client: SupabaseClient, planIdOrSlug: string): Promise<PlanRow> {
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(planIdOrSlug);
-  let plan = isUuid
-    ? (await client.from("subscription_plans").select("*").eq("id", planIdOrSlug).eq("is_active", true).maybeSingle()).data
+  logSubscriptionDebug("plan lookup start", { lookupValue: planIdOrSlug, isUuid });
+  const uuidResult = isUuid
+    ? await client.from("subscription_plans").select("*").eq("id", planIdOrSlug).eq("is_active", true).maybeSingle()
     : null;
+  if (uuidResult?.error) throw uuidResult.error;
+  let plan = uuidResult?.data ?? null;
+  if (uuidResult) {
+    logSubscriptionDebug("plan uuid query result", {
+      lookupValue: planIdOrSlug,
+      found: Boolean(plan),
+      resolvedPlanId: (plan as PlanRow | null)?.id ?? null,
+      resolvedPlanSlug: (plan as PlanRow | null)?.slug ?? null
+    });
+  }
 
   if (!plan) {
     const lookupValues = buildPlanLookupValues(planIdOrSlug);
-    const { data } = await client
+    const { data, error } = await client
       .from("subscription_plans")
       .select("*")
       .eq("is_active", true);
+    if (error) throw error;
 
     const activePlans = (Array.isArray(data) ? data : []) as PlanRow[];
+    logSubscriptionDebug("plan active query result", {
+      lookupValue: planIdOrSlug,
+      lookupValues,
+      activePlanCount: activePlans.length,
+      activePlanSlugs: activePlans.map((row) => row.slug),
+      activePlanNames: activePlans.map((row) => row.name)
+    });
     plan = activePlans.find((row) => {
       const rowValues = [row.id, row.slug, row.name].map(normalizePlanLookupValue);
       return lookupValues.some((value) => rowValues.includes(normalizePlanLookupValue(value)));
@@ -210,6 +256,18 @@ export async function calculatePaymentBreakdown(
 
   const row = validateExistingCoupon(coupon as CouponRow);
   const discountAmount = calculateCouponDiscount(originalAmount, row);
+  logSubscriptionDebug("coupon calculation result", {
+    planId: plan.id,
+    planSlug: plan.slug,
+    couponId: row.id,
+    couponCode: row.code,
+    discountType: row.discount_type === "fixed" ? "fixed" : "percentage",
+    discountPercentage: row.discount_percentage,
+    discountAmountValue: row.discount_amount ?? null,
+    originalAmount,
+    calculatedDiscountAmount: discountAmount,
+    finalAmount: Math.max(originalAmount - discountAmount, 0)
+  });
   return {
     originalAmount,
     discountAmount,
