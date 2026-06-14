@@ -69,12 +69,17 @@ type CouponRow = {
 };
 
 export type ExistingCoupon = CouponRow;
+export type SubscriptionDebugEvent = {
+  step: string;
+  details: Record<string, unknown>;
+};
 
 const BASE_COUPON_COLUMNS = "id,coupon_name,code,discount_percentage,active,usage_limit,used_count,expires_at";
 const OPTIONAL_COUPON_COLUMNS = "discount_type,discount_amount";
 
-function logSubscriptionDebug(message: string, details: Record<string, unknown>) {
+function logSubscriptionDebug(message: string, details: Record<string, unknown>, debugTrail?: SubscriptionDebugEvent[]) {
   console.info(`[subscription-payments/debug] ${message}`, details);
+  debugTrail?.push({ step: message, details });
 }
 
 export function assertValidTransactionId(transactionId: string) {
@@ -128,17 +133,17 @@ function buildPlanLookupValues(planIdOrSlug: string) {
   return [...values].filter(Boolean);
 }
 
-export function validateExistingCoupon(coupon: ExistingCoupon | null, now = new Date()) {
+export function validateExistingCoupon(coupon: ExistingCoupon | null, now = new Date(), debugTrail?: SubscriptionDebugEvent[]) {
   if (!coupon) {
-    logSubscriptionDebug("coupon validation failed", { reason: "not_found" });
+    logSubscriptionDebug("coupon validation failed", { reason: "not_found" }, debugTrail);
     throw new Error("Coupon code is invalid.");
   }
   if (!coupon.active) {
-    logSubscriptionDebug("coupon validation failed", { couponId: coupon.id, code: coupon.code, reason: "inactive" });
+    logSubscriptionDebug("coupon validation failed", { couponId: coupon.id, code: coupon.code, reason: "inactive" }, debugTrail);
     throw new Error("Coupon code is not active.");
   }
   if (coupon.expires_at && new Date(coupon.expires_at) < now) {
-    logSubscriptionDebug("coupon validation failed", { couponId: coupon.id, code: coupon.code, reason: "expired", expiresAt: coupon.expires_at });
+    logSubscriptionDebug("coupon validation failed", { couponId: coupon.id, code: coupon.code, reason: "expired", expiresAt: coupon.expires_at }, debugTrail);
     throw new Error("Coupon code has expired.");
   }
   if (coupon.usage_limit !== null && Number(coupon.used_count || 0) >= Number(coupon.usage_limit)) {
@@ -148,7 +153,7 @@ export function validateExistingCoupon(coupon: ExistingCoupon | null, now = new 
       reason: "usage_limit_reached",
       usageLimit: coupon.usage_limit,
       usedCount: coupon.used_count
-    });
+    }, debugTrail);
     throw new Error("Coupon usage limit has been reached.");
   }
   const discountType = coupon.discount_type === "fixed" ? "fixed" : "percentage";
@@ -161,7 +166,7 @@ export function validateExistingCoupon(coupon: ExistingCoupon | null, now = new 
         reason: "invalid_fixed_discount",
         discountAmount: coupon.discount_amount ?? null,
         discountPercentage: coupon.discount_percentage
-      });
+      }, debugTrail);
       throw new Error("Coupon discount is invalid.");
     }
   } else if (!Number.isFinite(Number(coupon.discount_percentage)) || Number(coupon.discount_percentage) < 1 || Number(coupon.discount_percentage) > 100) {
@@ -170,7 +175,7 @@ export function validateExistingCoupon(coupon: ExistingCoupon | null, now = new 
       code: coupon.code,
       reason: "invalid_percentage_discount",
       discountPercentage: coupon.discount_percentage
-    });
+    }, debugTrail);
     throw new Error("Coupon discount is invalid.");
   }
   logSubscriptionDebug("coupon validation passed", {
@@ -184,7 +189,7 @@ export function validateExistingCoupon(coupon: ExistingCoupon | null, now = new 
     usageLimit: coupon.usage_limit,
     usedCount: coupon.used_count,
     applicableModules: "platform-wide"
-  });
+  }, debugTrail);
   return coupon;
 }
 
@@ -196,7 +201,7 @@ export function calculateCouponDiscount(originalAmount: number, coupon: Existing
   return Math.min(originalAmount, Math.round(originalAmount * (Number(coupon.discount_percentage) / 100)));
 }
 
-async function withOptionalCouponColumns(client: SupabaseClient, coupon: CouponRow) {
+async function withOptionalCouponColumns(client: SupabaseClient, coupon: CouponRow, debugTrail?: SubscriptionDebugEvent[]) {
   const { data, error } = await client.from("coupons").select(OPTIONAL_COUPON_COLUMNS).eq("id", coupon.id).maybeSingle();
   if (error) {
     logSubscriptionDebug("coupon optional columns unavailable", {
@@ -204,13 +209,20 @@ async function withOptionalCouponColumns(client: SupabaseClient, coupon: CouponR
       code: coupon.code,
       requestedColumns: OPTIONAL_COUPON_COLUMNS,
       error: error.message
-    });
+    }, debugTrail);
     return coupon;
   }
+  logSubscriptionDebug("coupon optional query result", {
+    couponId: coupon.id,
+    code: coupon.code,
+    found: Boolean(data),
+    discountType: (data as Partial<CouponRow> | null)?.discount_type ?? null,
+    discountAmount: (data as Partial<CouponRow> | null)?.discount_amount ?? null
+  }, debugTrail);
   return { ...coupon, ...(data || {}) } as CouponRow;
 }
 
-async function findCouponByCode(client: SupabaseClient, couponCode: string) {
+async function findCouponByCode(client: SupabaseClient, couponCode: string, debugTrail?: SubscriptionDebugEvent[]) {
   const code = normalizeCouponCode(couponCode);
   const exact = await client.from("coupons").select(BASE_COUPON_COLUMNS).eq("code", code).maybeSingle();
   if (exact.error) {
@@ -218,11 +230,11 @@ async function findCouponByCode(client: SupabaseClient, couponCode: string) {
       requestedCode: code,
       selectedColumns: BASE_COUPON_COLUMNS,
       error: exact.error.message
-    });
+    }, debugTrail);
     throw exact.error;
   }
   if (exact.data) {
-    const coupon = await withOptionalCouponColumns(client, exact.data as CouponRow);
+    const coupon = await withOptionalCouponColumns(client, exact.data as CouponRow, debugTrail);
     logSubscriptionDebug("coupon exact match", {
       requestedCode: code,
       couponId: coupon.id,
@@ -235,7 +247,7 @@ async function findCouponByCode(client: SupabaseClient, couponCode: string) {
       usageLimit: coupon.usage_limit,
       usedCount: coupon.used_count,
       applicableModules: "platform-wide"
-    });
+    }, debugTrail);
     return coupon;
   }
 
@@ -245,13 +257,13 @@ async function findCouponByCode(client: SupabaseClient, couponCode: string) {
       requestedCode: code,
       selectedColumns: BASE_COUPON_COLUMNS,
       error: error.message
-    });
+    }, debugTrail);
     throw error;
   }
 
   const rows = (Array.isArray(data) ? data : []) as CouponRow[];
   const baseCoupon = rows.find((row) => normalizeCouponCode(row.code) === code) ?? null;
-  const coupon = baseCoupon ? await withOptionalCouponColumns(client, baseCoupon) : null;
+  const coupon = baseCoupon ? await withOptionalCouponColumns(client, baseCoupon, debugTrail) : null;
   logSubscriptionDebug("coupon normalized fallback", {
     requestedCode: code,
     scannedRows: rows.length,
@@ -260,7 +272,7 @@ async function findCouponByCode(client: SupabaseClient, couponCode: string) {
     discountType: coupon?.discount_type ?? "percentage",
     discountPercentage: coupon?.discount_percentage ?? null,
     discountAmount: coupon?.discount_amount ?? null
-  });
+  }, debugTrail);
   return coupon;
 }
 
@@ -274,9 +286,9 @@ export function calculateExpiryDate(plan: PlanRow, start = new Date(), billingCy
   return expiry;
 }
 
-export async function getActivePlan(client: SupabaseClient, planIdOrSlug: string): Promise<PlanRow> {
+export async function getActivePlan(client: SupabaseClient, planIdOrSlug: string, debugTrail?: SubscriptionDebugEvent[]): Promise<PlanRow> {
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(planIdOrSlug);
-  logSubscriptionDebug("plan lookup start", { lookupValue: planIdOrSlug, isUuid });
+  logSubscriptionDebug("plan lookup start", { lookupValue: planIdOrSlug, isUuid }, debugTrail);
   const uuidResult = isUuid
     ? await client.from("subscription_plans").select("*").eq("id", planIdOrSlug).eq("is_active", true).maybeSingle()
     : null;
@@ -288,7 +300,7 @@ export async function getActivePlan(client: SupabaseClient, planIdOrSlug: string
       found: Boolean(plan),
       resolvedPlanId: (plan as PlanRow | null)?.id ?? null,
       resolvedPlanSlug: (plan as PlanRow | null)?.slug ?? null
-    });
+    }, debugTrail);
   }
 
   if (!plan) {
@@ -306,7 +318,7 @@ export async function getActivePlan(client: SupabaseClient, planIdOrSlug: string
       activePlanCount: activePlans.length,
       activePlanSlugs: activePlans.map((row) => row.slug),
       activePlanNames: activePlans.map((row) => row.name)
-    });
+    }, debugTrail);
     plan = activePlans.find((row) => {
       const rowValues = [row.id, row.slug, row.name].map(normalizePlanLookupValue);
       return lookupValues.some((value) => rowValues.includes(normalizePlanLookupValue(value)));
@@ -321,7 +333,8 @@ export async function calculatePaymentBreakdown(
   client: SupabaseClient,
   plan: PlanRow,
   couponCode?: string | null,
-  billingCycle: ManualSubscriptionBillingCycle = "monthly"
+  billingCycle: ManualSubscriptionBillingCycle = "monthly",
+  debugTrail?: SubscriptionDebugEvent[]
 ): Promise<PriceBreakdown> {
   const originalAmount = getPlanAmount(plan, billingCycle);
   const code = normalizeCouponCode(couponCode);
@@ -330,10 +343,10 @@ export async function calculatePaymentBreakdown(
     return { originalAmount, discountAmount: 0, finalAmount: originalAmount, coupon: null };
   }
 
-  const coupon = await findCouponByCode(client, code);
+  const coupon = await findCouponByCode(client, code, debugTrail);
   if (!coupon) throw new Error("Coupon code is invalid.");
 
-  const row = validateExistingCoupon(coupon as CouponRow);
+  const row = validateExistingCoupon(coupon as CouponRow, new Date(), debugTrail);
   const discountAmount = calculateCouponDiscount(originalAmount, row);
   logSubscriptionDebug("coupon calculation result", {
     planId: plan.id,
@@ -346,7 +359,7 @@ export async function calculatePaymentBreakdown(
     originalAmount,
     calculatedDiscountAmount: discountAmount,
     finalAmount: Math.max(originalAmount - discountAmount, 0)
-  });
+  }, debugTrail);
   return {
     originalAmount,
     discountAmount,

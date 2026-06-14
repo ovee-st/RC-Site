@@ -41,8 +41,10 @@ export default function ManualSubscriptionPaymentPage() {
   const [resolvedPlanId, setResolvedPlanId] = useState("");
   const [screenshot, setScreenshot] = useState<File | null>(null);
   const [message, setMessage] = useState("");
+  const [couponDebugResponse, setCouponDebugResponse] = useState<unknown>(null);
   const [saving, setSaving] = useState(false);
   const selectedPayment = MANUAL_PAYMENT_METHODS[paymentMethod];
+  const showDebugResponse = process.env.NODE_ENV !== "production";
 
   async function getToken() {
     const { data } = await supabase.auth.getSession();
@@ -104,6 +106,7 @@ export default function ManualSubscriptionPaymentPage() {
 
   async function applyCoupon() {
     setMessage("");
+    setCouponDebugResponse(null);
     const payload = {
       plan_id: resolvedPlanId || selectedPlan.id,
       plan_slug: selectedPlan.id,
@@ -122,7 +125,14 @@ export default function ManualSubscriptionPaymentPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
-    const responsePayload = await response.json().catch(() => ({}));
+    const responseText = await response.text();
+    let responsePayload: any = {};
+    try {
+      responsePayload = responseText ? JSON.parse(responseText) : {};
+    } catch {
+      responsePayload = { error: responseText || "Coupon apply failed." };
+    }
+    setCouponDebugResponse({ status: response.status, ok: response.ok, body: responsePayload, raw: responseText });
     console.info("[subscription-payment-ui] apply coupon response", {
       ok: response.ok,
       status: response.status,
@@ -130,7 +140,7 @@ export default function ManualSubscriptionPaymentPage() {
     });
     if (!response.ok) {
       clearAppliedDiscount();
-      setMessage(responsePayload.error || "Could not apply coupon.");
+      setMessage(responsePayload.error || responsePayload.rejectionReason || responseText || "Coupon apply failed.");
       return;
     }
     if (responsePayload.plan?.id) setResolvedPlanId(responsePayload.plan.id);
@@ -305,6 +315,12 @@ export default function ManualSubscriptionPaymentPage() {
                 {saving ? "Submitting..." : "Submit Request"}
               </Button>
             </div>
+
+            {showDebugResponse && couponDebugResponse ? (
+              <pre className="mt-5 max-h-80 overflow-auto rounded-md border border-border bg-slate-950 p-4 text-xs font-bold text-white dark:border-white/10">
+                {JSON.stringify(couponDebugResponse, null, 2)}
+              </pre>
+            ) : null}
 
             {message ? (
               <div className="mt-5 flex gap-2 rounded-md bg-success/10 p-4 text-sm font-bold text-success">
