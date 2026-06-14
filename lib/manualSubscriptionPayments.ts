@@ -136,7 +136,7 @@ function buildPlanLookupValues(planIdOrSlug: string) {
 export function validateExistingCoupon(coupon: ExistingCoupon | null, now = new Date(), debugTrail?: SubscriptionDebugEvent[]) {
   if (!coupon) {
     logSubscriptionDebug("coupon validation failed", { reason: "not_found" }, debugTrail);
-    throw new Error("Coupon code is invalid.");
+    throw new Error("Coupon code was not found.");
   }
   if (!coupon.active) {
     logSubscriptionDebug("coupon validation failed", { couponId: coupon.id, code: coupon.code, reason: "inactive" }, debugTrail);
@@ -344,7 +344,7 @@ export async function calculatePaymentBreakdown(
   }
 
   const coupon = await findCouponByCode(client, code, debugTrail);
-  if (!coupon) throw new Error("Coupon code is invalid.");
+  if (!coupon) throw new Error("Coupon code was not found.");
 
   const row = validateExistingCoupon(coupon as CouponRow, new Date(), debugTrail);
   const discountAmount = calculateCouponDiscount(originalAmount, row);

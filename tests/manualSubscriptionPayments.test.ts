@@ -226,10 +226,12 @@ describe("manual subscription coupon wiring", () => {
   });
 
   it("rejects expired, inactive, and usage-limit reached coupons during calculation", async () => {
+    const missingClient = createClient({ coupons: [] });
     const expiredClient = createClient({ coupons: [{ ...validCoupon, code: "EXPIRED", expires_at: "2026-01-01T00:00:00.000Z" }] });
     const inactiveClient = createClient({ coupons: [{ ...validCoupon, code: "INACTIVE", active: false }] });
     const exhaustedClient = createClient({ coupons: [{ ...validCoupon, code: "USEDUP", usage_limit: 4, used_count: 4 }] });
 
+    await expect(calculatePaymentBreakdown(missingClient as any, growthPlan as any, "missing", "monthly")).rejects.toThrow("Coupon code was not found.");
     await expect(calculatePaymentBreakdown(expiredClient as any, growthPlan as any, "expired", "monthly")).rejects.toThrow("Coupon code has expired.");
     await expect(calculatePaymentBreakdown(inactiveClient as any, growthPlan as any, "inactive", "monthly")).rejects.toThrow("Coupon code is not active.");
     await expect(calculatePaymentBreakdown(exhaustedClient as any, growthPlan as any, "usedup", "monthly")).rejects.toThrow("Coupon usage limit has been reached.");

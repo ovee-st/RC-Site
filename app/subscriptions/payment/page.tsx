@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2, Copy, ReceiptText, UploadCloud } from "lucide-react";
 import Badge from "@/components/ui/Badge";
@@ -13,6 +13,13 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { MANUAL_PAYMENT_METHODS, PAYMENT_REFERENCE, type ManualPaymentMethod } from "@/lib/manualSubscriptionPayments";
 import { EMPLOYER_PLANS, formatCurrencyBDT } from "@/lib/subscriptions";
 
+type Breakdown = {
+  originalAmount: number;
+  discountAmount: number;
+  finalAmount: number;
+  coupon: { id: string; code: string; discountPercentage: number; discountType?: "percentage" | "fixed"; discountAmount?: number | null } | null;
+};
+
 function planPrice(plan: (typeof EMPLOYER_PLANS)[number]) {
   if (plan.billingType === "one-time") return plan.monthlyPrice || 0;
   return plan.monthlyPrice || 0;
@@ -24,6 +31,14 @@ export default function ManualSubscriptionPaymentPage() {
   const selectedPlanId = params.get("plan") || "growth";
   const selectedPlan = useMemo(() => EMPLOYER_PLANS.find((plan) => plan.id === selectedPlanId) ?? EMPLOYER_PLANS[2], [selectedPlanId]);
   const [couponCode, setCouponCode] = useState("");
+  const [breakdown, setBreakdown] = useState<Breakdown>(() => ({
+    originalAmount: planPrice(selectedPlan),
+    discountAmount: 0,
+    finalAmount: planPrice(selectedPlan),
+    coupon: null
+  }));
+  const [resolvedPlanId, setResolvedPlanId] = useState("");
+  const [couponDebugResponse, setCouponDebugResponse] = useState<unknown>(null);
   const [transactionId, setTransactionId] = useState("");
   const [senderDigits, setSenderDigits] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<ManualPaymentMethod>("bkash");
@@ -33,6 +48,22 @@ export default function ManualSubscriptionPaymentPage() {
   const selectedPayment = MANUAL_PAYMENT_METHODS[paymentMethod];
   const selectedPlanPrice = planPrice(selectedPlan);
   const isEmployer = authRole === "employer";
+
+  function resetBreakdown() {
+    setResolvedPlanId("");
+    setBreakdown({
+      originalAmount: selectedPlanPrice,
+      discountAmount: 0,
+      finalAmount: selectedPlanPrice,
+      coupon: null
+    });
+  }
+
+  useEffect(() => {
+    setCouponCode("");
+    setCouponDebugResponse(null);
+    resetBreakdown();
+  }, [selectedPlan.id]);
 
   async function getToken() {
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
@@ -83,6 +114,49 @@ export default function ManualSubscriptionPaymentPage() {
     return path;
   }
 
+  async function applyCoupon() {
+    setMessage("");
+    setCouponDebugResponse(null);
+    const code = couponCode.trim();
+    if (!code) {
+      resetBreakdown();
+      setMessage("Enter a coupon code before applying.");
+      return;
+    }
+
+    const payload = {
+      plan_id: resolvedPlanId || selectedPlan.id,
+      plan_slug: selectedPlan.id,
+      selected_plan: selectedPlan,
+      coupon_code: code,
+      billing_cycle: selectedPlan.billingType === "one-time" ? "one_time" : "monthly"
+    };
+
+    const response = await fetch("/api/subscription-payments/apply-coupon", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const responseText = await response.text();
+    let responsePayload: any = {};
+    try {
+      responsePayload = responseText ? JSON.parse(responseText) : {};
+    } catch {
+      responsePayload = { error: responseText || "Could not apply coupon." };
+    }
+    setCouponDebugResponse({ status: response.status, ok: response.ok, body: responsePayload, raw: responseText });
+
+    if (!response.ok) {
+      resetBreakdown();
+      setMessage(responsePayload.error || responsePayload.rejectionReason || "Could not apply coupon.");
+      return;
+    }
+
+    if (responsePayload.plan?.id) setResolvedPlanId(responsePayload.plan.id);
+    setBreakdown(responsePayload.breakdown);
+    setMessage(responsePayload.breakdown?.coupon ? `Coupon ${responsePayload.breakdown.coupon.code} applied successfully.` : "Coupon cleared.");
+  }
+
   async function submitRequest() {
     setSaving(true);
     setMessage("");
@@ -97,10 +171,10 @@ export default function ManualSubscriptionPaymentPage() {
       }
       const paymentScreenshot = await uploadScreenshot(token);
       const payload = {
-        plan_id: selectedPlan.id,
+        plan_id: resolvedPlanId || selectedPlan.id,
         plan_slug: selectedPlan.id,
         selected_plan: selectedPlan,
-        coupon_code: couponCode.trim() || null,
+        coupon_code: breakdown.coupon?.code || couponCode.trim() || null,
         payment_method: paymentMethod,
         transaction_id: transactionId,
         sender_last_3_digits: senderDigits,
@@ -151,20 +225,29 @@ export default function ManualSubscriptionPaymentPage() {
             <p className="mt-2 text-sm font-bold text-text-muted">{selectedPlan.tagline}</p>
             <div className="mt-5 rounded-md bg-primary/10 p-4">
               <p className="text-sm font-black text-text-main dark:text-white">Plan Price</p>
-              <p className="mt-1 text-2xl font-black text-primary">{formatCurrencyBDT(selectedPlanPrice)}</p>
+              <p className="mt-1 text-2xl font-black text-primary">{formatCurrencyBDT(breakdown.originalAmount)}</p>
             </div>
 
             <div className="mt-6">
-              <label className="text-sm font-black text-text-main dark:text-white">Coupon Code (Optional)</label>
-              <Input
-                className="mt-2"
-                value={couponCode}
-                onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
-                placeholder="Enter coupon code if provided by MXVL"
-              />
-              <p className="mt-2 text-sm font-bold text-text-muted">
-                Coupon discounts will be verified by the MXVL team during payment approval.
-              </p>
+              <label className="text-sm font-black text-text-main dark:text-white">Coupon Code</label>
+              <div className="mt-2 flex gap-2">
+                <Input
+                  value={couponCode}
+                  onChange={(event) => {
+                    const nextCode = event.target.value.toUpperCase();
+                    setCouponCode(nextCode);
+                    if (breakdown.coupon && nextCode.trim() !== breakdown.coupon.code) resetBreakdown();
+                  }}
+                  placeholder="WELCOME20"
+                />
+                <Button type="button" onClick={applyCoupon}>Apply Coupon</Button>
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-3 rounded-md border border-border p-4 text-sm font-bold dark:border-white/10">
+              <div className="flex justify-between"><span>Original Amount</span><span>{formatCurrencyBDT(breakdown.originalAmount)}</span></div>
+              <div className="flex justify-between text-emerald-600"><span>Discount</span><span>-{formatCurrencyBDT(breakdown.discountAmount)}</span></div>
+              <div className="flex justify-between border-t border-border pt-3 text-lg font-black dark:border-white/10"><span>Final Amount</span><span>{formatCurrencyBDT(breakdown.finalAmount)}</span></div>
             </div>
           </Card>
 
@@ -209,7 +292,7 @@ export default function ManualSubscriptionPaymentPage() {
                   Copy
                 </Button>
               </div>
-              <p>Amount: <span className="text-primary">{formatCurrencyBDT(selectedPlanPrice)}</span></p>
+              <p>Amount: <span className="text-primary">{formatCurrencyBDT(breakdown.finalAmount)}</span></p>
               <p>Reference: <span className="text-primary">{PAYMENT_REFERENCE}</span></p>
               <div className="mt-2 grid gap-2 border-t border-border pt-3 dark:border-white/10">
                 <p>Step 1: Send the exact amount to the selected number.</p>
@@ -236,6 +319,12 @@ export default function ManualSubscriptionPaymentPage() {
                 </p>
               ) : null}
             </div>
+
+            {process.env.NODE_ENV !== "production" && couponDebugResponse ? (
+              <pre className="mt-5 max-h-80 overflow-auto rounded-md border border-border bg-slate-950 p-4 text-xs font-bold text-white dark:border-white/10">
+                {JSON.stringify(couponDebugResponse, null, 2)}
+              </pre>
+            ) : null}
 
             {message ? (
               <div className="mt-5 flex gap-2 rounded-md bg-success/10 p-4 text-sm font-bold text-success">
