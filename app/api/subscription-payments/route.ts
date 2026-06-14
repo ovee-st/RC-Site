@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import {
   assertValidSenderDigits,
   assertValidTransactionId,
-  calculatePaymentBreakdown,
   getActivePlan,
+  getPlanAmount,
   MANUAL_PAYMENT_METHODS,
   normalizeManualBillingCycle,
   normalizeManualPaymentMethod
@@ -88,17 +88,17 @@ export async function POST(request: Request) {
       });
       plan = await getActivePlan(adminClient, planSlug);
     }
-    const breakdown = await calculatePaymentBreakdown(adminClient, plan, couponCode, billingCycle);
+    const originalAmount = getPlanAmount(plan, billingCycle);
     console.info("[subscription-payments/create] resolved", {
       employerId: employer.id,
       requestedPlanId: planId,
       resolvedPlanId: plan.id,
       resolvedPlanSlug: plan.slug,
-      couponId: breakdown.coupon?.id ?? null,
-      couponCode: breakdown.coupon?.code ?? null,
-      originalAmount: breakdown.originalAmount,
-      discountAmount: breakdown.discountAmount,
-      finalAmount: breakdown.finalAmount
+      couponCode: couponCode || null,
+      originalAmount,
+      discountAmount: 0,
+      finalAmount: originalAmount,
+      couponValidation: "admin_verified"
     });
 
     const duplicate = await adminClient
@@ -122,11 +122,11 @@ export async function POST(request: Request) {
       .insert({
         employer_id: employer.id,
         plan_id: plan.id,
-        coupon_id: breakdown.coupon?.id || null,
-        coupon_code: breakdown.coupon?.code || null,
-        original_amount: breakdown.originalAmount,
-        discount_amount: breakdown.discountAmount,
-        final_amount: breakdown.finalAmount,
+        coupon_id: null,
+        coupon_code: couponCode || null,
+        original_amount: originalAmount,
+        discount_amount: 0,
+        final_amount: originalAmount,
         payment_method: MANUAL_PAYMENT_METHODS[paymentMethod].storageValue,
         transaction_id: transactionId,
         sender_last_3_digits: senderLast3Digits,
@@ -156,7 +156,7 @@ export async function POST(request: Request) {
       related_id: requestRow.id
     });
 
-    return NextResponse.json({ ok: true, request: requestRow, breakdown });
+    return NextResponse.json({ ok: true, request: requestRow });
   } catch (error) {
     console.warn("[subscription-payments/create] failed", {
       planId,

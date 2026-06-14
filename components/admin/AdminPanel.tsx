@@ -790,7 +790,12 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
     setNotice(`Candidate plan changed to ${nextPlan}.`);
   }
 
-  async function updateSubscriptionPayment(request: AnyRecord, action: "approved" | "rejected" | "more_info", remarks: string) {
+  async function updateSubscriptionPayment(
+    request: AnyRecord,
+    action: "validate_coupon" | "approved" | "rejected" | "more_info",
+    remarks: string,
+    amounts: { original_amount?: number; discount_amount?: number; final_amount?: number } = {}
+  ) {
     if (readOnly) {
       setNotice("Viewer accounts can inspect payment requests, but cannot approve them.");
       return;
@@ -799,9 +804,9 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
     if (!isSupabaseConfigured) {
       setAdminData((current) => ({
         ...current,
-        subscriptionPayments: current.subscriptionPayments.map((row) => row.id === request.id ? { ...row, status: action, remarks } : row)
+        subscriptionPayments: current.subscriptionPayments.map((row) => row.id === request.id ? { ...row, status: action === "validate_coupon" ? row.status : action, remarks, ...amounts } : row)
       }));
-      setNotice(`Payment request marked ${action}.`);
+      setNotice(action === "validate_coupon" ? "Coupon checked for this request." : `Payment request marked ${action}.`);
       return;
     }
 
@@ -813,7 +818,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
         "Content-Type": "application/json",
         ...(token ? { Authorization: `Bearer ${token}` } : {})
       },
-      body: JSON.stringify({ id: request.id, action, remarks })
+      body: JSON.stringify({ id: request.id, action, remarks, ...amounts })
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
@@ -824,7 +829,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
       ...current,
       subscriptionPayments: current.subscriptionPayments.map((row) => row.id === request.id ? { ...row, ...payload.request } : row)
     }));
-    setNotice(action === "approved" ? "Subscription activated and invoice generated." : `Payment request marked ${action}.`);
+    setNotice(action === "validate_coupon" ? "Coupon validated and totals updated." : action === "approved" ? "Subscription activated and invoice generated." : `Payment request marked ${action}.`);
   }
 
   async function updateEmployerSubscriptionStatus(subscription: AnyRecord, status: string) {
@@ -2060,11 +2065,17 @@ function SubscriptionPaymentsSection({
   readOnly
 }: {
   rows: AnyRecord[];
-  onAction: (request: AnyRecord, action: "approved" | "rejected" | "more_info", remarks: string) => void;
+  onAction: (
+    request: AnyRecord,
+    action: "validate_coupon" | "approved" | "rejected" | "more_info",
+    remarks: string,
+    amounts?: { original_amount?: number; discount_amount?: number; final_amount?: number }
+  ) => void;
   readOnly: boolean;
 }) {
   const [statusFilter, setStatusFilter] = useState("pending");
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const [finalAmounts, setFinalAmounts] = useState<Record<string, string>>({});
   const visibleRows = rows.filter((row) => statusFilter === "all" || String(row.status || "pending") === statusFilter);
 
   return (
@@ -2091,7 +2102,7 @@ function SubscriptionPaymentsSection({
           <table className="w-full min-w-[1440px] text-left">
             <thead className="bg-bg text-xs uppercase tracking-wider text-text-muted dark:bg-white/5">
               <tr>
-                {["Employer", "Company", "Plan", "Coupon", "Original", "Discount", "Final", "Transaction ID", "Sender", "Screenshot", "Submitted", "Status", "Actions"].map((head) => (
+                {["Employer", "Company", "Selected Plan", "Plan Price", "Coupon Code", "Discount", "Final", "Transaction ID", "Sender", "Screenshot", "Submitted", "Status", "Actions"].map((head) => (
                   <th key={head} className="px-5 py-4 font-black">{head}</th>
                 ))}
               </tr>
@@ -2101,15 +2112,38 @@ function SubscriptionPaymentsSection({
                 const employer = row.employers || {};
                 const plan = row.subscription_plans || {};
                 const key = row.id || row.transaction_id;
+                const originalAmount = Number(row.original_amount || row.amount || 0);
+                const discountAmount = Number(row.discount_amount || 0);
+                const finalAmount = Number(finalAmounts[key] || row.final_amount || row.amount || 0);
                 return (
                   <tr key={key} className="align-top hover:bg-primary/5">
                     <td className="px-5 py-4 text-sm font-bold">{employer.official_email || employer.email || row.user_email || "Employer"}</td>
                     <td className="px-5 py-4 text-sm font-bold text-text-muted">{employer.company_name || "Company"}</td>
                     <td className="px-5 py-4 text-sm font-black">{plan.name || row.plan_id}</td>
-                    <td className="px-5 py-4 text-sm font-bold text-text-muted">{row.coupon_code || row.coupons?.code || "None"}</td>
-                    <td className="px-5 py-4 text-sm font-bold text-text-muted">BDT {Number(row.original_amount || row.amount || 0).toLocaleString()}</td>
-                    <td className="px-5 py-4 text-sm font-bold text-emerald-600">BDT {Number(row.discount_amount || 0).toLocaleString()}</td>
-                    <td className="px-5 py-4 font-black">BDT {Number(row.final_amount || row.amount || 0).toLocaleString()}</td>
+                    <td className="px-5 py-4 text-sm font-bold text-text-muted">BDT {originalAmount.toLocaleString()}</td>
+                    <td className="px-5 py-4 text-sm font-bold text-text-muted">
+                      <p>{row.coupon_code || row.coupons?.code || "None"}</p>
+                      {row.coupons ? (
+                        <div className="mt-2 grid gap-1 text-xs">
+                          <span>Status: {row.coupons.active === false ? "Inactive" : "Active"}</span>
+                          <span>Type: {row.coupons.discount_type || "percentage"}</span>
+                          <span>
+                            Value: {row.coupons.discount_type === "fixed"
+                              ? `BDT ${Number(row.coupons.discount_amount || row.coupons.discount_percentage || 0).toLocaleString()}`
+                              : `${Number(row.coupons.discount_percentage || 0)}%`}
+                          </span>
+                        </div>
+                      ) : null}
+                    </td>
+                    <td className="px-5 py-4 text-sm font-bold text-emerald-600">BDT {discountAmount.toLocaleString()}</td>
+                    <td className="px-5 py-4 font-black">
+                      <Input
+                        value={finalAmounts[key] ?? String(row.final_amount || row.amount || 0)}
+                        onChange={(event) => setFinalAmounts((current) => ({ ...current, [key]: event.target.value.replace(/[^\d.]/g, "") }))}
+                        disabled={readOnly || row.status === "approved"}
+                        className="min-w-28"
+                      />
+                    </td>
                     <td className="px-5 py-4 text-sm font-bold text-text-muted">{row.transaction_id}</td>
                     <td className="px-5 py-4 text-sm font-bold text-text-muted">{row.sender_last_3_digits}</td>
                     <td className="px-5 py-4 text-sm font-bold">
@@ -2128,9 +2162,27 @@ function SubscriptionPaymentsSection({
                           disabled={readOnly}
                         />
                         <div className="flex flex-wrap gap-2">
-                          <Button disabled={readOnly || row.status === "approved"} className="px-3 py-2" onClick={() => onAction(row, "approved", notes[key] || "")}>Approve</Button>
+                          <Button
+                            disabled={readOnly || row.status === "approved" || !row.coupon_code}
+                            variant="secondary"
+                            className="px-3 py-2"
+                            onClick={() => onAction(row, "validate_coupon", notes[key] || "")}
+                          >
+                            Validate Coupon
+                          </Button>
+                          <Button
+                            disabled={readOnly || row.status === "approved"}
+                            className="px-3 py-2"
+                            onClick={() => onAction(row, "approved", notes[key] || "", {
+                              original_amount: originalAmount,
+                              discount_amount: discountAmount,
+                              final_amount: finalAmount
+                            })}
+                          >
+                            Approve Payment
+                          </Button>
                           <Button disabled={readOnly || row.status === "approved"} variant="secondary" className="px-3 py-2" onClick={() => onAction(row, "more_info", notes[key] || "Please provide more payment information.")}>More Info</Button>
-                          <Button disabled={readOnly || row.status === "approved"} variant="ghost" className="px-3 py-2 text-danger" onClick={() => onAction(row, "rejected", notes[key] || "Payment proof could not be verified.")}>Reject</Button>
+                          <Button disabled={readOnly || row.status === "approved"} variant="ghost" className="px-3 py-2 text-danger" onClick={() => onAction(row, "rejected", notes[key] || "Payment proof could not be verified.")}>Reject Payment</Button>
                         </div>
                       </div>
                     </td>

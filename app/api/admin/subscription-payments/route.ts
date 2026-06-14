@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { calculateExpiryDate, recordCouponUsage } from "@/lib/manualSubscriptionPayments";
+import { calculateExpiryDate, calculatePaymentBreakdown, normalizeManualBillingCycle, recordCouponUsage } from "@/lib/manualSubscriptionPayments";
 import { createServerSupabaseClient } from "@/lib/supabaseServer";
 
 async function requireAdmin(adminClient: ReturnType<typeof createServerSupabaseClient>, token: string) {
@@ -52,10 +52,10 @@ export async function PATCH(request: Request) {
 
   const body = await request.json().catch(() => ({}));
   const requestId = String(body.id || body.request_id || "").trim();
-  const action = String(body.action || "").trim() as "approved" | "rejected" | "more_info";
+  const action = String(body.action || "").trim() as "validate_coupon" | "approved" | "rejected" | "more_info";
   const remarks = String(body.remarks || "").trim();
 
-  if (!requestId || !["approved", "rejected", "more_info"].includes(action)) {
+  if (!requestId || !["validate_coupon", "approved", "rejected", "more_info"].includes(action)) {
     return NextResponse.json({ error: "Valid request id and action are required." }, { status: 400 });
   }
 
@@ -68,6 +68,41 @@ export async function PATCH(request: Request) {
       .eq("id", requestId)
       .maybeSingle();
     if (requestError || !paymentRequest) throw new Error("Payment request not found.");
+
+    if (action === "validate_coupon") {
+      const couponCode = String(body.coupon_code || paymentRequest.coupon_code || "").trim();
+      if (!couponCode) throw new Error("No coupon code was submitted with this payment request.");
+
+      const plan = paymentRequest.subscription_plans;
+      if (!plan) throw new Error("Selected subscription plan was not found.");
+      const billingCycle = normalizeManualBillingCycle(plan.billing_type === "one_time" ? "one_time" : "monthly");
+      const breakdown = await calculatePaymentBreakdown(adminClient, plan, couponCode, billingCycle);
+
+      const { data, error } = await adminClient
+        .from("subscription_payment_requests")
+        .update({
+          coupon_id: breakdown.coupon?.id || null,
+          coupon_code: breakdown.coupon?.code || couponCode,
+          original_amount: breakdown.originalAmount,
+          discount_amount: breakdown.discountAmount,
+          final_amount: breakdown.finalAmount,
+          remarks: remarks || `Coupon ${breakdown.coupon?.code || couponCode} validated by admin.`,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", requestId)
+        .select("*, employers(*), subscription_plans(*), coupons(*)")
+        .single();
+      if (error) throw error;
+
+      await adminClient.from("subscription_payment_approval_logs").insert({
+        payment_request_id: requestId,
+        admin_user_id: adminUser.id,
+        action: "more_info",
+        notes: `Coupon validated: ${breakdown.coupon?.code || couponCode}. Discount: ${breakdown.discountAmount}.`
+      });
+
+      return NextResponse.json({ ok: true, request: data, breakdown });
+    }
 
     if (action !== "approved") {
       const { data, error } = await adminClient
@@ -102,6 +137,13 @@ export async function PATCH(request: Request) {
     const start = new Date();
     const billingCycle = plan.billing_type === "one_time" ? "one_time" : "monthly";
     const expiry = calculateExpiryDate(plan, start, billingCycle);
+    const originalAmount = body.original_amount !== undefined ? Number(body.original_amount) : Number(paymentRequest.original_amount || 0);
+    const discountAmount = body.discount_amount !== undefined ? Number(body.discount_amount) : Number(paymentRequest.discount_amount || 0);
+    const finalAmount = body.final_amount !== undefined ? Number(body.final_amount) : Number(paymentRequest.final_amount || 0);
+
+    if (![originalAmount, discountAmount, finalAmount].every(Number.isFinite) || originalAmount < 0 || discountAmount < 0 || finalAmount < 0) {
+      throw new Error("Approved payment amounts must be valid non-negative numbers.");
+    }
 
     await adminClient
       .from("employer_subscriptions")
@@ -140,14 +182,14 @@ export async function PATCH(request: Request) {
       employer_id: paymentRequest.employer_id,
       subscription_id: subscription.id,
       invoice_number: invoiceNumber,
-      amount: paymentRequest.final_amount,
+      amount: finalAmount,
       status: "paid"
     });
 
     await adminClient.from("transactions").insert({
       user_id: paymentRequest.employers?.user_id || null,
       user_email: paymentRequest.employers?.official_email || paymentRequest.employers?.email || null,
-      amount: paymentRequest.final_amount,
+      amount: finalAmount,
       payment_method: "bKash Manual",
       coupon_used: paymentRequest.coupon_code || null,
       transaction_id: paymentRequest.transaction_id,
@@ -160,7 +202,16 @@ export async function PATCH(request: Request) {
 
     const { data: updatedRequest, error: updateError } = await adminClient
       .from("subscription_payment_requests")
-      .update({ status: "approved", approved_at: start.toISOString(), approved_by: adminUser.id, remarks, updated_at: start.toISOString() })
+      .update({
+        status: "approved",
+        original_amount: originalAmount,
+        discount_amount: discountAmount,
+        final_amount: finalAmount,
+        approved_at: start.toISOString(),
+        approved_by: adminUser.id,
+        remarks,
+        updated_at: start.toISOString()
+      })
       .eq("id", requestId)
       .select("*")
       .single();
