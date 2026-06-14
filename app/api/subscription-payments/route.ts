@@ -14,6 +14,36 @@ async function getEmployerContext(adminClient: ReturnType<typeof createServerSup
   const { data: authData, error: authError } = await adminClient.auth.getUser(token);
   if (authError || !authData.user) throw new Error("Invalid session.");
 
+  const { data: profile } = await adminClient
+    .from("profiles")
+    .select("role")
+    .eq("id", authData.user.id)
+    .maybeSingle();
+  const { data: userTypeProfile, error: userTypeError } = await adminClient
+    .from("profiles")
+    .select("user_type")
+    .eq("id", authData.user.id)
+    .maybeSingle();
+
+  const metadata = authData.user.user_metadata || {};
+  const detectedRole = String(profile?.role || metadata.role || "").trim().toLowerCase();
+  const detectedUserType = String(userTypeProfile?.user_type || metadata.user_type || metadata.userType || "").trim().toLowerCase();
+  console.info("[subscription-payments/create] authenticated user detected", {
+    userId: authData.user.id,
+    email: authData.user.email,
+    profileRole: profile?.role || null,
+    profileUserType: userTypeProfile?.user_type || null,
+    profileUserTypeError: userTypeError?.message || null,
+    metadataRole: metadata.role || null,
+    metadataUserType: metadata.user_type || metadata.userType || null,
+    detectedRole,
+    detectedUserType
+  });
+
+  if (detectedRole !== "employer" && detectedUserType !== "employer") {
+    throw new Error(`Only employers can submit subscription payment proof. Detected role: ${detectedRole || detectedUserType || "unknown"}.`);
+  }
+
   const { data: employer } = await adminClient
     .from("employers")
     .select("id, user_id, company_name, official_email, email")

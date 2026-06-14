@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
 import Container from "@/components/layout/Container";
+import { useAuth } from "@/context/AuthProvider";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { MANUAL_PAYMENT_METHODS, PAYMENT_REFERENCE, type ManualPaymentMethod } from "@/lib/manualSubscriptionPayments";
 import { EMPLOYER_PLANS, formatCurrencyBDT } from "@/lib/subscriptions";
@@ -19,6 +20,7 @@ function planPrice(plan: (typeof EMPLOYER_PLANS)[number]) {
 
 export default function ManualSubscriptionPaymentPage() {
   const params = useSearchParams();
+  const { user: authUser, role: authRole, loading: authLoading } = useAuth();
   const selectedPlanId = params.get("plan") || "growth";
   const selectedPlan = useMemo(() => EMPLOYER_PLANS.find((plan) => plan.id === selectedPlanId) ?? EMPLOYER_PLANS[2], [selectedPlanId]);
   const [couponCode, setCouponCode] = useState("");
@@ -30,10 +32,41 @@ export default function ManualSubscriptionPaymentPage() {
   const [saving, setSaving] = useState(false);
   const selectedPayment = MANUAL_PAYMENT_METHODS[paymentMethod];
   const selectedPlanPrice = planPrice(selectedPlan);
+  const isEmployer = authRole === "employer";
 
   async function getToken() {
-    const { data } = await supabase.auth.getSession();
-    return data.session?.access_token || "";
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    let session = sessionData.session;
+
+    if (!session && isSupabaseConfigured) {
+      const refresh = await supabase.auth.refreshSession().catch((error) => ({ data: { session: null }, error }));
+      session = refresh.data.session;
+      console.info("[subscription-payment-ui] refresh session result", {
+        hasSession: Boolean(session),
+        error: refresh.error?.message || null
+      });
+    }
+
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    console.info("[subscription-payment-ui] auth state before payment submit", {
+      authContextUserId: authUser?.id || null,
+      authContextEmail: authUser?.email || null,
+      authContextRole: authRole,
+      authContextUserType: authUser?.user_metadata?.user_type || null,
+      authLoading,
+      supabaseConfigured: isSupabaseConfigured,
+      hasSession: Boolean(session),
+      sessionUserId: session?.user?.id || null,
+      sessionUserRole: session?.user?.user_metadata?.role || null,
+      sessionUserType: session?.user?.user_metadata?.user_type || null,
+      getUserId: userData.user?.id || null,
+      getUserRole: userData.user?.user_metadata?.role || null,
+      getUserType: userData.user?.user_metadata?.user_type || null,
+      sessionError: sessionError?.message || null,
+      userError: userError?.message || null
+    });
+
+    return session?.access_token || "";
   }
 
   async function uploadScreenshot(token: string) {
@@ -54,8 +87,14 @@ export default function ManualSubscriptionPaymentPage() {
     setSaving(true);
     setMessage("");
     try {
+      if (authLoading) throw new Error("Checking your employer account. Please try again in a moment.");
+      if (!isEmployer) {
+        throw new Error(`Only employers can submit subscription payment proof. Detected role: ${authRole || "guest"}.`);
+      }
       const token = await getToken();
-      if (!token) throw new Error("Please sign in as an employer before submitting payment proof.");
+      if (!token) {
+        throw new Error("Your employer account is detected, but no active Supabase session token was found. Please sign out and sign in again.");
+      }
       const paymentScreenshot = await uploadScreenshot(token);
       const payload = {
         plan_id: selectedPlan.id,
@@ -191,6 +230,11 @@ export default function ManualSubscriptionPaymentPage() {
               <Button type="button" onClick={submitRequest} disabled={saving} className="justify-center">
                 {saving ? "Submitting..." : "Submit Request"}
               </Button>
+              {process.env.NODE_ENV !== "production" ? (
+                <p className="text-xs font-bold text-text-muted">
+                  Auth debug: role={authRole || "guest"}, user={authUser?.id || "none"}, type={authUser?.user_metadata?.user_type || "none"}
+                </p>
+              ) : null}
             </div>
 
             {message ? (

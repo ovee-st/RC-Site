@@ -11,6 +11,8 @@ export type AuthUser = {
     avatar_url?: string;
     picture?: string;
     role?: string;
+    user_type?: string;
+    userType?: string;
     verified?: boolean;
     plan?: string;
   };
