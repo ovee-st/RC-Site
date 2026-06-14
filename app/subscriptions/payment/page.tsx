@@ -34,7 +34,7 @@ function getCouponErrorMessage(responsePayload: any, responseText: string, statu
     responseText;
 
   if (typeof message === "string" && message.trim()) return message.trim();
-  return `Could not apply coupon. API returned status ${status}.`;
+  return `Coupon API returned status ${status} without a readable error message.`;
 }
 
 export default function ManualSubscriptionPaymentPage() {
@@ -160,7 +160,7 @@ export default function ManualSubscriptionPaymentPage() {
       try {
         responsePayload = responseText ? JSON.parse(responseText) : {};
       } catch {
-        responsePayload = { error: responseText || "Could not apply coupon." };
+        responsePayload = { error: responseText || `Coupon API returned an empty status ${response.status} response.` };
       }
       setCouponDebugResponse({ status: response.status, ok: response.ok, body: responsePayload, raw: responseText });
 
@@ -185,7 +185,7 @@ export default function ManualSubscriptionPaymentPage() {
     } catch (error) {
       resetBreakdown();
       setMessageTone("error");
-      setMessage(error instanceof Error ? error.message : "Could not apply coupon.");
+      setMessage(error instanceof Error ? error.message : String(error || "Coupon request failed before reaching the API."));
     } finally {
       setApplyingCoupon(false);
     }

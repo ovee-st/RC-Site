@@ -7,10 +7,12 @@ import {
 } from "@/lib/manualSubscriptionPayments";
 import { createServerSupabaseClient } from "@/lib/supabaseServer";
 
+const APPLY_COUPON_DIAGNOSTIC_VERSION = "2026-06-14-coupon-apply-v3";
+
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const debugTrail: SubscriptionDebugEvent[] = [];
-  const includeDebug = process.env.NODE_ENV !== "production";
+  const includeDebug = true;
   const planId = String(body.plan_id || body.planId || "").trim();
   const planSlug = String(body.plan_slug || body.planSlug || "").trim();
   const selectedPlan = body.selected_plan || body.selectedPlan || null;
@@ -18,18 +20,18 @@ export async function POST(request: Request) {
   const rawBillingCycle = body.billing_cycle || body.billingCycle;
   const requestPayload = { planId, planSlug, selectedPlan, couponCode, rawBillingCycle };
 
-  debugTrail.push({ step: "request payload", details: requestPayload });
+  debugTrail.push({ step: "request payload", details: { ...requestPayload, diagnosticVersion: APPLY_COUPON_DIAGNOSTIC_VERSION } });
 
   if (!planId && !planSlug) {
     return NextResponse.json(
-      includeDebug ? { error: "Invalid plan.", rejectionReason: "missing_plan", request: requestPayload, debug: debugTrail } : { error: "Invalid plan." },
+      { ok: false, error: "Invalid plan.", rejectionReason: "missing_plan", request: requestPayload, debug: debugTrail, diagnosticVersion: APPLY_COUPON_DIAGNOSTIC_VERSION },
       { status: 400 }
     );
   }
 
   if (!couponCode) {
     return NextResponse.json(
-      includeDebug ? { error: "Coupon code is required.", rejectionReason: "missing_coupon", request: requestPayload, debug: debugTrail } : { error: "Coupon code is required." },
+      { ok: false, error: "Coupon code is required.", rejectionReason: "missing_coupon", request: requestPayload, debug: debugTrail, diagnosticVersion: APPLY_COUPON_DIAGNOSTIC_VERSION },
       { status: 400 }
     );
   }
@@ -63,10 +65,10 @@ export async function POST(request: Request) {
     });
 
     const breakdown = await calculatePaymentBreakdown(adminClient, plan, couponCode, billingCycle, debugTrail);
-    const response = { ok: true, plan, breakdown, debug: debugTrail };
+    const response = { ok: true, plan, breakdown, debug: debugTrail, diagnosticVersion: APPLY_COUPON_DIAGNOSTIC_VERSION };
     return NextResponse.json(includeDebug ? response : { ok: true, plan, breakdown });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Could not apply coupon.";
+    const message = error instanceof Error ? error.message : String(error || "Coupon API failed before returning details.");
     debugTrail.push({
       step: "coupon apply rejected",
       details: { rejectionReason: message, errorName: error instanceof Error ? error.name : typeof error }
@@ -74,7 +76,7 @@ export async function POST(request: Request) {
     console.warn("[subscription-payments/apply-coupon] failed", { requestPayload, error: message, debugTrail });
 
     return NextResponse.json(
-      includeDebug ? { error: message, rejectionReason: message, request: requestPayload, debug: debugTrail } : { error: message },
+      { ok: false, error: message, rejectionReason: message, request: requestPayload, debug: debugTrail, diagnosticVersion: APPLY_COUPON_DIAGNOSTIC_VERSION },
       { status: 400 }
     );
   }
