@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import FinalCTA from "@/components/home/FinalCTA";
-import Footer from "@/components/home/Footer";
 import HiringPaths from "@/components/home/HiringPaths";
 import ServiceCategories from "@/components/home/ServiceCategories";
 
@@ -15,7 +14,6 @@ export default function WeHireForYouPage() {
       <HiringPaths />
       <ServiceCategories />
       <FinalCTA />
-      <Footer />
     </main>
   );
 }

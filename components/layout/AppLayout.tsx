@@ -4,6 +4,7 @@ import PageTransition from "@/components/layout/PageTransition";
 import ThemeToggle from "@/components/theme/ThemeToggle";
 import LazyChatWidget from "@/components/layout/LazyChatWidget";
 import ServiceWorkerRegister from "@/components/layout/ServiceWorkerRegister";
+import Footer from "@/components/home/Footer";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   return (
@@ -11,6 +12,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       <ServiceWorkerRegister />
       <Navbar />
       <PageTransition>{children}</PageTransition>
+      <Footer />
       <LazyChatWidget />
       <div className="fixed bottom-5 right-5 z-50">
         <ThemeToggle className="h-12 rounded-full px-4 shadow-elevated backdrop-blur-xl" />

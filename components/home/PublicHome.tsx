@@ -1,7 +1,6 @@
 ﻿"use client";
 
 import FinalCTA from "./FinalCTA";
-import Footer from "./Footer";
 import HeroSection from "./HeroSection";
 import HiringPaths from "./HiringPaths";
 import HowItWorks from "./HowItWorks";
@@ -25,7 +24,6 @@ export default function PublicHome() {
       <Testimonials />
       <PricingTeaser />
       <FinalCTA />
-      <Footer />
     </main>
   );
 }
