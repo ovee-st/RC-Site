@@ -25,15 +25,34 @@ function planPrice(plan: (typeof EMPLOYER_PLANS)[number]) {
   return plan.monthlyPrice || 0;
 }
 
-function getCouponErrorMessage(responsePayload: any, responseText: string, status: number) {
-  const message =
-    responsePayload?.error ||
-    responsePayload?.rejectionReason ||
-    responsePayload?.message ||
-    responsePayload?.details?.rejectionReason ||
-    responseText;
+function formatCouponMessageValue(value: unknown) {
+  if (typeof value === "string" && value.trim()) return value.trim();
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    const pieces = [record.message, record.details, record.hint, record.code]
+      .filter((piece): piece is string | number => typeof piece === "string" || typeof piece === "number")
+      .map(String)
+      .filter(Boolean);
+    if (pieces.length) return pieces.join(" ");
+    try {
+      return JSON.stringify(record);
+    } catch {
+      return "";
+    }
+  }
+  return "";
+}
 
-  if (typeof message === "string" && message.trim()) return message.trim();
+function getCouponErrorMessage(responsePayload: any, responseText: string, status: number) {
+  const message = [
+    responsePayload?.error,
+    responsePayload?.rejectionReason,
+    responsePayload?.message,
+    responsePayload?.details?.rejectionReason,
+    responseText
+  ].map(formatCouponMessageValue).find(Boolean);
+
+  if (message) return message;
   return `Coupon API returned status ${status} without a readable error message.`;
 }
 
@@ -185,7 +204,7 @@ export default function ManualSubscriptionPaymentPage() {
     } catch (error) {
       resetBreakdown();
       setMessageTone("error");
-      setMessage(error instanceof Error ? error.message : String(error || "Coupon request failed before reaching the API."));
+      setMessage(formatCouponMessageValue(error) || "Coupon request failed before reaching the API.");
     } finally {
       setApplyingCoupon(false);
     }

@@ -9,6 +9,25 @@ import { createServerSupabaseClient } from "@/lib/supabaseServer";
 
 const APPLY_COUPON_DIAGNOSTIC_VERSION = "2026-06-14-coupon-apply-v3";
 
+function formatUnknownError(error: unknown) {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  if (error && typeof error === "object") {
+    const record = error as Record<string, unknown>;
+    const pieces = [record.message, record.details, record.hint, record.code]
+      .filter((piece): piece is string | number => typeof piece === "string" || typeof piece === "number")
+      .map(String)
+      .filter(Boolean);
+    if (pieces.length) return pieces.join(" ");
+    try {
+      return JSON.stringify(record);
+    } catch {
+      return "Coupon API failed with an unreadable object error.";
+    }
+  }
+  return "Coupon API failed before returning details.";
+}
+
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const debugTrail: SubscriptionDebugEvent[] = [];
@@ -48,7 +67,7 @@ export async function POST(request: Request) {
       if (!planSlug || planSlug === planId) throw error;
       debugTrail.push({
         step: "plan_id lookup failed, retrying plan_slug",
-        details: { planId, planSlug, error: error instanceof Error ? error.message : String(error) }
+        details: { planId, planSlug, error: formatUnknownError(error) }
       });
       plan = await getActivePlan(adminClient, planSlug, debugTrail);
     }
@@ -68,7 +87,7 @@ export async function POST(request: Request) {
     const response = { ok: true, plan, breakdown, debug: debugTrail, diagnosticVersion: APPLY_COUPON_DIAGNOSTIC_VERSION };
     return NextResponse.json(includeDebug ? response : { ok: true, plan, breakdown });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error || "Coupon API failed before returning details.");
+    const message = formatUnknownError(error);
     debugTrail.push({
       step: "coupon apply rejected",
       details: { rejectionReason: message, errorName: error instanceof Error ? error.name : typeof error }
