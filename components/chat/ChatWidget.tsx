@@ -10,6 +10,8 @@ import { useLiveChatRealtime } from "@/hooks/useLiveChatRealtime";
 import type { LiveChatSession } from "@/types/liveChat";
 import ChatWindow from "@/components/chat/ChatWindow";
 
+const CHAT_WIDGET_STATE_EVENT = "mx-live-chat-state";
+
 async function authHeaders(): Promise<Record<string, string>> {
   if (!isSupabaseConfigured) return {};
   const { data } = await supabase.auth.getSession();
@@ -46,6 +48,13 @@ export default function ChatWidget() {
     });
     return () => { active = false; };
   }, [canUseChat, selectSession, setSessions]);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent(CHAT_WIDGET_STATE_EVENT, { detail: { open } }));
+    return () => {
+      window.dispatchEvent(new CustomEvent(CHAT_WIDGET_STATE_EVENT, { detail: { open: false } }));
+    };
+  }, [open]);
 
   if (loading || !canUseChat) return null;
 
