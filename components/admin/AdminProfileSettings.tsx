@@ -9,6 +9,7 @@ import Card from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
 import { useAuth } from "@/hooks/useAuth";
 import { AUTH_CHANGE_EVENT, MOCK_USER_KEY, getStableUsername } from "@/lib/accountIdentity";
+import { avatarAliases, normalizeProfileImageUrl } from "@/lib/profileImageSync";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 
 function initials(name: string) {
@@ -24,18 +25,20 @@ function initials(name: string) {
 function updateLocalAuthProfile(fullName: string, avatarUrl: string) {
   if (typeof window === "undefined") return;
 
+  const cleanAvatar = normalizeProfileImageUrl(avatarUrl);
+
   try {
     const stored = window.localStorage.getItem(MOCK_USER_KEY);
     const current = stored ? JSON.parse(stored) : {};
     window.localStorage.setItem(MOCK_USER_KEY, JSON.stringify({
       ...current,
       name: fullName,
-      avatar: avatarUrl || current.avatar,
+      ...avatarAliases(cleanAvatar || current.avatar),
       user_metadata: {
         ...current.user_metadata,
         name: fullName,
         full_name: fullName,
-        avatar_url: avatarUrl || current.user_metadata?.avatar_url
+        ...avatarAliases(cleanAvatar || current.user_metadata?.avatar_url)
       }
     }));
     window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
@@ -83,6 +86,7 @@ export default function AdminProfileSettings() {
     }
 
     const cleanName = fullName.trim();
+    const cleanAvatar = normalizeProfileImageUrl(avatarUrl);
     if (!cleanName) {
       setMessage("Please enter your admin display name.");
       return;
@@ -97,7 +101,7 @@ export default function AdminProfileSettings() {
           ...(user?.user_metadata || {}),
           name: cleanName,
           full_name: cleanName,
-          avatar_url: avatarUrl.trim() || null,
+          ...avatarAliases(cleanAvatar),
           username
         }
       });
@@ -110,7 +114,7 @@ export default function AdminProfileSettings() {
 
       const { error: profileError } = await supabase
         .from("profiles")
-        .update({ full_name: cleanName, avatar_url: avatarUrl.trim() || null, username })
+        .update({ full_name: cleanName, ...avatarAliases(cleanAvatar), username })
         .eq("id", user?.id);
 
       if (profileError) {
@@ -120,7 +124,7 @@ export default function AdminProfileSettings() {
       }
     }
 
-    updateLocalAuthProfile(cleanName, avatarUrl.trim());
+    updateLocalAuthProfile(cleanName, cleanAvatar || "");
     setSaving(false);
     setMessage("Admin profile updated.");
     window.setTimeout(() => setMessage(""), 2500);

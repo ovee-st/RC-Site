@@ -11,6 +11,7 @@ import GlobalSearch from "@/components/search/GlobalSearch";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/cn";
+import { MOCK_USER_KEY } from "@/lib/accountIdentity";
 
 const SITE_LOGO_LIGHT = "/mxvl-logo.png";
 const SITE_LOGO_DARK = "/mxvl-logo-dark.png";
@@ -270,6 +271,30 @@ function getInitials(name?: string | null) {
     .toUpperCase();
 }
 
+function resolveProfileAvatar(row?: Record<string, any> | null) {
+  if (!row) return null;
+
+  const metadata = row.user_metadata || {};
+  return (
+    row.photo_url ||
+    row.avatar ||
+    row.avatar_url ||
+    row.profile_photo_url ||
+    row.profile_image_url ||
+    row.logo_url ||
+    row.company_logo_url ||
+    metadata.photo_url ||
+    metadata.avatar ||
+    metadata.avatar_url ||
+    metadata.profile_photo_url ||
+    metadata.profile_image_url ||
+    metadata.logo_url ||
+    metadata.company_logo_url ||
+    metadata.picture ||
+    null
+  );
+}
+
 export default function Navbar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -457,18 +482,12 @@ export default function Navbar() {
       if (typeof window === "undefined") return;
 
       try {
-        const key = role === "employer" ? EMPLOYER_PROFILE_KEY : CANDIDATE_PROFILE_KEY;
-        const savedProfile = window.localStorage.getItem(key);
+        const key = role === "employer" ? EMPLOYER_PROFILE_KEY : role === "candidate" ? CANDIDATE_PROFILE_KEY : null;
+        const savedProfile = key ? window.localStorage.getItem(key) : null;
+        const savedMockUser = window.localStorage.getItem(MOCK_USER_KEY);
         const parsedProfile = savedProfile ? JSON.parse(savedProfile) : null;
-        setProfileAvatar(
-          parsedProfile?.photo_url ||
-            parsedProfile?.avatar ||
-            parsedProfile?.avatar_url ||
-            parsedProfile?.profile_photo_url ||
-            parsedProfile?.logo_url ||
-            parsedProfile?.company_logo_url ||
-            null
-        );
+        const parsedMockUser = savedMockUser ? JSON.parse(savedMockUser) : null;
+        setProfileAvatar(resolveProfileAvatar(parsedProfile) || resolveProfileAvatar(parsedMockUser));
       } catch {
         setProfileAvatar(null);
       }
