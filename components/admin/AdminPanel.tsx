@@ -50,6 +50,7 @@ import { Button, LinkButton } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import { getBestAvatarUrl, mergeRowsWithProfiles } from "@/lib/authUserSync";
 import { normalizeDateValue, normalizeJobPatch, normalizeJobStatus } from "@/lib/jobUpdate";
+import { stripInlineAuthAvatarMetadata } from "@/lib/profileImageSync";
 import { EMPLOYER_PLANS } from "@/lib/subscriptions";
 import {
   buildAtsResumeHtml,
@@ -119,6 +120,7 @@ const emptyState: AdminState = {
 };
 
 const ADMIN_NOTIFICATION_STORAGE_KEY = "MXVL-admin-cleared-notifications";
+const MAX_SAFE_AUTH_TOKEN_LENGTH = 6000;
 
 const sectionMeta: Record<AdminSection, { title: string; description: string }> = {
   dashboard: {
@@ -277,6 +279,25 @@ async function safeSelect(table: string) {
   const { data, error } = await supabase.from(table).select("*").limit(500);
   if (error) return [];
   return data || [];
+}
+
+async function getCompactAccessToken() {
+  const { data: sessionData } = await supabase.auth.getSession();
+  let token = sessionData.session?.access_token || "";
+  if (!token || token.length <= MAX_SAFE_AUTH_TOKEN_LENGTH) return token;
+
+  const authUser = sessionData.session?.user;
+  const cleanMetadata = stripInlineAuthAvatarMetadata(authUser?.user_metadata || {});
+  await supabase.auth.updateUser({ data: cleanMetadata }).catch(() => null);
+  const refreshed = await supabase.auth.refreshSession().catch(() => null);
+  token = refreshed?.data?.session?.access_token || "";
+
+  if (!token || token.length > MAX_SAFE_AUTH_TOKEN_LENGTH) {
+    const latest = await supabase.auth.getSession().catch(() => null);
+    token = latest?.data?.session?.access_token || token;
+  }
+
+  return token;
 }
 
 function adminSectionTables(section: AdminSection) {
@@ -884,8 +905,11 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
       return;
     }
 
-    const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData.session?.access_token;
+    const token = await getCompactAccessToken();
+    if (token && token.length > MAX_SAFE_AUTH_TOKEN_LENGTH) {
+      setNotice("Your session token is still too large after cleanup. Please log out and log back in once, then try changing the plan again.");
+      return;
+    }
     const response = await fetch("/api/admin/employer-subscriptions", {
       method: "PATCH",
       headers: {

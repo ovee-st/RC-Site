@@ -28,7 +28,24 @@ export function avatarAliases(avatarUrl?: string | null) {
   };
 }
 
-const avatarAliasKeys = ["avatar", "avatar_url", "photo_url", "profile_photo_url", "logo_url", "company_logo_url", "company_photo_url"] as const;
+const avatarAliasKeys = [
+  "avatar",
+  "avatar_url",
+  "photo_url",
+  "profile_photo_url",
+  "profile_image_url",
+  "profile_image",
+  "profile_photo",
+  "picture",
+  "image",
+  "image_url",
+  "logo_url",
+  "company_logo_url",
+  "company_photo_url",
+  "company_avatar_url",
+  "company_profile_photo_url",
+  "company_profile_image_url"
+] as const;
 
 export function isInlineProfileImage(value?: string | null) {
   const cleanValue = normalizeProfileImageUrl(value);
