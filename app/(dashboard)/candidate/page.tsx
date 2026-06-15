@@ -15,6 +15,8 @@ import { jobLocationOptions } from "@/lib/jobOptions";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/cn";
+import { AUTH_CHANGE_EVENT, MOCK_USER_KEY } from "@/lib/accountIdentity";
+import { avatarAliases, normalizeProfileImageUrl, syncProfileImageState } from "@/lib/profileImageSync";
 import AccountSettings from "@/components/account/AccountSettings";
 import SkillPicker from "@/components/skills/SkillPicker";
 import StatsCards from "@/components/dashboard/StatsCards";
@@ -66,8 +68,6 @@ type CandidateProfileState = {
 };
 
 const PROFILE_KEY = "mx_candidate_profile";
-const MOCK_USER_KEY = "mx_mock_user";
-const AUTH_CHANGE_EVENT = "mx-auth-change";
 
 const applications = [
   {
@@ -343,16 +343,14 @@ function TextArea({ className, ...props }: React.TextareaHTMLAttributes<HTMLText
 async function syncCandidateProfile(nextProfile: CandidateProfileState, user: ReturnType<typeof useAuth>["user"]) {
   if (!isSupabaseConfigured || !user?.id) return;
 
-  const avatarUrl = nextProfile.avatar || null;
+  const avatarUrl = normalizeProfileImageUrl(nextProfile.avatar);
   const profilePatch = {
     id: user.id,
     email: user.email || "",
     full_name: nextProfile.name,
     name: nextProfile.name,
     role: "candidate",
-    avatar_url: avatarUrl,
-    photo_url: avatarUrl,
-    profile_photo_url: avatarUrl,
+    ...avatarAliases(avatarUrl),
     updated_at: new Date().toISOString()
   };
 
@@ -361,9 +359,7 @@ async function syncCandidateProfile(nextProfile: CandidateProfileState, user: Re
     data: {
       full_name: nextProfile.name,
       name: nextProfile.name,
-      avatar_url: avatarUrl,
-      photo_url: avatarUrl,
-      profile_photo_url: avatarUrl,
+      ...avatarAliases(avatarUrl),
       role: "candidate"
     }
   });
@@ -378,8 +374,7 @@ async function syncCandidateProfile(nextProfile: CandidateProfileState, user: Re
     about: nextProfile.about,
     skills: nextProfile.skills,
     skills_array: nextProfile.skills,
-    photo_url: avatarUrl,
-    avatar: avatarUrl,
+    ...avatarAliases(avatarUrl),
     category: demoCandidates[0]?.category || "HR & Admin",
     career_level: demoCandidates[0]?.experience || "Mid Level",
     immediate_availability: nextProfile.availability.immediate,
@@ -1094,29 +1089,22 @@ export default function CandidateDashboard() {
   }, [user]);
 
   const persistProfile = (nextProfile: CandidateProfileState) => {
-    setProfile(nextProfile);
-    setDraft(nextProfile);
-    window.localStorage.setItem(PROFILE_KEY, JSON.stringify(nextProfile));
-
-    const storedMock = window.localStorage.getItem(MOCK_USER_KEY);
-    const currentMock = storedMock ? JSON.parse(storedMock) : {};
-    window.localStorage.setItem(MOCK_USER_KEY, JSON.stringify({
-      ...currentMock,
-      name: nextProfile.name,
-      avatar: nextProfile.avatar,
-      role: "candidate",
-      user_metadata: {
-        ...currentMock.user_metadata,
-        name: nextProfile.name,
-        full_name: nextProfile.name,
-        avatar_url: nextProfile.avatar,
-        photo_url: nextProfile.avatar,
-        profile_photo_url: nextProfile.avatar,
-        role: "candidate"
-      }
+    const normalizedProfile = { ...nextProfile, avatar: normalizeProfileImageUrl(nextProfile.avatar) };
+    setProfile(normalizedProfile);
+    setDraft(normalizedProfile);
+    window.localStorage.setItem(PROFILE_KEY, JSON.stringify({
+      ...normalizedProfile,
+      ...avatarAliases(normalizedProfile.avatar)
     }));
-    window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
-    void syncCandidateProfile(nextProfile, user).then(() => {
+
+    syncProfileImageState({
+      role: "candidate",
+      name: normalizedProfile.name,
+      avatarUrl: normalizedProfile.avatar,
+      profileStorageKey: PROFILE_KEY,
+      profilePatch: normalizedProfile
+    });
+    void syncCandidateProfile(normalizedProfile, user).then(() => {
       window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
     });
   };

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
+import { avatarAliases, normalizeProfileImageUrl, syncProfileImageState } from "@/lib/profileImageSync";
 
 type EmployerProfileState = {
   company_name: string;
@@ -27,8 +28,6 @@ type EmployerProfileState = {
 };
 
 const PROFILE_KEY = "mx_employer_profile";
-const MOCK_USER_KEY = "mx_mock_user";
-const AUTH_CHANGE_EVENT = "mx-auth-change";
 
 const defaultProfile: EmployerProfileState = {
   company_name: "MX Partner Employer",
@@ -150,42 +149,27 @@ export default function EmployerProfile() {
     reader.readAsDataURL(file);
   };
 
-  const syncNavbarProfile = (nextProfile: EmployerProfileState) => {
-    try {
-      const storedMock = window.localStorage.getItem(MOCK_USER_KEY);
-      const currentMock = storedMock ? JSON.parse(storedMock) : {};
-      const displayName = nextProfile.contact_person || nextProfile.company_name;
-
-      window.localStorage.setItem(MOCK_USER_KEY, JSON.stringify({
-        ...currentMock,
-        name: displayName,
-        avatar: nextProfile.photo_url,
-        role: "employer",
-        user_metadata: {
-          ...currentMock.user_metadata,
-          name: displayName,
-          full_name: displayName,
-          avatar_url: nextProfile.photo_url,
-          role: "employer"
-        }
-      }));
-      window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
-    } catch {
-      // Local auth sync is best-effort only.
-    }
-  };
-
   const saveProfile = async () => {
     if (!draft.company_name.trim() || !draft.contact_person.trim()) {
       setMessage("Company name and contact person are required.");
       return;
     }
 
-    setProfile(draft);
+    const nextDraft = { ...draft, photo_url: normalizeProfileImageUrl(draft.photo_url) };
+    setProfile(nextDraft);
     setEditing(false);
     setMessage("Profile saved successfully.");
-    window.localStorage.setItem(PROFILE_KEY, JSON.stringify(draft));
-    syncNavbarProfile(draft);
+    window.localStorage.setItem(PROFILE_KEY, JSON.stringify({
+      ...nextDraft,
+      ...avatarAliases(nextDraft.photo_url)
+    }));
+    syncProfileImageState({
+      role: "employer",
+      name: nextDraft.contact_person || nextDraft.company_name,
+      avatarUrl: nextDraft.photo_url,
+      profileStorageKey: PROFILE_KEY,
+      profilePatch: nextDraft
+    });
 
     if (user?.id && isSupabaseConfigured) {
       try {
@@ -193,35 +177,30 @@ export default function EmployerProfile() {
           .from("employers")
           .upsert({
             user_id: user.id,
-            ...draft
+            ...nextDraft,
+            ...avatarAliases(nextDraft.photo_url)
           }, { onConflict: "user_id" })
           .throwOnError();
         await supabase
           .from("profiles")
           .upsert({
             id: user.id,
-            email: user.email || draft.email || "",
-            full_name: draft.contact_person || draft.company_name,
-            name: draft.contact_person || draft.company_name,
-            company_name: draft.company_name,
-            contact_person: draft.contact_person,
+            email: user.email || nextDraft.email || "",
+            full_name: nextDraft.contact_person || nextDraft.company_name,
+            name: nextDraft.contact_person || nextDraft.company_name,
+            company_name: nextDraft.company_name,
+            contact_person: nextDraft.contact_person,
             role: "employer",
-            avatar_url: draft.photo_url,
-            photo_url: draft.photo_url,
-            profile_photo_url: draft.photo_url,
-            logo_url: draft.photo_url,
-            company_logo_url: draft.photo_url,
+            ...avatarAliases(nextDraft.photo_url),
             updated_at: new Date().toISOString()
           }, { onConflict: "id" })
           .throwOnError();
         await supabase.auth.updateUser({
           data: {
-            name: draft.contact_person || draft.company_name,
-            full_name: draft.contact_person || draft.company_name,
-            company_name: draft.company_name,
-            avatar_url: draft.photo_url,
-            photo_url: draft.photo_url,
-            profile_photo_url: draft.photo_url,
+            name: nextDraft.contact_person || nextDraft.company_name,
+            full_name: nextDraft.contact_person || nextDraft.company_name,
+            company_name: nextDraft.company_name,
+            ...avatarAliases(nextDraft.photo_url),
             role: "employer"
           }
         });

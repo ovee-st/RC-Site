@@ -1,31 +1,60 @@
-﻿"use client";
+"use client";
 
-import { useState } from "react";
-import { Github, Linkedin, MapPin, Pencil, UserRound, X } from "lucide-react";
+import { type ChangeEvent, useState } from "react";
+import { Camera, Github, Linkedin, MapPin, Pencil, UserRound, X } from "lucide-react";
 import type { CandidateProfile } from "@/types/candidate";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Input from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { avatarAliases, normalizeProfileImageUrl, syncProfileImageState } from "@/lib/profileImageSync";
 
 export default function ProfileCard({ profile, onProfileUpdate }: { profile: CandidateProfile; onProfileUpdate: (profile: CandidateProfile) => void }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(profile);
   const initials = profile.name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase();
 
+  function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setDraft((current) => ({ ...current, avatarUrl: String(reader.result) }));
+    };
+    reader.readAsDataURL(file);
+  }
+
   async function saveProfile() {
-    onProfileUpdate(draft);
+    const nextDraft = { ...draft, avatarUrl: normalizeProfileImageUrl(draft.avatarUrl) || undefined };
+    onProfileUpdate(nextDraft);
     setEditing(false);
-    if (isSupabaseConfigured && draft.userId) {
+    syncProfileImageState({
+      role: "candidate",
+      name: nextDraft.name,
+      avatarUrl: nextDraft.avatarUrl,
+      profileStorageKey: "mx_candidate_profile",
+      profilePatch: {
+        name: nextDraft.name,
+        title: nextDraft.title,
+        location: nextDraft.location,
+        avatar: nextDraft.avatarUrl || null,
+        avatarUrl: nextDraft.avatarUrl || null
+      }
+    });
+
+    if (isSupabaseConfigured && nextDraft.userId) {
       await supabase.from("candidates").upsert({
-        user_id: draft.userId,
-        name: draft.name,
-        title: draft.title,
-        location: draft.location,
-        about: draft.bio,
-        skills: draft.skills,
-        linkedin: draft.socials.linkedin
+        user_id: nextDraft.userId,
+        name: nextDraft.name,
+        full_name: nextDraft.name,
+        title: nextDraft.title,
+        location: nextDraft.location,
+        about: nextDraft.bio,
+        skills: nextDraft.skills,
+        linkedin: nextDraft.socials.linkedin,
+        ...avatarAliases(nextDraft.avatarUrl)
       }, { onConflict: "user_id" });
     }
   }
@@ -45,7 +74,7 @@ export default function ProfileCard({ profile, onProfileUpdate }: { profile: Can
               <p className="mt-2 flex items-center gap-2 text-sm text-text-muted dark:text-slate-300"><MapPin className="h-4 w-4" /> {profile.location}</p>
             </div>
           </div>
-          <Button variant="secondary" onClick={() => setEditing(true)} className="gap-2"><Pencil className="h-4 w-4" /> Edit profile</Button>
+          <Button variant="secondary" onClick={() => { setDraft(profile); setEditing(true); }} className="gap-2"><Pencil className="h-4 w-4" /> Edit profile</Button>
         </div>
         <p className="mt-6 text-sm leading-7 text-text-muted dark:text-slate-300">{profile.bio}</p>
         <div className="mt-5 flex flex-wrap gap-2">
@@ -66,6 +95,16 @@ export default function ProfileCard({ profile, onProfileUpdate }: { profile: Can
               <button onClick={() => setEditing(false)} className="rounded-full p-2 text-text-muted hover:bg-primary/5"><X className="h-5 w-5" /></button>
             </div>
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              <div className="flex items-center gap-4 sm:col-span-2">
+                <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-primary to-success text-lg font-black text-white ring-2 ring-gray-200">
+                  {draft.avatarUrl ? <img src={draft.avatarUrl} alt={draft.name} className="h-full w-full object-cover" /> : initials}
+                </div>
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-border bg-bg px-4 py-2 text-sm font-bold text-text-main transition hover:border-primary/25 hover:text-primary dark:border-white/10 dark:bg-white/5 dark:text-white">
+                  <Camera className="h-4 w-4" />
+                  Update Photo
+                  <input type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+                </label>
+              </div>
               <Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="Full name" />
               <Input value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} placeholder="Professional title" />
               <Input value={draft.location} onChange={(e) => setDraft({ ...draft, location: e.target.value })} placeholder="Location" />
