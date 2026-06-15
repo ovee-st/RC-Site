@@ -198,8 +198,16 @@ export function AuthProvider({ children }) {
         return;
       }
 
-      const profile = await loadProfile(authUser).catch(() => null);
       const fallbackUser = applyUserDefaults(getMockUser());
+      const provisionalRole = normalizeRole(authUser?.user_metadata?.role || fallbackUser?.role);
+
+      if (active) {
+        setUser(normalizeUser(authUser, null, fallbackUser));
+        setRole(provisionalRole);
+        setLoading(false);
+      }
+
+      const profile = await loadProfile(authUser).catch(() => null);
 
       if (!active) return;
 

@@ -279,6 +279,23 @@ async function safeSelect(table: string) {
   return data || [];
 }
 
+function adminSectionTables(section: AdminSection) {
+  const tablesBySection: Record<AdminSection, string[]> = {
+    dashboard: ["profiles", "candidates", "employers", "jobs", "applications", "contact_requests", "subscription_payment_requests", "transactions"],
+    users: ["profiles"],
+    candidates: ["profiles", "candidates"],
+    employers: ["profiles", "employers", "jobs"],
+    jobs: ["jobs", "employers"],
+    employees: ["profiles", "employees"],
+    "contact-requests": ["contact_requests"],
+    coupons: ["coupons"],
+    "subscription-payments": ["subscription_payment_requests", "employers"],
+    transactions: ["transactions"]
+  };
+
+  return new Set(tablesBySection[section] || []);
+}
+
 function AdminStatCard({ label, value, detail, icon: Icon, accent }: { label: string; value: string | number; detail: string; icon: any; accent: string }) {
   return (
     <Card className="group relative overflow-hidden rounded-3xl p-5 shadow-soft">
@@ -461,44 +478,59 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
 
     async function loadAdminData() {
       setDataLoading(true);
+      const requestedTables = adminSectionTables(section);
+      const selectIfNeeded = (table: string) => requestedTables.has(table) ? safeSelect(table) : Promise.resolve(null);
       const [profiles, candidates, employers, employees, jobs, applications, contactRequests, coupons, subscriptionPayments, transactions] = await Promise.all([
-        safeSelect("profiles"),
-        safeSelect("candidates"),
-        safeSelect("employers"),
-        safeSelect("employees"),
-        safeSelect("jobs"),
-        safeSelect("applications"),
-        safeSelect("contact_requests"),
-        safeSelect("coupons"),
-        safeSelect("subscription_payment_requests"),
-        safeSelect("transactions")
+        selectIfNeeded("profiles"),
+        selectIfNeeded("candidates"),
+        selectIfNeeded("employers"),
+        selectIfNeeded("employees"),
+        selectIfNeeded("jobs"),
+        selectIfNeeded("applications"),
+        selectIfNeeded("contact_requests"),
+        selectIfNeeded("coupons"),
+        selectIfNeeded("subscription_payment_requests"),
+        selectIfNeeded("transactions")
       ]);
 
       if (!active) return;
 
-      const normalizedInitialData = normalizeAdminCollections({
-        profiles: profiles.length ? profiles : fallbackProfiles,
-        candidates,
-        employers,
-        employees
+      let normalizedInitialData = normalizeAdminCollections({
+        profiles: fallbackProfiles,
+        candidates: [],
+        employers: [],
+        employees: []
       });
 
-      setAdminData({
-        profiles: normalizedInitialData.profiles,
-        candidates: normalizedInitialData.candidates,
-        employers: normalizedInitialData.employers,
-        employees: normalizedInitialData.employees,
-        jobs,
-        applications,
-        contactRequests: contactRequests.length ? contactRequests : fallbackContacts,
-        coupons: coupons.length ? coupons : fallbackCoupons,
-        employerSubscriptions: [],
-        subscriptionPayments,
-        transactions: transactions.length ? transactions : fallbackTransactions
+      setAdminData((current) => {
+        const nextProfiles = profiles === null ? current.profiles : profiles.length ? profiles : fallbackProfiles;
+        const nextCandidates = candidates === null ? current.candidates : candidates;
+        const nextEmployers = employers === null ? current.employers : employers;
+        const nextEmployees = employees === null ? current.employees : employees;
+        normalizedInitialData = normalizeAdminCollections({
+          profiles: nextProfiles,
+          candidates: nextCandidates,
+          employers: nextEmployers,
+          employees: nextEmployees
+        });
+
+        return {
+          ...current,
+          profiles: normalizedInitialData.profiles,
+          candidates: normalizedInitialData.candidates,
+          employers: normalizedInitialData.employers,
+          employees: normalizedInitialData.employees,
+          jobs: jobs === null ? current.jobs : jobs,
+          applications: applications === null ? current.applications : applications,
+          contactRequests: contactRequests === null ? current.contactRequests : contactRequests.length ? contactRequests : fallbackContacts,
+          coupons: coupons === null ? current.coupons : coupons.length ? coupons : fallbackCoupons,
+          subscriptionPayments: subscriptionPayments === null ? current.subscriptionPayments : subscriptionPayments,
+          transactions: transactions === null ? current.transactions : transactions.length ? transactions : fallbackTransactions
+        };
       });
       setDataLoading(false);
 
-      if (isSupabaseConfigured && ["users", "candidates", "employers", "dashboard"].includes(section)) {
+      if (isSupabaseConfigured && ["users"].includes(section)) {
         const { data: sessionData } = await supabase.auth.getSession();
         const token = sessionData?.session?.access_token;
         if (!token) return;

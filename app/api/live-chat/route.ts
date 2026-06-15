@@ -1,6 +1,7 @@
 import { after, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabaseServer";
 import { makeTicketNumber, normalizeTicketUserRole } from "@/lib/support";
+import { canViewAllSupport, isSupportStaffRole } from "@/lib/supportRoles";
 
 const AGENT_ROLES = new Set(["employee", "support_agent", "support_senior", "support_manager", "admin", "viewer"]);
 
@@ -47,7 +48,7 @@ export async function GET(request: Request) {
 
   if (role === "candidate" || role === "employer") {
     query = query.eq("user_id", context.user.id);
-  } else if (role === "employee" || role === "support_agent") {
+  } else if (isSupportStaffRole(role) && !canViewAllSupport(role)) {
     query = query.or(`employee_id.is.null,employee_id.eq.${context.user.id}`);
   } else if (!AGENT_ROLES.has(role)) {
     return NextResponse.json({ error: "You cannot access live chat sessions." }, { status: 403 });

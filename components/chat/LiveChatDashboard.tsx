@@ -11,6 +11,7 @@ import Badge from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import ChatQueue from "@/components/chat/ChatQueue";
 import ChatWindow from "@/components/chat/ChatWindow";
+import { isSupportStaffRole } from "@/lib/supportRoles";
 import type { LiveChatSession } from "@/types/liveChat";
 
 async function authHeaders(): Promise<Record<string, string>> {
@@ -59,7 +60,7 @@ export default function LiveChatDashboard({ mode = "employee", compact = false }
   }, [loading, selectSession, setSessions, user]);
 
   const roleValue = String(role || "");
-  const authorized = roleValue === "employee" || roleValue === "admin" || roleValue === "viewer";
+  const authorized = isSupportStaffRole(roleValue);
   const stats = useMemo(() => ({
     waiting: sessions.filter((session) => session.status === "WAITING").length,
     active: sessions.filter((session) => session.status === "ACTIVE").length,
