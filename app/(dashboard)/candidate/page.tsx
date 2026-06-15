@@ -16,7 +16,7 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/cn";
 import { AUTH_CHANGE_EVENT, MOCK_USER_KEY } from "@/lib/accountIdentity";
-import { avatarAliases, normalizeProfileImageUrl, syncProfileImageState } from "@/lib/profileImageSync";
+import { authSafeAvatarAliases, avatarAliases, normalizeProfileImageUrl, stripInlineAuthAvatarMetadata, syncProfileImageState } from "@/lib/profileImageSync";
 import AccountSettings from "@/components/account/AccountSettings";
 import SkillPicker from "@/components/skills/SkillPicker";
 import StatsCards from "@/components/dashboard/StatsCards";
@@ -357,9 +357,10 @@ async function syncCandidateProfile(nextProfile: CandidateProfileState, user: Re
   await supabase.from("profiles").upsert(profilePatch, { onConflict: "id" });
   await supabase.auth.updateUser({
     data: {
+      ...stripInlineAuthAvatarMetadata(user.user_metadata || {}),
       full_name: nextProfile.name,
       name: nextProfile.name,
-      ...avatarAliases(avatarUrl),
+      ...authSafeAvatarAliases(avatarUrl),
       role: "candidate"
     }
   });

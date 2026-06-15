@@ -9,7 +9,7 @@ import Card from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
 import { useAuth } from "@/hooks/useAuth";
 import { AUTH_CHANGE_EVENT, MOCK_USER_KEY, getStableUsername } from "@/lib/accountIdentity";
-import { avatarAliases, normalizeProfileImageUrl } from "@/lib/profileImageSync";
+import { authSafeAvatarAliases, avatarAliases, normalizeProfileImageUrl, stripInlineAuthAvatarMetadata } from "@/lib/profileImageSync";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 
 function initials(name: string) {
@@ -98,10 +98,10 @@ export default function AdminProfileSettings() {
     if (isSupabaseConfigured) {
       const { error: authError } = await supabase.auth.updateUser({
         data: {
-          ...(user?.user_metadata || {}),
+          ...stripInlineAuthAvatarMetadata(user?.user_metadata || {}),
           name: cleanName,
           full_name: cleanName,
-          ...avatarAliases(cleanAvatar),
+          ...authSafeAvatarAliases(cleanAvatar),
           username
         }
       });

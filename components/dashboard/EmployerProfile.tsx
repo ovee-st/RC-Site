@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
-import { avatarAliases, normalizeProfileImageUrl, syncProfileImageState } from "@/lib/profileImageSync";
+import { authSafeAvatarAliases, avatarAliases, normalizeProfileImageUrl, stripInlineAuthAvatarMetadata, syncProfileImageState } from "@/lib/profileImageSync";
 
 type EmployerProfileState = {
   company_name: string;
@@ -197,10 +197,11 @@ export default function EmployerProfile() {
           .throwOnError();
         await supabase.auth.updateUser({
           data: {
+            ...stripInlineAuthAvatarMetadata(user.user_metadata || {}),
             name: nextDraft.contact_person || nextDraft.company_name,
             full_name: nextDraft.contact_person || nextDraft.company_name,
             company_name: nextDraft.company_name,
-            ...avatarAliases(nextDraft.photo_url),
+            ...authSafeAvatarAliases(nextDraft.photo_url),
             role: "employer"
           }
         });

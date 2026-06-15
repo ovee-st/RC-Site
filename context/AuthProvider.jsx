@@ -5,6 +5,7 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { demoCandidates } from "@/lib/demoData";
 import { AUTH_CHANGE_EVENT, MOCK_USER_KEY, getStableUsername } from "@/lib/accountIdentity";
 import { getBestAvatarUrl } from "@/lib/authUserSync";
+import { stripInlineAuthAvatarMetadata } from "@/lib/profileImageSync";
 
 export const AuthContext = createContext({
   user: null,
@@ -174,6 +175,10 @@ function applyUserDefaults(user) {
   };
 }
 
+function hasMetadataChanged(before, after) {
+  return JSON.stringify(before || {}) !== JSON.stringify(after || {});
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [role, setRole] = useState(null);
@@ -199,20 +204,27 @@ export function AuthProvider({ children }) {
       }
 
       const fallbackUser = applyUserDefaults(getMockUser());
+      let currentAuthUser = authUser;
+      const cleanedMetadata = stripInlineAuthAvatarMetadata(authUser.user_metadata || {});
+      if (hasMetadataChanged(authUser.user_metadata, cleanedMetadata)) {
+        const { data: cleaned } = await supabase.auth.updateUser({ data: cleanedMetadata }).catch(() => ({ data: null }));
+        await supabase.auth.refreshSession().catch(() => null);
+        currentAuthUser = cleaned?.user || authUser;
+      }
       const provisionalRole = normalizeRole(authUser?.user_metadata?.role || fallbackUser?.role);
 
       if (active) {
-        setUser(normalizeUser(authUser, null, fallbackUser));
+        setUser(normalizeUser(currentAuthUser, null, fallbackUser));
         setRole(provisionalRole);
         setLoading(false);
       }
 
-      const profile = await loadProfile(authUser).catch(() => null);
+      const profile = await loadProfile(currentAuthUser).catch(() => null);
 
       if (!active) return;
 
-      setUser(normalizeUser(authUser, profile, fallbackUser));
-      setRole(normalizeRole(profile?.role || authUser?.user_metadata?.role || fallbackUser?.role));
+      setUser(normalizeUser(currentAuthUser, profile, fallbackUser));
+      setRole(normalizeRole(profile?.role || currentAuthUser?.user_metadata?.role || fallbackUser?.role));
       setLoading(false);
     }
 

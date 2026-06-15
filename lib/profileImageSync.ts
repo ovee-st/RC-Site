@@ -28,6 +28,27 @@ export function avatarAliases(avatarUrl?: string | null) {
   };
 }
 
+const avatarAliasKeys = ["avatar", "avatar_url", "photo_url", "profile_photo_url", "logo_url", "company_logo_url", "company_photo_url"] as const;
+
+export function isInlineProfileImage(value?: string | null) {
+  const cleanValue = normalizeProfileImageUrl(value);
+  return Boolean(cleanValue && (/^data:image\//i.test(cleanValue) || cleanValue.length > 2048));
+}
+
+export function authSafeAvatarAliases(avatarUrl?: string | null) {
+  return avatarAliases(isInlineProfileImage(avatarUrl) ? null : avatarUrl);
+}
+
+export function stripInlineAuthAvatarMetadata(metadata?: Record<string, unknown> | null) {
+  const next = { ...(metadata || {}) };
+  avatarAliasKeys.forEach((key) => {
+    if (isInlineProfileImage(next[key] as string | null | undefined)) {
+      next[key] = null;
+    }
+  });
+  return next;
+}
+
 export function syncProfileImageState({ role, name, avatarUrl, profileStorageKey, profilePatch = {} }: SyncProfileImageOptions) {
   if (typeof window === "undefined") return;
 
