@@ -12,6 +12,32 @@ import {
 } from "@/lib/manualSubscriptionPayments";
 import { createServerSupabaseClient } from "@/lib/supabaseServer";
 
+function formatUnknownError(error: unknown) {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  if (error && typeof error === "object") {
+    const record = error as Record<string, unknown>;
+    const pieces = [record.message, record.details, record.hint, record.code]
+      .filter((piece): piece is string | number => typeof piece === "string" || typeof piece === "number")
+      .map(String)
+      .filter(Boolean);
+    if (pieces.length) return pieces.join(" ");
+    try {
+      return JSON.stringify(record);
+    } catch {
+      return "Subscription payment failed with an unreadable database error.";
+    }
+  }
+  return "Subscription payment failed before returning details.";
+}
+
+function getSubscriptionSetupMessage(message: string) {
+  if (/subscription_plans|subscription_payment_requests|schema cache|PGRST205|PGRST200/i.test(message)) {
+    return `${message} Run supabase-employer-subscriptions.sql and supabase-manual-subscription-payments.sql in Supabase, then reload the API schema cache.`;
+  }
+  return message;
+}
+
 async function getEmployerContext(adminClient: ReturnType<typeof createServerSupabaseClient>, token: string) {
   const { data: authData, error: authError } = await adminClient.auth.getUser(token);
   if (authError || !authData.user) throw new Error("Invalid session.");
@@ -114,7 +140,7 @@ export async function POST(request: Request) {
       console.warn("[subscription-payments/create] plan_id lookup failed, retrying plan_slug", {
         planId,
         planSlug,
-        error: error instanceof Error ? error.message : error
+        error: formatUnknownError(error)
       });
       plan = await getActivePlan(adminClient, planSlug);
     }
@@ -198,14 +224,15 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true, request: requestRow, breakdown });
   } catch (error) {
+    const message = getSubscriptionSetupMessage(formatUnknownError(error));
     console.warn("[subscription-payments/create] failed", {
       planId,
       planSlug,
       couponCode,
       billingCycle: rawBillingCycle,
       paymentMethod,
-      error: error instanceof Error ? error.message : error
+      error: message
     });
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Could not submit payment request." }, { status: 400 });
+    return NextResponse.json({ ok: false, error: message }, { status: 400 });
   }
 }

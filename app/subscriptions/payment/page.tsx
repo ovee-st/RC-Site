@@ -254,7 +254,7 @@ export default function ManualSubscriptionPaymentPage() {
         status: response.status,
         responsePayload
       });
-      if (!response.ok) throw new Error(responsePayload.error || "Could not submit payment request.");
+      if (!response.ok) throw new Error(formatCouponMessageValue(responsePayload?.error || responsePayload) || "Could not submit payment request.");
       setMessageTone("success");
       setMessage("Payment request submitted successfully. MXVL admin will verify it shortly.");
       setTransactionId("");
@@ -262,7 +262,7 @@ export default function ManualSubscriptionPaymentPage() {
       setScreenshot(null);
     } catch (error) {
       setMessageTone("error");
-      setMessage(error instanceof Error ? error.message : "Could not submit payment request.");
+      setMessage(formatCouponMessageValue(error) || "Could not submit payment request.");
     } finally {
       setSaving(false);
     }
