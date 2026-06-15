@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { calculateExpiryDate, getActivePlan } from "@/lib/manualSubscriptionPayments";
 import { createServerSupabaseClient } from "@/lib/supabaseServer";
+import { ensureRoleRecord } from "@/lib/authUserSync";
 import type { EmployerSubscriptionStatus } from "@/types/employerSubscription";
 
 const SUBSCRIPTION_STATUSES: EmployerSubscriptionStatus[] = ["trialing", "active", "past_due", "cancelled", "expired"];
@@ -16,6 +17,36 @@ function isOptionalDateColumnError(error: unknown) {
 
 function withoutOptionalDateColumns(patch: Record<string, string | null>) {
   return Object.fromEntries(Object.entries(patch).filter(([key]) => !OPTIONAL_DATE_COLUMNS.has(key))) as Record<string, string | null>;
+}
+
+async function resolveEmployerRecord(
+  adminClient: ReturnType<typeof createServerSupabaseClient>,
+  employerId: string,
+  employerUserId: string
+) {
+  const candidateIds = Array.from(new Set([employerId, employerUserId].filter(Boolean)));
+
+  for (const id of candidateIds) {
+    const { data } = await adminClient.from("employers").select("id, user_id").eq("id", id).maybeSingle();
+    if (data?.id) return data;
+  }
+
+  for (const id of candidateIds) {
+    const { data } = await adminClient.from("employers").select("id, user_id").eq("user_id", id).maybeSingle();
+    if (data?.id) return data;
+  }
+
+  for (const id of candidateIds) {
+    const { data: profile } = await adminClient.from("profiles").select("*").eq("id", id).maybeSingle();
+    if (!profile?.id) continue;
+
+    await ensureRoleRecord(adminClient, { ...profile, role: "employer" });
+
+    const { data: employer } = await adminClient.from("employers").select("id, user_id").eq("user_id", profile.id).maybeSingle();
+    if (employer?.id) return employer;
+  }
+
+  return null;
 }
 
 async function requireAdmin(adminClient: ReturnType<typeof createServerSupabaseClient>, token: string) {
@@ -105,13 +136,7 @@ export async function PATCH(request: Request) {
     let resolvedEmployerUserId = employerUserId;
 
     if (!existingSubscriptionId) {
-      const { data: employerById } = resolvedEmployerId
-        ? await adminClient.from("employers").select("id, user_id").eq("id", resolvedEmployerId).maybeSingle()
-        : { data: null };
-      const { data: employerByUserId } = !employerById && resolvedEmployerUserId
-        ? await adminClient.from("employers").select("id, user_id").eq("user_id", resolvedEmployerUserId).maybeSingle()
-        : { data: null };
-      const employer = employerById || employerByUserId;
+      const employer = await resolveEmployerRecord(adminClient, resolvedEmployerId, resolvedEmployerUserId);
       if (!employer?.id) throw new Error("Employer profile was not found.");
       resolvedEmployerId = employer.id;
       resolvedEmployerUserId = employer.user_id || resolvedEmployerUserId;
