@@ -4,6 +4,19 @@ import { createServerSupabaseClient } from "@/lib/supabaseServer";
 import type { EmployerSubscriptionStatus } from "@/types/employerSubscription";
 
 const SUBSCRIPTION_STATUSES: EmployerSubscriptionStatus[] = ["trialing", "active", "past_due", "cancelled", "expired"];
+const OPTIONAL_DATE_COLUMNS = new Set(["start_date", "expiry_date"]);
+
+function isOptionalDateColumnError(error: unknown) {
+  const message = String((error as { message?: string; details?: string; hint?: string; code?: string } | null)?.message || "");
+  const details = String((error as { details?: string } | null)?.details || "");
+  const hint = String((error as { hint?: string } | null)?.hint || "");
+  const combined = `${message} ${details} ${hint}`.toLowerCase();
+  return /column|schema cache|pgrst204/.test(combined) && [...OPTIONAL_DATE_COLUMNS].some((column) => combined.includes(column));
+}
+
+function withoutOptionalDateColumns(patch: Record<string, string | null>) {
+  return Object.fromEntries(Object.entries(patch).filter(([key]) => !OPTIONAL_DATE_COLUMNS.has(key))) as Record<string, string | null>;
+}
 
 async function requireAdmin(adminClient: ReturnType<typeof createServerSupabaseClient>, token: string) {
   const { data: authData, error: authError } = await adminClient.auth.getUser(token);
@@ -117,25 +130,45 @@ export async function PATCH(request: Request) {
     let error;
 
     if (existingSubscriptionId) {
-      const result = await adminClient
+      let result = await adminClient
         .from("employer_subscriptions")
         .update(patch)
         .eq("id", existingSubscriptionId)
         .select("*, employers(id, user_id, company_name, email, official_email), subscription_plans(*)")
         .single();
+      if (result.error && isOptionalDateColumnError(result.error)) {
+        result = await adminClient
+          .from("employer_subscriptions")
+          .update(withoutOptionalDateColumns(patch))
+          .eq("id", existingSubscriptionId)
+          .select("*, employers(id, user_id, company_name, email, official_email), subscription_plans(*)")
+          .single();
+      }
       data = result.data;
       error = result.error;
     } else {
       if (!plan) throw new Error("A plan is required to create an employer subscription.");
-      const result = await adminClient
+      const insertPayload = {
+        employer_id: resolvedEmployerId,
+        employer_user_id: resolvedEmployerUserId || null,
+        ...patch
+      };
+      let result = await adminClient
         .from("employer_subscriptions")
-        .insert({
-          employer_id: resolvedEmployerId,
-          employer_user_id: resolvedEmployerUserId || null,
-          ...patch
-        })
+        .insert(insertPayload)
         .select("*, employers(id, user_id, company_name, email, official_email), subscription_plans(*)")
         .single();
+      if (result.error && isOptionalDateColumnError(result.error)) {
+        result = await adminClient
+          .from("employer_subscriptions")
+          .insert({
+            employer_id: resolvedEmployerId,
+            employer_user_id: resolvedEmployerUserId || null,
+            ...withoutOptionalDateColumns(patch)
+          })
+          .select("*, employers(id, user_id, company_name, email, official_email), subscription_plans(*)")
+          .single();
+      }
       data = result.data;
       error = result.error;
     }
