@@ -37,7 +37,7 @@ export type PriceBreakdown = {
   } | null;
 };
 
-type PlanRow = {
+export type PlanRow = {
   id: string;
   slug: string;
   name: string;
@@ -72,6 +72,19 @@ export type ExistingCoupon = CouponRow;
 export type SubscriptionDebugEvent = {
   step: string;
   details: Record<string, unknown>;
+};
+
+type SelectedEmployerPlan = {
+  id?: string | null;
+  slug?: string | null;
+  name?: string | null;
+  tagline?: string | null;
+  billingType?: string | null;
+  billing_type?: string | null;
+  monthlyPrice?: number | null;
+  monthly_price?: number | null;
+  oneTimePrice?: number | null;
+  one_time_price?: number | null;
 };
 
 function logSubscriptionDebug(message: string, details: Record<string, unknown>, debugTrail?: SubscriptionDebugEvent[]) {
@@ -147,6 +160,28 @@ function buildPlanLookupValues(planIdOrSlug: string) {
   });
 
   return [...values].filter(Boolean);
+}
+
+export function buildPlanFromSelectedPlan(selectedPlan: unknown, fallbackSlug: string): PlanRow | null {
+  if (!selectedPlan || typeof selectedPlan !== "object") return null;
+  const row = selectedPlan as SelectedEmployerPlan;
+  const slug = String(row.slug || row.id || fallbackSlug || "").trim();
+  const name = String(row.name || slug || "").trim();
+  const billingType = row.billing_type || (row.billingType === "one-time" ? "one_time" : "recurring");
+  const monthlyPrice = row.monthly_price ?? row.monthlyPrice ?? null;
+  const oneTimePrice = row.one_time_price ?? row.oneTimePrice ?? (billingType === "one_time" ? monthlyPrice : null);
+
+  if (!slug || !name) return null;
+
+  return {
+    id: slug,
+    slug,
+    name,
+    billing_type: billingType === "one_time" ? "one_time" : billingType === "custom" ? "custom" : "recurring",
+    monthly_price: monthlyPrice === null ? null : Number(monthlyPrice),
+    one_time_price: oneTimePrice === null ? null : Number(oneTimePrice),
+    access_days: billingType === "one_time" ? 15 : null
+  };
 }
 
 export function validateExistingCoupon(coupon: ExistingCoupon | null, now = new Date(), debugTrail?: SubscriptionDebugEvent[]) {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildPlanFromSelectedPlan,
   calculatePaymentBreakdown,
   calculateCouponDiscount,
   getActivePlan,
@@ -142,6 +143,25 @@ describe("manual subscription coupon wiring", () => {
 
     expect(plan.id).toBe(elitePlan.id);
     expect(plan.name).toBe("MXVL Elite");
+  });
+
+  it("builds a coupon calculation fallback from the selected employer plan payload", () => {
+    const plan = buildPlanFromSelectedPlan({
+      id: "elite",
+      name: "MXVL Elite",
+      billingType: "recurring",
+      monthlyPrice: 15000
+    }, "elite");
+
+    expect(plan).toEqual({
+      id: "elite",
+      slug: "elite",
+      name: "MXVL Elite",
+      billing_type: "recurring",
+      monthly_price: 15000,
+      one_time_price: null,
+      access_days: null
+    });
   });
 
   it("calculates a 10% coupon from database pricing", async () => {

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import {
+  buildPlanFromSelectedPlan,
   calculatePaymentBreakdown,
   getActivePlan,
   normalizeManualBillingCycle,
@@ -64,12 +65,37 @@ export async function POST(request: Request) {
     try {
       plan = await getActivePlan(adminClient, planId || planSlug, debugTrail);
     } catch (error) {
-      if (!planSlug || planSlug === planId) throw error;
       debugTrail.push({
-        step: "plan_id lookup failed, retrying plan_slug",
+        step: "plan lookup failed",
         details: { planId, planSlug, error: formatUnknownError(error) }
       });
-      plan = await getActivePlan(adminClient, planSlug, debugTrail);
+      if (planSlug && planSlug !== planId) {
+        try {
+          debugTrail.push({ step: "retrying plan lookup with slug", details: { planSlug } });
+          plan = await getActivePlan(adminClient, planSlug, debugTrail);
+        } catch (slugError) {
+          debugTrail.push({
+            step: "plan slug lookup failed",
+            details: { planSlug, error: formatUnknownError(slugError) }
+          });
+        }
+      }
+
+      if (!plan) {
+        plan = buildPlanFromSelectedPlan(selectedPlan, planSlug || planId);
+        debugTrail.push({
+          step: "selected plan fallback result",
+          details: {
+            found: Boolean(plan),
+            planId: plan?.id ?? null,
+            planSlug: plan?.slug ?? null,
+            planName: plan?.name ?? null,
+            reason: "Used selected plan payload because subscription_plans lookup failed."
+          }
+        });
+      }
+
+      if (!plan) throw error;
     }
 
     debugTrail.push({
