@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Nusrat Jahan profile avatar">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#7c3aed"/>
+      <stop offset="1" stop-color="#06b6d4"/>
+    </linearGradient>
+    <linearGradient id="scarf" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#111827"/>
+      <stop offset="1" stop-color="#4338ca"/>
+    </linearGradient>
+  </defs>
+  <rect width="160" height="160" rx="36" fill="url(#bg)"/>
+  <circle cx="127" cy="120" r="28" fill="#ffffff" opacity=".14"/>
+  <circle cx="34" cy="34" r="20" fill="#ffffff" opacity=".18"/>
+  <path d="M37 142c5-31 20-46 43-46s38 15 43 46H37z" fill="#0f766e"/>
+  <path d="M48 80c0-33 13-52 35-52 20 0 32 16 32 43 0 26-11 52-34 52-19 0-33-18-33-43z" fill="url(#scarf)"/>
+  <circle cx="80" cy="70" r="28" fill="#f5c9a9"/>
+  <path d="M55 66c15-2 30-8 42-21 7 6 12 15 13 26-15-6-33-5-55-5z" fill="#111827"/>
+  <path d="M66 83c9 8 22 8 30 0" fill="none" stroke="#7c2d12" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="69" cy="70" r="4" fill="#111827"/>
+  <circle cx="91" cy="70" r="4" fill="#111827"/>
+</svg>

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Md Jahid Anwar profile avatar">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#2563eb"/>
+      <stop offset="1" stop-color="#14b8a6"/>
+    </linearGradient>
+    <linearGradient id="shirt" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#0f172a"/>
+      <stop offset="1" stop-color="#1d4ed8"/>
+    </linearGradient>
+  </defs>
+  <rect width="160" height="160" rx="36" fill="url(#bg)"/>
+  <circle cx="126" cy="30" r="22" fill="#ffffff" opacity=".18"/>
+  <circle cx="38" cy="124" r="30" fill="#ffffff" opacity=".12"/>
+  <path d="M39 141c5-28 20-42 41-42s36 14 41 42H39z" fill="url(#shirt)"/>
+  <circle cx="80" cy="66" r="31" fill="#f2c7a2"/>
+  <path d="M49 61c5-25 19-38 42-33 15 3 23 13 24 29-14-12-35-7-48-17-4 7-10 13-18 21z" fill="#172554"/>
+  <path d="M62 78c10 10 26 10 36 0" fill="none" stroke="#7c2d12" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="68" cy="66" r="4" fill="#111827"/>
+  <circle cx="92" cy="66" r="4" fill="#111827"/>
+</svg>

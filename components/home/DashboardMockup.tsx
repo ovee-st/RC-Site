@@ -12,9 +12,9 @@ const cockpitMetrics: Array<{ value: string; label: string; Icon: LucideIcon }> 
   { value: "8", label: "applications", Icon: BriefcaseBusiness }
 ];
 const candidates = [
-  { name: "Md Jahid Anwar", role: "Admin & Operations", score: 94, skills: ["Admin", "Excel", "Coordination"], initials: "MJ" },
-  { name: "Nusrat Jahan", role: "Customer Support", score: 88, skills: ["CRM", "Communication"], initials: "NJ" },
-  { name: "Rakib Ahmed", role: "Business Promoter", score: 92, skills: ["Sales", "Field Ops"], initials: "RA" }
+  { name: "Md Jahid Anwar", role: "Admin & Operations", score: 94, skills: ["Admin", "Excel", "Coordination"], initials: "MJ", avatar: "/avatars/candidate-jahid.svg" },
+  { name: "Nusrat Jahan", role: "Customer Support", score: 88, skills: ["CRM", "Communication"], initials: "NJ", avatar: "/avatars/candidate-nusrat.svg" },
+  { name: "Rakib Ahmed", role: "Business Promoter", score: 92, skills: ["Sales", "Field Ops"], initials: "RA", avatar: "/avatars/candidate-rakib.svg" }
 ];
 
 export default function DashboardMockup() {
@@ -80,8 +80,8 @@ export default function DashboardMockup() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
-                    <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-blue-600 to-emerald-500 text-sm font-black text-white shadow-lg">
-                      {candidate.initials}
+                    <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-emerald-500 text-sm font-black text-white shadow-lg">
+                      {candidate.avatar ? <img src={candidate.avatar} alt={`${candidate.name} profile`} className="h-full w-full object-cover" /> : candidate.initials}
                     </div>
                     <div className="min-w-0">
                       <h3 className="truncate text-base font-black text-slate-950 dark:text-white">{candidate.name}</h3>
