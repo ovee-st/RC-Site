@@ -3,7 +3,9 @@ import {
   assertValidSenderDigits,
   assertValidTransactionId,
   calculatePaymentBreakdown,
+  createZeroAmountTransactionId,
   getActivePlan,
+  isZeroAmountPayment,
   MANUAL_PAYMENT_METHODS,
   normalizeManualBillingCycle,
   normalizeManualPaymentMethod
@@ -92,8 +94,6 @@ export async function POST(request: Request) {
   try {
     if (!planId && !planSlug) throw new Error("Plan is required.");
     const billingCycle = normalizeManualBillingCycle(rawBillingCycle);
-    assertValidTransactionId(transactionId);
-    assertValidSenderDigits(senderLast3Digits);
 
     const adminClient = createServerSupabaseClient();
     const { user, employer } = await getEmployerContext(adminClient, token);
@@ -119,6 +119,15 @@ export async function POST(request: Request) {
       plan = await getActivePlan(adminClient, planSlug);
     }
     const breakdown = await calculatePaymentBreakdown(adminClient, plan, couponCode, billingCycle);
+    const zeroAmountPayment = isZeroAmountPayment(breakdown.finalAmount);
+    const storedTransactionId = zeroAmountPayment ? createZeroAmountTransactionId() : transactionId;
+    const storedSenderLast3Digits = zeroAmountPayment ? "000" : senderLast3Digits;
+
+    if (!zeroAmountPayment) {
+      assertValidTransactionId(storedTransactionId);
+      assertValidSenderDigits(storedSenderLast3Digits);
+    }
+
     console.info("[subscription-payments/create] resolved", {
       employerId: employer.id,
       requestedPlanId: planId,
@@ -128,13 +137,14 @@ export async function POST(request: Request) {
       couponCode: breakdown.coupon?.code ?? null,
       originalAmount: breakdown.originalAmount,
       discountAmount: breakdown.discountAmount,
-      finalAmount: breakdown.finalAmount
+      finalAmount: breakdown.finalAmount,
+      zeroAmountPayment
     });
 
     const duplicate = await adminClient
       .from("subscription_payment_requests")
       .select("id")
-      .eq("transaction_id", transactionId)
+      .eq("transaction_id", storedTransactionId)
       .maybeSingle();
     if (duplicate.data?.id) throw new Error("This transaction ID has already been submitted.");
 
@@ -157,9 +167,9 @@ export async function POST(request: Request) {
         original_amount: breakdown.originalAmount,
         discount_amount: breakdown.discountAmount,
         final_amount: breakdown.finalAmount,
-        payment_method: MANUAL_PAYMENT_METHODS[paymentMethod].storageValue,
-        transaction_id: transactionId,
-        sender_last_3_digits: senderLast3Digits,
+        payment_method: zeroAmountPayment ? "coupon_full_discount" : MANUAL_PAYMENT_METHODS[paymentMethod].storageValue,
+        transaction_id: storedTransactionId,
+        sender_last_3_digits: storedSenderLast3Digits,
         payment_screenshot: paymentScreenshot,
         status: "pending",
         submitted_at: new Date().toISOString()

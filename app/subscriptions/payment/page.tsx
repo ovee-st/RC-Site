@@ -81,6 +81,7 @@ export default function ManualSubscriptionPaymentPage() {
   const selectedPayment = MANUAL_PAYMENT_METHODS[paymentMethod];
   const selectedPlanPrice = planPrice(selectedPlan);
   const isEmployer = authRole === "employer";
+  const isZeroAmountPayment = breakdown.finalAmount <= 0;
 
   function resetBreakdown() {
     setResolvedPlanId("");
@@ -223,16 +224,16 @@ export default function ManualSubscriptionPaymentPage() {
       if (!token) {
         throw new Error("Your employer account is detected, but no active Supabase session token was found. Please sign out and sign in again.");
       }
-      const paymentScreenshot = await uploadScreenshot(token);
+      const paymentScreenshot = isZeroAmountPayment ? null : await uploadScreenshot(token);
       const payload = {
         plan_id: resolvedPlanId || selectedPlan.id,
         plan_slug: selectedPlan.id,
         selected_plan: selectedPlan,
         coupon_code: breakdown.coupon?.code || couponCode.trim() || null,
         payment_method: paymentMethod,
-        transaction_id: transactionId,
-        sender_last_3_digits: senderDigits,
-        payment_screenshot: paymentScreenshot,
+        transaction_id: isZeroAmountPayment ? "" : transactionId,
+        sender_last_3_digits: isZeroAmountPayment ? "" : senderDigits,
+        payment_screenshot: isZeroAmountPayment ? null : paymentScreenshot,
         billing_cycle: selectedPlan.billingType === "one-time" ? "one_time" : "monthly"
       };
       console.info("[subscription-payment-ui] submit payment request", {
@@ -313,59 +314,80 @@ export default function ManualSubscriptionPaymentPage() {
               <h2 className="text-xl font-black text-text-main dark:text-white">Payment Instructions</h2>
             </div>
 
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              {Object.entries(MANUAL_PAYMENT_METHODS).map(([key, method]) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setPaymentMethod(key as ManualPaymentMethod)}
-                  className={`rounded-md border px-4 py-3 text-left text-sm font-black transition ${
-                    paymentMethod === key
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border bg-white text-text-main hover:border-primary/40 dark:border-white/10 dark:bg-white/5 dark:text-white"
-                  }`}
-                >
-                  {method.label}
-                  <span className="mt-1 block text-xs font-bold text-text-muted">{method.number}</span>
-                </button>
-              ))}
-            </div>
+            {!isZeroAmountPayment ? (
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                {Object.entries(MANUAL_PAYMENT_METHODS).map(([key, method]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setPaymentMethod(key as ManualPaymentMethod)}
+                    className={`rounded-md border px-4 py-3 text-left text-sm font-black transition ${
+                      paymentMethod === key
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border bg-white text-text-main hover:border-primary/40 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                    }`}
+                  >
+                    {method.label}
+                    <span className="mt-1 block text-xs font-bold text-text-muted">{method.number}</span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
 
             <div className="mt-5 grid gap-3 rounded-md bg-slate-50 p-4 text-sm font-bold text-text-main dark:bg-white/5 dark:text-white">
-              <p>Selected Method: <span className="text-primary">{selectedPayment.label}</span></p>
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-white p-3 dark:bg-slate-950">
-                <span>{selectedPayment.label} Personal Number: <span className="text-primary">{selectedPayment.number}</span></span>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="gap-2 px-3 py-2"
-                  onClick={() => {
-                    navigator.clipboard?.writeText(selectedPayment.number);
-                    setMessage(`${selectedPayment.label} number copied.`);
-                  }}
-                >
-                  <Copy className="h-4 w-4" />
-                  Copy
-                </Button>
-              </div>
+              {!isZeroAmountPayment ? (
+                <>
+                  <p>Selected Method: <span className="text-primary">{selectedPayment.label}</span></p>
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-white p-3 dark:bg-slate-950">
+                    <span>{selectedPayment.label} Personal Number: <span className="text-primary">{selectedPayment.number}</span></span>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="gap-2 px-3 py-2"
+                      onClick={() => {
+                        navigator.clipboard?.writeText(selectedPayment.number);
+                        setMessage(`${selectedPayment.label} number copied.`);
+                      }}
+                    >
+                      <Copy className="h-4 w-4" />
+                      Copy
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <p>Payment Method: <span className="text-primary">Full coupon discount</span></p>
+              )}
               <p>Amount: <span className="text-primary">{formatCurrencyBDT(breakdown.finalAmount)}</span></p>
               <p>Reference: <span className="text-primary">{PAYMENT_REFERENCE}</span></p>
               <div className="mt-2 grid gap-2 border-t border-border pt-3 dark:border-white/10">
-                <p>Step 1: Send the exact amount to the selected number.</p>
-                <p>Step 2: Enter the transaction ID.</p>
-                <p>Step 3: Enter the last 3 digits of the sender number.</p>
-                <p>Step 4: Submit the request for verification.</p>
+                {isZeroAmountPayment ? (
+                  <>
+                    <p>Step 1: No manual payment is required.</p>
+                    <p>Step 2: Submit the request for admin verification.</p>
+                  </>
+                ) : (
+                  <>
+                    <p>Step 1: Send the exact amount to the selected number.</p>
+                    <p>Step 2: Enter the transaction ID.</p>
+                    <p>Step 3: Enter the last 3 digits of the sender number.</p>
+                    <p>Step 4: Submit the request for verification.</p>
+                  </>
+                )}
               </div>
             </div>
 
             <div className="mt-6 grid gap-4">
-              <Input value={transactionId} onChange={(event) => setTransactionId(event.target.value)} placeholder="Transaction ID" />
-              <Input value={senderDigits} onChange={(event) => setSenderDigits(event.target.value.replace(/\D/g, "").slice(0, 3))} placeholder="Last 3 digits of sender number" />
-              <label className="flex cursor-pointer items-center gap-3 rounded-md border border-dashed border-border p-4 text-sm font-bold text-text-muted dark:border-white/10">
-                <UploadCloud className="h-5 w-5 text-primary" />
-                <span>{screenshot ? screenshot.name : "Optional screenshot upload"}</span>
-                <input className="hidden" type="file" accept="image/*" onChange={(event) => setScreenshot(event.target.files?.[0] || null)} />
-              </label>
+              {!isZeroAmountPayment ? (
+                <>
+                  <Input value={transactionId} onChange={(event) => setTransactionId(event.target.value)} placeholder="Transaction ID" />
+                  <Input value={senderDigits} onChange={(event) => setSenderDigits(event.target.value.replace(/\D/g, "").slice(0, 3))} placeholder="Last 3 digits of sender number" />
+                  <label className="flex cursor-pointer items-center gap-3 rounded-md border border-dashed border-border p-4 text-sm font-bold text-text-muted dark:border-white/10">
+                    <UploadCloud className="h-5 w-5 text-primary" />
+                    <span>{screenshot ? screenshot.name : "Optional screenshot upload"}</span>
+                    <input className="hidden" type="file" accept="image/*" onChange={(event) => setScreenshot(event.target.files?.[0] || null)} />
+                  </label>
+                </>
+              ) : null}
               <Button type="button" onClick={submitRequest} disabled={saving} className="justify-center">
                 {saving ? "Submitting..." : "Submit Request"}
               </Button>

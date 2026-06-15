@@ -3,7 +3,9 @@ import {
   buildPlanFromSelectedPlan,
   calculatePaymentBreakdown,
   calculateCouponDiscount,
+  createZeroAmountTransactionId,
   getActivePlan,
+  isZeroAmountPayment,
   normalizeManualBillingCycle,
   normalizeCouponCode,
   validateExistingCoupon,
@@ -125,6 +127,13 @@ describe("manual subscription coupon wiring", () => {
     expect(calculateCouponDiscount(7500, validCoupon)).toBe(1500);
     expect(calculateCouponDiscount(99, { ...validCoupon, discount_percentage: 50 })).toBe(50);
     expect(calculateCouponDiscount(1000, { ...validCoupon, discount_percentage: 100 })).toBe(1000);
+  });
+
+  it("detects zero-amount coupon payments and creates valid internal references", () => {
+    expect(isZeroAmountPayment(0)).toBe(true);
+    expect(isZeroAmountPayment(-1)).toBe(true);
+    expect(isZeroAmountPayment(1)).toBe(false);
+    expect(createZeroAmountTransactionId()).toMatch(/^FREE[A-Z0-9]{2,28}$/);
   });
 
   it("looks up pricing plans by slug without querying the uuid id column first", async () => {

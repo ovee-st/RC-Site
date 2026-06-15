@@ -104,6 +104,14 @@ export function assertValidSenderDigits(senderLast3Digits: string) {
   }
 }
 
+export function isZeroAmountPayment(finalAmount: number) {
+  return Number(finalAmount || 0) <= 0;
+}
+
+export function createZeroAmountTransactionId(prefix = "FREE") {
+  return `${prefix}${Date.now().toString(36).toUpperCase()}`.replace(/[^A-Z0-9]/g, "").slice(0, 32);
+}
+
 export type ManualSubscriptionBillingCycle = "monthly" | "one_time";
 
 export function normalizeManualBillingCycle(value: unknown): ManualSubscriptionBillingCycle {
