@@ -20,7 +20,7 @@ const navItemsByRole = {
   { label: "Home", href: "/" },
   { label: "Jobs", href: "/jobs" },
   { label: "Services", href: "/services" },
-  { label: "We Hire for You", href: "/#pricing" }
+  { label: "We Hire for You", href: "/we-hire-for-you" }
   ],
   candidate: [
     { label: "Home", href: "/" },
@@ -30,7 +30,7 @@ const navItemsByRole = {
     { label: "Home", href: "/employer" },
     { label: "Jobs", href: "/jobs" },
     { label: "Candidates", href: "/employer/candidates" },
-    { label: "We Hire for You", href: "/#pricing" },
+    { label: "We Hire for You", href: "/we-hire-for-you" },
     { label: "Plans", href: "/subscriptions" }
   ],
   employee: [
