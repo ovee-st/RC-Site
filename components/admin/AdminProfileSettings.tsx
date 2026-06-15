@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { type ChangeEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Camera, Save, ShieldCheck, UserRound } from "lucide-react";
 import Badge from "@/components/ui/Badge";
@@ -64,6 +64,17 @@ export default function AdminProfileSettings() {
     setFullName(user?.user_metadata?.full_name || user?.user_metadata?.name || user?.name || "");
     setAvatarUrl(user?.user_metadata?.avatar_url || user?.user_metadata?.picture || user?.avatar || "");
   }, [user]);
+
+  function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setAvatarUrl(String(reader.result));
+    };
+    reader.readAsDataURL(file);
+  }
 
   async function saveProfile() {
     if (readOnly) {
@@ -153,8 +164,24 @@ export default function AdminProfileSettings() {
                 <Input value={fullName} onChange={(event) => setFullName(event.target.value)} placeholder="Admin display name" disabled={readOnly || saving} />
               </label>
               <label className="grid gap-2">
-                <span className="type-label inline-flex items-center gap-1.5"><Camera className="h-3.5 w-3.5" />Profile image URL</span>
-                <Input value={avatarUrl} onChange={(event) => setAvatarUrl(event.target.value)} placeholder="https://..." disabled={readOnly || saving} />
+                <span className="type-label inline-flex items-center gap-1.5"><Camera className="h-3.5 w-3.5" />Profile image</span>
+                <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-bg p-3 dark:border-white/10 dark:bg-white/5">
+                  <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-primary to-success text-sm font-black text-white ring-2 ring-white shadow-soft dark:ring-white/10">
+                    {avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={avatarUrl} alt={previewName} className="h-full w-full object-cover" />
+                    ) : initials(previewName)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-black text-text-main dark:text-white">Upload profile photo</p>
+                    <p className="mt-1 text-xs font-semibold text-text-muted dark:text-slate-300">Choose an image from your device.</p>
+                  </div>
+                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-border bg-surface px-4 py-2 text-sm font-bold text-text-main shadow-soft transition hover:border-primary/25 hover:text-primary dark:border-white/10 dark:bg-surface-dark dark:text-white">
+                    <Camera className="h-4 w-4" />
+                    Browse
+                    <input type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" disabled={readOnly || saving} />
+                  </label>
+                </div>
               </label>
               <label className="grid gap-2">
                 <span className="type-label">Permanent username</span>
