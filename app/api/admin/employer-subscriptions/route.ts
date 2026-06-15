@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { calculateExpiryDate, getActivePlan } from "@/lib/manualSubscriptionPayments";
+import { EMPLOYER_PLANS } from "@/lib/subscriptions";
 import { createServerSupabaseClient } from "@/lib/supabaseServer";
 import { ensureRoleRecord } from "@/lib/authUserSync";
 import type { EmployerSubscriptionStatus } from "@/types/employerSubscription";
@@ -17,6 +18,50 @@ function isOptionalDateColumnError(error: unknown) {
 
 function withoutOptionalDateColumns(patch: Record<string, string | null>) {
   return Object.fromEntries(Object.entries(patch).filter(([key]) => !OPTIONAL_DATE_COLUMNS.has(key))) as Record<string, string | null>;
+}
+
+function usageLimitValue(value: number | "unlimited") {
+  return value === "unlimited" ? null : value;
+}
+
+async function getOrCreateActivePlan(adminClient: ReturnType<typeof createServerSupabaseClient>, planIdOrSlug: string) {
+  try {
+    return await getActivePlan(adminClient, planIdOrSlug);
+  } catch (error) {
+    const configuredPlan = EMPLOYER_PLANS.find((plan) => plan.id === planIdOrSlug);
+    if (!configuredPlan) throw error;
+
+    const billingType = configuredPlan.id === "one_time" || configuredPlan.billingType === "one-time"
+      ? "one_time"
+      : configuredPlan.id === "enterprise"
+        ? "custom"
+        : "recurring";
+
+    const { data, error: upsertError } = await adminClient
+      .from("subscription_plans")
+      .upsert({
+        slug: configuredPlan.id,
+        name: configuredPlan.name,
+        description: configuredPlan.tagline,
+        billing_type: billingType,
+        job_limit: usageLimitValue(configuredPlan.limits.activeJobs),
+        candidate_view_limit: usageLimitValue(configuredPlan.limits.candidateViews),
+        ai_credit_limit: configuredPlan.aiCredits === "unlimited" ? null : configuredPlan.aiCredits,
+        recruiter_limit: usageLimitValue(configuredPlan.recruiterSeats),
+        monthly_price: billingType === "one_time" ? null : configuredPlan.monthlyPrice,
+        one_time_price: billingType === "one_time" ? configuredPlan.monthlyPrice : null,
+        access_days: billingType === "one_time" ? 15 : null,
+        is_active: true
+      }, { onConflict: "slug" })
+      .select("*")
+      .maybeSingle();
+
+    if (upsertError || !data) {
+      throw upsertError || error;
+    }
+
+    return data;
+  }
 }
 
 async function resolveEmployerRecord(
@@ -105,7 +150,7 @@ export async function PATCH(request: Request) {
     const adminClient = createServerSupabaseClient();
     await requireAdmin(adminClient, token);
     const now = new Date().toISOString();
-    const plan = planIdOrSlug ? await getActivePlan(adminClient, planIdOrSlug) : null;
+    const plan = planIdOrSlug ? await getOrCreateActivePlan(adminClient, planIdOrSlug) : null;
     const status = requestedStatus || "active";
     const patch: Record<string, string | null> = { status, updated_at: now };
 

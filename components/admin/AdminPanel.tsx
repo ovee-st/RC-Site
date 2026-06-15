@@ -946,9 +946,15 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
         status: "active"
       })
     });
-    const payload = await response.json().catch(() => ({}));
+    const responseText = await response.text();
+    let payload: AnyRecord = {};
+    try {
+      payload = responseText ? JSON.parse(responseText) : {};
+    } catch {
+      payload = {};
+    }
     if (!response.ok) {
-      setNotice(payload.error || "Could not change employer subscription plan.");
+      setNotice(payload.error || responseText || `Could not change employer subscription plan. HTTP ${response.status}`);
       return;
     }
 
