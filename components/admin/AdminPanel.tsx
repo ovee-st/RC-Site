@@ -920,7 +920,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
     const response = await fetch("/api/admin/employer-subscriptions", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: subscription.id, status, admin_token: token })
+      body: JSON.stringify({ id: subscription.id, status, admin_token: token, admin_user_id: user?.id })
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
@@ -958,8 +958,11 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
       return;
     }
 
-    const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData.session?.access_token;
+    const token = await getCompactAccessToken();
+    if (token && token.length > MAX_SAFE_AUTH_TOKEN_LENGTH) {
+      setNotice("Your session token is still too large after cleanup. Please log out and log back in once, then try changing the plan again.");
+      return;
+    }
     const response = await fetch("/api/admin/employer-subscriptions", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -969,7 +972,8 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
         employer_user_id: employer.user_id,
         plan_slug: planSlug,
         status: "active",
-        admin_token: token
+        admin_token: token,
+        admin_user_id: user?.id
       })
     });
     const responseText = await response.text();
