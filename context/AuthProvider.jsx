@@ -236,6 +236,13 @@ export function AuthProvider({ children }) {
         return;
       }
 
+      const cachedUser = applyUserDefaults(getMockUser());
+      if (cachedUser && active) {
+        setUser(cachedUser);
+        setRole(normalizeRole(cachedUser.role || cachedUser.user_metadata?.role));
+        setLoading(false);
+      }
+
       const { data } = await supabase.auth.getUser();
       await syncAuth(data?.user || null);
     }

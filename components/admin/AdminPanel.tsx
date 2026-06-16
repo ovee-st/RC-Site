@@ -121,6 +121,12 @@ const emptyState: AdminState = {
 
 const ADMIN_NOTIFICATION_STORAGE_KEY = "MXVL-admin-cleared-notifications";
 const MAX_SAFE_AUTH_TOKEN_LENGTH = 6000;
+const ADMIN_SELECT_COLUMNS: Record<string, string> = {
+  profiles: "id,email,role,full_name,name,username,plan,verified,created_at,updated_at",
+  candidates: "id,user_id,full_name,name,email,username,title,career_level,category,skills,skills_array,about,location,linkedin_url,plan,verified,created_at,updated_at",
+  employers: "id,user_id,company_name,contact_person,full_name,name,email,official_email,username,phone,location,industry,company_size,about,plan,verified,suspended,created_at,updated_at",
+  employees: "id,user_id,full_name,name,email,username,role,department,is_active,created_at,updated_at"
+};
 
 const sectionMeta: Record<AdminSection, { title: string; description: string }> = {
   dashboard: {
@@ -276,7 +282,8 @@ function exportCsv(filename: string, rows: AnyRecord[]) {
 
 async function safeSelect(table: string) {
   if (!isSupabaseConfigured) return [];
-  const { data, error } = await supabase.from(table).select("*").limit(500);
+  const columns = ADMIN_SELECT_COLUMNS[table] || "*";
+  const { data, error } = await supabase.from(table).select(columns).limit(200);
   if (error) return [];
   return data || [];
 }
