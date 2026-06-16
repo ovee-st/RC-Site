@@ -124,10 +124,10 @@ export async function GET(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+  const body = await request.json().catch(() => ({}));
+  const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") || String(body.admin_token || body.adminToken || "").trim();
   if (!token) return NextResponse.json({ error: "Missing session token." }, { status: 401 });
 
-  const body = await request.json().catch(() => ({}));
   const subscriptionId = String(body.id || body.subscription_id || "").trim();
   const requestedStatus = String(body.status || "").trim() as EmployerSubscriptionStatus;
   const planIdOrSlug = String(body.plan_id || body.planId || body.plan_slug || body.planSlug || "").trim();

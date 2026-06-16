@@ -919,11 +919,8 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
     }
     const response = await fetch("/api/admin/employer-subscriptions", {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {})
-      },
-      body: JSON.stringify({ id: subscription.id, status })
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: subscription.id, status, admin_token: token })
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
@@ -965,16 +962,14 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
     const token = sessionData.session?.access_token;
     const response = await fetch("/api/admin/employer-subscriptions", {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {})
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         id: subscription?.id,
         employer_id: employer.id || employer.employer_id,
         employer_user_id: employer.user_id,
         plan_slug: planSlug,
-        status: "active"
+        status: "active",
+        admin_token: token
       })
     });
     const responseText = await response.text();
