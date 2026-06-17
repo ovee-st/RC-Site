@@ -126,21 +126,41 @@ async function resolveAdminUser(
   }
 
   const anonClient = createServerSupabaseAnonClient();
-  const { data: refreshData, error: refreshError } = await anonClient.auth.refreshSession({
+  const attempts = [];
+
+  if (token) {
+    attempts.push(() => anonClient.auth.setSession({
+      access_token: token,
+      refresh_token: refreshToken
+    }));
+  }
+
+  attempts.push(() => anonClient.auth.refreshSession({
     refresh_token: refreshToken
-  });
+  }));
 
-  const refreshedToken = refreshData.session?.access_token || "";
-  if (refreshError || !refreshedToken) {
-    throw new Error("Invalid session.");
+  for (const attempt of attempts) {
+    const { data, error } = await attempt();
+    const resolvedToken = data.session?.access_token || "";
+    const resolvedUser = data.user || data.session?.user || null;
+
+    if (error || !resolvedUser) {
+      continue;
+    }
+
+    if (!resolvedToken) {
+      return resolvedUser;
+    }
+
+    const { data: verifiedUser, error: verifiedUserError } = await adminClient.auth.getUser(resolvedToken);
+    if (!verifiedUserError && verifiedUser.user) {
+      return verifiedUser.user;
+    }
+
+    return resolvedUser;
   }
 
-  const { data: refreshedUser, error: refreshedUserError } = await adminClient.auth.getUser(refreshedToken);
-  if (refreshedUserError || !refreshedUser.user) {
-    throw new Error("Invalid session.");
-  }
-
-  return refreshedUser.user;
+  throw new Error("Invalid session.");
 }
 
 async function requireAdmin(

@@ -309,8 +309,33 @@ async function getCompactAccessToken() {
 
 async function getAdminSessionPayload() {
   const { data: sessionData } = await supabase.auth.getSession();
-  const token = await getCompactAccessToken();
-  const refreshToken = sessionData.session?.refresh_token || "";
+  let session = sessionData.session || null;
+  let token = session?.access_token || "";
+  let refreshToken = session?.refresh_token || "";
+
+  if (!refreshToken || !token || token.length > MAX_SAFE_AUTH_TOKEN_LENGTH) {
+    const refreshed = await supabase.auth.refreshSession().catch(() => null);
+    if (refreshed?.data?.session) {
+      session = refreshed.data.session;
+      token = session.access_token || token;
+      refreshToken = session.refresh_token || refreshToken;
+    }
+  }
+
+  if (token && token.length > MAX_SAFE_AUTH_TOKEN_LENGTH) {
+    const cleanMetadata = stripInlineAuthAvatarMetadata(session?.user?.user_metadata || {});
+    await supabase.auth.updateUser({ data: cleanMetadata }).catch(() => null);
+    const refreshed = await supabase.auth.refreshSession().catch(() => null);
+    if (refreshed?.data?.session) {
+      session = refreshed.data.session;
+      token = session.access_token || token;
+      refreshToken = session.refresh_token || refreshToken;
+    }
+  }
+
+  if (!token) {
+    token = await getCompactAccessToken();
+  }
 
   return { token, refreshToken };
 }
