@@ -92,55 +92,74 @@ function UsageMeter({ metric }: { metric: UsageMetric }) {
 }
 
 export default function EmployerSubscriptionWidget({ data = DEMO_EMPLOYER_USAGE }: { data?: EmployerSubscriptionWidgetData }) {
+  const [liveData, setLiveData] = useState<EmployerSubscriptionWidgetData | null>(null);
   const [requests, setRequests] = useState<Record<string, any>[]>([]);
-  const currentPlan = EMPLOYER_PLANS.find((plan) => plan.id === data.currentPlanId) ?? EMPLOYER_PLANS[0];
+  const displayData = liveData || data;
+  const currentPlan = EMPLOYER_PLANS.find((plan) => plan.id === displayData.currentPlanId) ?? EMPLOYER_PLANS[0];
   const latestRequest = useMemo(() => requests[0] || null, [requests]);
   const pendingRequest = useMemo(() => requests.find((request) => ["pending", "more_info"].includes(String(request.status || ""))) || null, [requests]);
   const usageMetrics: UsageMetric[] = [
     {
       label: "Jobs Used",
-      used: data.jobsUsed,
-      limit: data.jobsLimit,
+      used: displayData.jobsUsed,
+      limit: displayData.jobsLimit,
       icon: BriefcaseBusiness,
       tone: "blue"
     },
     {
       label: "Candidate Views Used",
-      used: data.candidateViewsUsed,
-      limit: data.candidateViewsLimit,
+      used: displayData.candidateViewsUsed,
+      limit: displayData.candidateViewsLimit,
       icon: Eye,
       tone: "emerald"
     },
     {
       label: "AI Credits Used",
-      used: data.aiCreditsUsed,
-      limit: data.aiCreditsLimit,
+      used: displayData.aiCreditsUsed,
+      limit: displayData.aiCreditsLimit,
       icon: Bot,
       tone: "cyan"
     },
     {
       label: "Recruiter Seats Used",
-      used: data.recruiterSeatsUsed,
-      limit: data.recruiterSeatsLimit,
+      used: displayData.recruiterSeatsUsed,
+      limit: displayData.recruiterSeatsLimit,
       icon: Users,
       tone: "violet"
     }
   ];
 
   useEffect(() => {
-    async function loadRequests() {
+    async function loadSubscriptionData() {
       if (!isSupabaseConfigured) return;
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
       if (!token) return;
-      const response = await fetch("/api/subscription-payments", {
-        headers: { Authorization: `Bearer ${token}` }
-      }).catch(() => null);
-      if (!response?.ok) return;
-      const payload = await response.json().catch(() => ({}));
-      if (Array.isArray(payload.requests)) setRequests(payload.requests);
+
+      const [subscriptionResponse, paymentsResponse] = await Promise.all([
+        fetch("/api/employer/subscription", {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: "no-store"
+        }).catch(() => null),
+        fetch("/api/subscription-payments", {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: "no-store"
+        }).catch(() => null)
+      ]);
+
+      if (subscriptionResponse?.ok) {
+        const payload = await subscriptionResponse.json().catch(() => ({}));
+        if (payload.widget?.currentPlanId) {
+          setLiveData(payload.widget as EmployerSubscriptionWidgetData);
+        }
+      }
+
+      if (paymentsResponse?.ok) {
+        const payload = await paymentsResponse.json().catch(() => ({}));
+        if (Array.isArray(payload.requests)) setRequests(payload.requests);
+      }
     }
-    loadRequests();
+    loadSubscriptionData();
   }, []);
 
   return (
@@ -170,7 +189,7 @@ export default function EmployerSubscriptionWidget({ data = DEMO_EMPLOYER_USAGE 
                 </div>
                 <div>
                   <p className="text-xs font-black uppercase text-text-muted">Renewal Date</p>
-                  <p className="mt-1 text-lg font-black text-text-main dark:text-white">{data.renewalDate}</p>
+                  <p className="mt-1 text-lg font-black text-text-main dark:text-white">{displayData.renewalDate}</p>
                 </div>
               </div>
             </div>

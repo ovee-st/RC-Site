@@ -351,6 +351,25 @@ export async function PATCH(request: Request) {
     if (error) throw error;
 
     if (plan && data?.id) {
+      await adminClient
+        .from("employer_subscriptions")
+        .update({
+          status: "expired",
+          ends_at: now,
+          expiry_date: now.slice(0, 10),
+          updated_at: now
+        })
+        .eq("employer_id", data.employer_id)
+        .neq("id", data.id)
+        .in("status", ["trialing", "active", "past_due"])
+        .then(() => null);
+
+      await adminClient
+        .from("employers")
+        .update({ plan: plan.name, updated_at: now })
+        .eq("id", data.employer_id)
+        .then(() => null);
+
       await adminClient.from("employer_usage").insert({
         employer_id: data.employer_id,
         subscription_id: data.id,

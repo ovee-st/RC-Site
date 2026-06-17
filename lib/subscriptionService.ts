@@ -426,6 +426,8 @@ export class SubscriptionService {
       .select("*")
       .eq("employer_id", employerId)
       .in("status", ACTIVE_SUBSCRIPTION_STATUSES)
+      .order("updated_at", { ascending: false })
+      .order("starts_at", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
