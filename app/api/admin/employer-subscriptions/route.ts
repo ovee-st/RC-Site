@@ -68,9 +68,11 @@ async function getOrCreateActivePlan(adminClient: ReturnType<typeof createServer
 async function resolveEmployerRecord(
   adminClient: ReturnType<typeof createServerSupabaseClient>,
   employerId: string,
-  employerUserId: string
+  employerUserId: string,
+  employerEmail = ""
 ) {
   const candidateIds = Array.from(new Set([employerId, employerUserId].filter(Boolean)));
+  const email = employerEmail.trim().toLowerCase();
 
   for (const id of candidateIds) {
     const { data } = await adminClient.from("employers").select("id, user_id").eq("id", id).maybeSingle();
@@ -82,6 +84,17 @@ async function resolveEmployerRecord(
     if (data?.id) return data;
   }
 
+  if (email) {
+    for (const column of ["email", "official_email"]) {
+      const { data } = await adminClient
+        .from("employers")
+        .select("id, user_id")
+        .ilike(column, email)
+        .maybeSingle();
+      if (data?.id) return data;
+    }
+  }
+
   for (const id of candidateIds) {
     const { data: profile } = await adminClient.from("profiles").select("*").eq("id", id).maybeSingle();
     if (!profile?.id) continue;
@@ -90,6 +103,25 @@ async function resolveEmployerRecord(
 
     const { data: employer } = await adminClient.from("employers").select("id, user_id").eq("user_id", profile.id).maybeSingle();
     if (employer?.id) return employer;
+  }
+
+  if (email) {
+    const { data: profile } = await adminClient
+      .from("profiles")
+      .select("*")
+      .ilike("email", email)
+      .maybeSingle();
+
+    if (profile?.id) {
+      await ensureRoleRecord(adminClient, { ...profile, role: "employer" });
+
+      const { data: employer } = await adminClient
+        .from("employers")
+        .select("id, user_id")
+        .eq("user_id", profile.id)
+        .maybeSingle();
+      if (employer?.id) return employer;
+    }
   }
 
   return null;
@@ -205,6 +237,7 @@ export async function PATCH(request: Request) {
   const planIdOrSlug = String(body.plan_id || body.planId || body.plan_slug || body.planSlug || "").trim();
   const employerId = String(body.employer_id || body.employerId || "").trim();
   const employerUserId = String(body.employer_user_id || body.employerUserId || "").trim();
+  const employerEmail = String(body.employer_email || body.employerEmail || "").trim();
 
   if (!subscriptionId && !employerId && !employerUserId) {
     return NextResponse.json({ error: "Subscription id or employer id is required." }, { status: 400 });
@@ -253,7 +286,7 @@ export async function PATCH(request: Request) {
     let resolvedEmployerUserId = employerUserId;
 
     if (!existingSubscriptionId) {
-      const employer = await resolveEmployerRecord(adminClient, resolvedEmployerId, resolvedEmployerUserId);
+      const employer = await resolveEmployerRecord(adminClient, resolvedEmployerId, resolvedEmployerUserId, employerEmail);
       if (!employer?.id) throw new Error("Employer profile was not found.");
       resolvedEmployerId = employer.id;
       resolvedEmployerUserId = employer.user_id || resolvedEmployerUserId;

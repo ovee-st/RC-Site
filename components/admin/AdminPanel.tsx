@@ -1002,6 +1002,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
         id: subscription?.id,
         employer_id: employer.id || employer.employer_id,
         employer_user_id: employer.user_id,
+        employer_email: employer.official_email || employer.email || employer.user_email || employer.contact_email,
         plan_slug: planSlug,
         status: "active",
         admin_token: token,
