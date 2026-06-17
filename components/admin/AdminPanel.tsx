@@ -516,14 +516,20 @@ function getCurrentEmployerSubscription(subscriptions: AnyRecord[], employer: An
     cancelled: 0
   };
 
-  return subscriptions
-    .filter((subscription) => subscriptionMatchesEmployer(subscription, employer))
+  const matchedSubscriptions = subscriptions.filter((subscription) => subscriptionMatchesEmployer(subscription, employer));
+  const currentSubscriptions = matchedSubscriptions.filter((subscription) => (
+    ["active", "trialing", "past_due"].includes(String(subscription.status || "").toLowerCase())
+  ));
+
+  return (currentSubscriptions.length ? currentSubscriptions : matchedSubscriptions)
     .sort((a, b) => {
-      const matchDelta = getSubscriptionEmployerMatchScore(b, employer) - getSubscriptionEmployerMatchScore(a, employer);
-      if (matchDelta) return matchDelta;
       const statusDelta = (statusRank[String(b.status || "").toLowerCase()] ?? -1) - (statusRank[String(a.status || "").toLowerCase()] ?? -1);
       if (statusDelta) return statusDelta;
-      return getSubscriptionTime(b) - getSubscriptionTime(a);
+      const timeDelta = getSubscriptionTime(b) - getSubscriptionTime(a);
+      if (timeDelta) return timeDelta;
+      const matchDelta = getSubscriptionEmployerMatchScore(b, employer) - getSubscriptionEmployerMatchScore(a, employer);
+      if (matchDelta) return matchDelta;
+      return 0;
     })[0];
 }
 
