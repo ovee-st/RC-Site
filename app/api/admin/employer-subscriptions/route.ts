@@ -354,7 +354,7 @@ export async function PATCH(request: Request) {
     if (error) throw error;
 
     if (plan && data?.id) {
-      await adminClient
+      let siblingSubscriptionCleanup = adminClient
         .from("employer_subscriptions")
         .update({
           status: "expired",
@@ -362,10 +362,16 @@ export async function PATCH(request: Request) {
           expiry_date: now.slice(0, 10),
           updated_at: now
         })
-        .eq("employer_id", data.employer_id)
         .neq("id", data.id)
-        .in("status", ["trialing", "active", "past_due"])
-        .then(() => null);
+        .in("status", ["trialing", "active", "past_due"]);
+
+      if (data.employer_user_id) {
+        siblingSubscriptionCleanup = siblingSubscriptionCleanup.or(`employer_id.eq.${data.employer_id},employer_user_id.eq.${data.employer_user_id}`);
+      } else {
+        siblingSubscriptionCleanup = siblingSubscriptionCleanup.eq("employer_id", data.employer_id);
+      }
+
+      await siblingSubscriptionCleanup.then(() => null);
 
       await adminClient
         .from("employers")

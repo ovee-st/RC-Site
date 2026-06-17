@@ -446,6 +446,18 @@ function normalizeIdentityValue(value: unknown) {
 }
 
 function subscriptionMatchesEmployer(subscription: AnyRecord, employer: AnyRecord) {
+  return getSubscriptionEmployerMatchScore(subscription, employer) > 0;
+}
+
+function getSubscriptionEmployerMatchScore(subscription: AnyRecord, employer: AnyRecord) {
+  const employerRecordIds = [
+    employer.id,
+    employer.employer_id
+  ].map(normalizeIdentityValue).filter(Boolean);
+  const employerUserIds = [
+    employer.user_id,
+    employer.profile_id
+  ].map(normalizeIdentityValue).filter(Boolean);
   const employerIds = [
     employer.id,
     employer.employer_id,
@@ -471,10 +483,23 @@ function subscriptionMatchesEmployer(subscription: AnyRecord, employer: AnyRecor
     subscription.employer_email
   ].map(normalizeIdentityValue).filter(Boolean);
 
-  return (
-    subscriptionIds.some((id) => employerIds.includes(id)) ||
-    subscriptionEmails.some((email) => employerEmails.includes(email))
-  );
+  if ([subscription.employer_id, subscription.employers?.id].map(normalizeIdentityValue).some((id) => employerRecordIds.includes(id))) {
+    return 4;
+  }
+
+  if ([subscription.employer_user_id, subscription.employers?.user_id].map(normalizeIdentityValue).some((id) => employerUserIds.includes(id))) {
+    return 3;
+  }
+
+  if (subscriptionEmails.some((email) => employerEmails.includes(email))) {
+    return 2;
+  }
+
+  if (subscriptionIds.some((id) => employerIds.includes(id))) {
+    return 1;
+  }
+
+  return 0;
 }
 
 function getSubscriptionTime(subscription: AnyRecord) {
@@ -494,6 +519,8 @@ function getCurrentEmployerSubscription(subscriptions: AnyRecord[], employer: An
   return subscriptions
     .filter((subscription) => subscriptionMatchesEmployer(subscription, employer))
     .sort((a, b) => {
+      const matchDelta = getSubscriptionEmployerMatchScore(b, employer) - getSubscriptionEmployerMatchScore(a, employer);
+      if (matchDelta) return matchDelta;
       const statusDelta = (statusRank[String(b.status || "").toLowerCase()] ?? -1) - (statusRank[String(a.status || "").toLowerCase()] ?? -1);
       if (statusDelta) return statusDelta;
       return getSubscriptionTime(b) - getSubscriptionTime(a);
