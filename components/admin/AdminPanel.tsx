@@ -307,6 +307,14 @@ async function getCompactAccessToken() {
   return token;
 }
 
+async function getAdminSessionPayload() {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const token = await getCompactAccessToken();
+  const refreshToken = sessionData.session?.refresh_token || "";
+
+  return { token, refreshToken };
+}
+
 function adminSectionTables(section: AdminSection) {
   const tablesBySection: Record<AdminSection, string[]> = {
     dashboard: ["profiles", "candidates", "employers", "jobs", "applications", "contact_requests", "subscription_payment_requests", "transactions"],
@@ -912,15 +920,17 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
       return;
     }
 
-    const token = await getCompactAccessToken();
-    if (token && token.length > MAX_SAFE_AUTH_TOKEN_LENGTH) {
-      setNotice("Your session token is still too large after cleanup. Please log out and log back in once, then try changing the plan again.");
-      return;
-    }
+    const { token, refreshToken } = await getAdminSessionPayload();
     const response = await fetch("/api/admin/employer-subscriptions", {
       method: "PATCH",
+      credentials: "omit",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: subscription.id, status, admin_token: token, admin_user_id: user?.id })
+      body: JSON.stringify({
+        id: subscription.id,
+        status,
+        admin_token: token,
+        admin_refresh_token: refreshToken
+      })
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
@@ -958,13 +968,10 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
       return;
     }
 
-    const token = await getCompactAccessToken();
-    if (token && token.length > MAX_SAFE_AUTH_TOKEN_LENGTH) {
-      setNotice("Your session token is still too large after cleanup. Please log out and log back in once, then try changing the plan again.");
-      return;
-    }
+    const { token, refreshToken } = await getAdminSessionPayload();
     const response = await fetch("/api/admin/employer-subscriptions", {
       method: "PATCH",
+      credentials: "omit",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         id: subscription?.id,
@@ -973,7 +980,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
         plan_slug: planSlug,
         status: "active",
         admin_token: token,
-        admin_user_id: user?.id
+        admin_refresh_token: refreshToken
       })
     });
     const responseText = await response.text();

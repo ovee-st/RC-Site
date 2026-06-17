@@ -1,3 +1,4 @@
+import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { calculateExpiryDate, getActivePlan } from "@/lib/manualSubscriptionPayments";
 import { EMPLOYER_PLANS } from "@/lib/subscriptions";
@@ -94,18 +95,63 @@ async function resolveEmployerRecord(
   return null;
 }
 
-async function requireAdmin(adminClient: ReturnType<typeof createServerSupabaseClient>, token: string, fallbackAdminUserId = "") {
-  const { data: authData, error: authError } = await adminClient.auth.getUser(token);
-  if (authError || !authData.user) {
-    if (!fallbackAdminUserId) throw new Error("Invalid session.");
-    const { data: fallbackProfile } = await adminClient.from("profiles").select("role").eq("id", fallbackAdminUserId).maybeSingle();
-    if (fallbackProfile?.role !== "admin") throw new Error("Invalid session.");
-    return { id: fallbackAdminUserId };
+function createServerSupabaseAnonClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !anonKey) {
+    throw new Error("Supabase public credentials are missing.");
   }
 
-  const { data: profile } = await adminClient.from("profiles").select("role").eq("id", authData.user.id).maybeSingle();
+  return createClient(supabaseUrl, anonKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false
+    }
+  });
+}
+
+async function resolveAdminUser(
+  adminClient: ReturnType<typeof createServerSupabaseClient>,
+  token: string,
+  refreshToken = ""
+) {
+  if (token) {
+    const { data: authData, error: authError } = await adminClient.auth.getUser(token);
+    if (!authError && authData.user) return authData.user;
+  }
+
+  if (!refreshToken) {
+    throw new Error("Invalid session.");
+  }
+
+  const anonClient = createServerSupabaseAnonClient();
+  const { data: refreshData, error: refreshError } = await anonClient.auth.refreshSession({
+    refresh_token: refreshToken
+  });
+
+  const refreshedToken = refreshData.session?.access_token || "";
+  if (refreshError || !refreshedToken) {
+    throw new Error("Invalid session.");
+  }
+
+  const { data: refreshedUser, error: refreshedUserError } = await adminClient.auth.getUser(refreshedToken);
+  if (refreshedUserError || !refreshedUser.user) {
+    throw new Error("Invalid session.");
+  }
+
+  return refreshedUser.user;
+}
+
+async function requireAdmin(
+  adminClient: ReturnType<typeof createServerSupabaseClient>,
+  token: string,
+  refreshToken = ""
+) {
+  const adminUser = await resolveAdminUser(adminClient, token, refreshToken);
+  const { data: profile } = await adminClient.from("profiles").select("role").eq("id", adminUser.id).maybeSingle();
   if (profile?.role !== "admin") throw new Error("Only admins can manage employer subscriptions.");
-  return authData.user;
+  return adminUser;
 }
 
 export async function GET(request: Request) {
@@ -131,8 +177,8 @@ export async function GET(request: Request) {
 export async function PATCH(request: Request) {
   const body = await request.json().catch(() => ({}));
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") || String(body.admin_token || body.adminToken || "").trim();
-  const fallbackAdminUserId = String(body.admin_user_id || body.adminUserId || "").trim();
-  if (!token) return NextResponse.json({ error: "Missing session token." }, { status: 401 });
+  const refreshToken = String(body.admin_refresh_token || body.adminRefreshToken || "").trim();
+  if (!token && !refreshToken) return NextResponse.json({ error: "Missing session token." }, { status: 401 });
 
   const subscriptionId = String(body.id || body.subscription_id || "").trim();
   const requestedStatus = String(body.status || "").trim() as EmployerSubscriptionStatus;
@@ -154,7 +200,7 @@ export async function PATCH(request: Request) {
 
   try {
     const adminClient = createServerSupabaseClient();
-    await requireAdmin(adminClient, token, fallbackAdminUserId);
+    await requireAdmin(adminClient, token, refreshToken);
     const now = new Date().toISOString();
     const plan = planIdOrSlug ? await getOrCreateActivePlan(adminClient, planIdOrSlug) : null;
     const status = requestedStatus || "active";
