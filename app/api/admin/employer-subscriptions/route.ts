@@ -287,12 +287,17 @@ export async function PATCH(request: Request) {
     let existingSubscriptionId = subscriptionId;
     let resolvedEmployerId = employerId;
     let resolvedEmployerUserId = employerUserId;
+    const selectedEmployer = employerId || employerUserId || employerEmail
+      ? await resolveEmployerRecord(adminClient, employerId, employerUserId, employerEmail)
+      : null;
+
+    if (selectedEmployer?.id) {
+      resolvedEmployerId = selectedEmployer.id;
+      resolvedEmployerUserId = selectedEmployer.user_id || resolvedEmployerUserId;
+    }
 
     if (!existingSubscriptionId) {
-      const employer = await resolveEmployerRecord(adminClient, resolvedEmployerId, resolvedEmployerUserId, employerEmail);
-      if (!employer?.id) throw new Error("Employer profile was not found.");
-      resolvedEmployerId = employer.id;
-      resolvedEmployerUserId = employer.user_id || resolvedEmployerUserId;
+      if (!selectedEmployer?.id) throw new Error("Employer profile was not found.");
 
       const { data: latestSubscription } = await adminClient
         .from("employer_subscriptions")
@@ -302,6 +307,11 @@ export async function PATCH(request: Request) {
         .limit(1)
         .maybeSingle();
       existingSubscriptionId = latestSubscription?.id || "";
+    }
+
+    if (resolvedEmployerId) {
+      patch.employer_id = resolvedEmployerId;
+      patch.employer_user_id = resolvedEmployerUserId || null;
     }
 
     let data;
