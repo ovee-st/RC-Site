@@ -426,6 +426,9 @@ export async function ensureRoleRecord(client: SupabaseClient, profile: AnyRecor
   const payload = role === "candidate" ? candidateFromProfile(profile) : employerFromProfile(profile);
   const { source: _source, id: _id, ...writePayload } = payload;
   const safePayload = removeBlankAvatarWrites(writePayload);
+  if (role === "employer") {
+    delete safePayload.plan;
+  }
 
   const update = await safeUpdateBy(client, table, "user_id", profile.id, safePayload);
   if (update.error && /column|schema cache/i.test(String(update.error.message))) return;

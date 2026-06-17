@@ -379,6 +379,15 @@ export async function PATCH(request: Request) {
         .eq("id", data.employer_id)
         .then(() => null);
 
+      const linkedProfileId = data.employer_user_id || data.employers?.user_id || "";
+      if (linkedProfileId) {
+        await adminClient
+          .from("profiles")
+          .update({ plan: plan.name, updated_at: now })
+          .eq("id", linkedProfileId)
+          .then(() => null);
+      }
+
       await adminClient.from("employer_usage").insert({
         employer_id: data.employer_id,
         subscription_id: data.id,

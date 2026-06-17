@@ -1129,6 +1129,14 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
             ? { ...row, plan: selectedPlan?.name || planSlug }
             : row;
         }),
+        profiles: current.profiles.map((row) => {
+          const rowKeys = [row.id, row.user_id, row.email]
+            .map(normalizeIdentityValue)
+            .filter(Boolean);
+          return rowKeys.some((key) => employerKeys.includes(key))
+            ? { ...row, plan: selectedPlan?.name || planSlug }
+            : row;
+        }),
         employerSubscriptions: [updatedSubscription, ...remainingSubscriptions].filter(Boolean)
       };
     });
