@@ -533,6 +533,21 @@ function getCurrentEmployerSubscription(subscriptions: AnyRecord[], employer: An
     })[0];
 }
 
+function getSubscriptionPlanName(subscription?: AnyRecord | null) {
+  if (!subscription) return "";
+  return subscription.subscription_plans?.name || subscription.plan_name || subscription.plan || "";
+}
+
+function applySubscriptionPlansToEmployers(employers: AnyRecord[], subscriptions: AnyRecord[]) {
+  if (!subscriptions.length) return employers;
+
+  return employers.map((employer) => {
+    const subscription = getCurrentEmployerSubscription(subscriptions, employer);
+    const planName = getSubscriptionPlanName(subscription);
+    return planName ? { ...employer, plan: planName } : employer;
+  });
+}
+
 function AdminAvatar({ row, className }: { row: AnyRecord; className?: string }) {
   const name = getDisplayName(row);
   const image = resolveAvatarImage(row);
@@ -727,7 +742,11 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
         if (!active || !response?.ok) return;
         const payload = await response.json().catch(() => ({}));
         if (Array.isArray(payload.subscriptions)) {
-          setAdminData((current) => ({ ...current, employerSubscriptions: payload.subscriptions }));
+          setAdminData((current) => ({
+            ...current,
+            employers: applySubscriptionPlansToEmployers(current.employers, payload.subscriptions),
+            employerSubscriptions: payload.subscriptions
+          }));
         }
       }
 
@@ -1879,6 +1898,7 @@ function EmployersSection({
         const employerJobs = jobs.filter((job) => job.employer_id === employer.user_id || job.employer_id === employer.id);
         const subscription = getCurrentEmployerSubscription(subscriptions, employer);
         const subscriptionPlan = subscription?.subscription_plans;
+        const visiblePlanName = getSubscriptionPlanName(subscription);
         const editing = editingId === recordKey;
         return (
           <Card key={recordKey} className="rounded-3xl p-5">
@@ -1897,7 +1917,7 @@ function EmployersSection({
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
               <AdminStatCard label="Jobs" value={employerJobs.length} detail="Posted roles" icon={FileText} accent="bg-primary/10" />
               <AdminStatCard label="Active" value={employerJobs.filter((job) => (job.status || "active") === "active").length} detail="Visible roles" icon={CheckCircle2} accent="bg-success/10" />
-              <AdminStatCard label="Plan" value={subscriptionPlan?.name || employer.plan || "Free"} detail={subscription?.status || "No subscription"} icon={Sparkles} accent="bg-purple-400/10" />
+              <AdminStatCard label="Plan" value={visiblePlanName || "No subscription"} detail={subscription?.status || "No subscription"} icon={Sparkles} accent="bg-purple-400/10" />
             </div>
             <div className="mt-4 grid gap-3 rounded-2xl border border-border bg-bg p-4 dark:border-white/10 dark:bg-white/5 md:grid-cols-[1fr_220px_220px] md:items-center">
               <div>
