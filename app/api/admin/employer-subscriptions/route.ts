@@ -207,16 +207,19 @@ async function requireAdmin(
 }
 
 export async function GET(request: Request) {
-  const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-  if (!token) return NextResponse.json({ error: "Missing session token." }, { status: 401 });
+  const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") || request.headers.get("x-admin-token") || "";
+  const refreshToken = request.headers.get("x-admin-refresh-token") || "";
+  if (!token && !refreshToken) return NextResponse.json({ error: "Missing session token." }, { status: 401 });
 
   try {
     const adminClient = createServerSupabaseClient();
-    await requireAdmin(adminClient, token);
+    await requireAdmin(adminClient, token, refreshToken);
 
     const { data, error } = await adminClient
       .from("employer_subscriptions")
       .select("*, employers(id, user_id, company_name, email, official_email), subscription_plans(*)")
+      .order("updated_at", { ascending: false })
+      .order("starts_at", { ascending: false })
       .order("created_at", { ascending: false });
 
     if (error) throw error;

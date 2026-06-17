@@ -36,6 +36,19 @@ export type EmployerSubscriptionWidgetData = {
   recruiterSeatsLimit: UsageLimit;
 };
 
+const EMPTY_EMPLOYER_USAGE: EmployerSubscriptionWidgetData = {
+  currentPlanId: "starter",
+  renewalDate: "Not set",
+  jobsUsed: 0,
+  jobsLimit: 0,
+  candidateViewsUsed: 0,
+  candidateViewsLimit: 0,
+  aiCreditsUsed: 0,
+  aiCreditsLimit: 0,
+  recruiterSeatsUsed: 0,
+  recruiterSeatsLimit: 0
+};
+
 const toneStyles: Record<UsageMetric["tone"], { icon: string; bar: string; bg: string }> = {
   blue: {
     icon: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300",
@@ -93,9 +106,17 @@ function UsageMeter({ metric }: { metric: UsageMetric }) {
 
 export default function EmployerSubscriptionWidget({ data = DEMO_EMPLOYER_USAGE }: { data?: EmployerSubscriptionWidgetData }) {
   const [liveData, setLiveData] = useState<EmployerSubscriptionWidgetData | null>(null);
+  const [liveStatus, setLiveStatus] = useState<"loading" | "loaded" | "empty" | "fallback">(
+    isSupabaseConfigured ? "loading" : "fallback"
+  );
   const [requests, setRequests] = useState<Record<string, any>[]>([]);
-  const displayData = liveData || data;
+  const displayData = liveData || (isSupabaseConfigured ? EMPTY_EMPLOYER_USAGE : data);
   const currentPlan = EMPLOYER_PLANS.find((plan) => plan.id === displayData.currentPlanId) ?? EMPLOYER_PLANS[0];
+  const currentPlanName = liveStatus === "loading"
+    ? "Loading plan..."
+    : liveStatus === "empty"
+      ? "No active plan"
+      : currentPlan.name;
   const latestRequest = useMemo(() => requests[0] || null, [requests]);
   const pendingRequest = useMemo(() => requests.find((request) => ["pending", "more_info"].includes(String(request.status || ""))) || null, [requests]);
   const usageMetrics: UsageMetric[] = [
@@ -133,7 +154,11 @@ export default function EmployerSubscriptionWidget({ data = DEMO_EMPLOYER_USAGE 
     async function loadSubscriptionData() {
       if (!isSupabaseConfigured) return;
       const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
+      let token = sessionData.session?.access_token || "";
+      if (!token) {
+        const refreshed = await supabase.auth.refreshSession().catch(() => null);
+        token = refreshed?.data?.session?.access_token || "";
+      }
       if (!token) return;
 
       const [subscriptionResponse, paymentsResponse] = await Promise.all([
@@ -151,7 +176,13 @@ export default function EmployerSubscriptionWidget({ data = DEMO_EMPLOYER_USAGE 
         const payload = await subscriptionResponse.json().catch(() => ({}));
         if (payload.widget?.currentPlanId) {
           setLiveData(payload.widget as EmployerSubscriptionWidgetData);
+          setLiveStatus("loaded");
+        } else {
+          setLiveData(null);
+          setLiveStatus("empty");
         }
+      } else {
+        setLiveStatus("empty");
       }
 
       if (paymentsResponse?.ok) {
@@ -177,7 +208,7 @@ export default function EmployerSubscriptionWidget({ data = DEMO_EMPLOYER_USAGE 
                 </div>
                 <div>
                   <p className="text-xs font-black uppercase text-text-muted">Current Plan</p>
-                  <p className="mt-1 text-lg font-black text-text-main dark:text-white">{currentPlan.name}</p>
+                  <p className="mt-1 text-lg font-black text-text-main dark:text-white">{currentPlanName}</p>
                 </div>
               </div>
             </div>

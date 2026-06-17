@@ -679,12 +679,16 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
       }
 
       if (isSupabaseConfigured && ["employers", "dashboard"].includes(section)) {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const token = sessionData?.session?.access_token;
-        if (!token) return;
+        const { token, refreshToken } = await getAdminSessionPayload();
+        if (!token && !refreshToken) return;
 
         const response = await fetch("/api/admin/employer-subscriptions", {
-          headers: { Authorization: `Bearer ${token}` }
+          credentials: "omit",
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...(refreshToken ? { "x-admin-refresh-token": refreshToken } : {})
+          },
+          cache: "no-store"
         }).catch(() => null);
 
         if (!active || !response?.ok) return;
