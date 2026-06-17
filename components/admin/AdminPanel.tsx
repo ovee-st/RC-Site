@@ -441,6 +441,65 @@ function normalizeAdminCollections(collections: {
   return { profiles, candidates, employers, employees };
 }
 
+function normalizeIdentityValue(value: unknown) {
+  return value ? String(value).trim().toLowerCase() : "";
+}
+
+function subscriptionMatchesEmployer(subscription: AnyRecord, employer: AnyRecord) {
+  const employerIds = [
+    employer.id,
+    employer.employer_id,
+    employer.user_id,
+    employer.profile_id
+  ].map(normalizeIdentityValue).filter(Boolean);
+  const employerEmails = [
+    employer.email,
+    employer.official_email,
+    employer.user_email,
+    employer.contact_email
+  ].map(normalizeIdentityValue).filter(Boolean);
+
+  const subscriptionIds = [
+    subscription.employer_id,
+    subscription.employer_user_id,
+    subscription.employers?.id,
+    subscription.employers?.user_id
+  ].map(normalizeIdentityValue).filter(Boolean);
+  const subscriptionEmails = [
+    subscription.employers?.email,
+    subscription.employers?.official_email,
+    subscription.employer_email
+  ].map(normalizeIdentityValue).filter(Boolean);
+
+  return (
+    subscriptionIds.some((id) => employerIds.includes(id)) ||
+    subscriptionEmails.some((email) => employerEmails.includes(email))
+  );
+}
+
+function getSubscriptionTime(subscription: AnyRecord) {
+  const date = new Date(subscription.updated_at || subscription.created_at || subscription.starts_at || subscription.start_date || 0);
+  return Number.isFinite(date.getTime()) ? date.getTime() : 0;
+}
+
+function getCurrentEmployerSubscription(subscriptions: AnyRecord[], employer: AnyRecord) {
+  const statusRank: Record<string, number> = {
+    active: 4,
+    trialing: 3,
+    past_due: 2,
+    expired: 1,
+    cancelled: 0
+  };
+
+  return subscriptions
+    .filter((subscription) => subscriptionMatchesEmployer(subscription, employer))
+    .sort((a, b) => {
+      const statusDelta = (statusRank[String(b.status || "").toLowerCase()] ?? -1) - (statusRank[String(a.status || "").toLowerCase()] ?? -1);
+      if (statusDelta) return statusDelta;
+      return getSubscriptionTime(b) - getSubscriptionTime(a);
+    })[0];
+}
+
 function AdminAvatar({ row, className }: { row: AnyRecord; className?: string }) {
   const name = getDisplayName(row);
   const image = resolveAvatarImage(row);
@@ -1021,13 +1080,25 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
       return;
     }
 
+    const selectedPlan = EMPLOYER_PLANS.find((plan) => plan.id === planSlug);
     setAdminData((current) => {
-      const exists = current.employerSubscriptions.some((row) => row.id === payload.subscription?.id);
+      const updatedSubscription = payload.subscription;
+      const remainingSubscriptions = current.employerSubscriptions.filter((row) => row.id !== updatedSubscription?.id);
+      const employerKeys = [employer.id, employer.employer_id, employer.user_id, employer.email, employer.official_email]
+        .map(normalizeIdentityValue)
+        .filter(Boolean);
+
       return {
         ...current,
-        employerSubscriptions: exists
-          ? current.employerSubscriptions.map((row) => row.id === payload.subscription.id ? { ...row, ...payload.subscription } : row)
-          : [payload.subscription, ...current.employerSubscriptions].filter(Boolean)
+        employers: current.employers.map((row) => {
+          const rowKeys = [row.id, row.employer_id, row.user_id, row.email, row.official_email]
+            .map(normalizeIdentityValue)
+            .filter(Boolean);
+          return rowKeys.some((key) => employerKeys.includes(key))
+            ? { ...row, plan: selectedPlan?.name || planSlug }
+            : row;
+        }),
+        employerSubscriptions: [updatedSubscription, ...remainingSubscriptions].filter(Boolean)
       };
     });
     setNotice(`Employer plan changed to ${payload.subscription?.subscription_plans?.name || planSlug}.`);
@@ -1761,13 +1832,7 @@ function EmployersSection({
       {rows.length ? rows.map((employer) => {
         const recordKey = employer.id || employer.user_id || employer.email;
         const employerJobs = jobs.filter((job) => job.employer_id === employer.user_id || job.employer_id === employer.id);
-        const subscription = subscriptions.find((row) =>
-          row.employer_id === employer.id ||
-          row.employer_id === employer.employer_id ||
-          row.employer_user_id === employer.user_id ||
-          row.employers?.user_id === employer.user_id ||
-          row.employers?.id === employer.id
-        );
+        const subscription = getCurrentEmployerSubscription(subscriptions, employer);
         const subscriptionPlan = subscription?.subscription_plans;
         const editing = editingId === recordKey;
         return (
