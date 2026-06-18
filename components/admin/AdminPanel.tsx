@@ -122,10 +122,11 @@ const emptyState: AdminState = {
 const ADMIN_NOTIFICATION_STORAGE_KEY = "MXVL-admin-cleared-notifications";
 const MAX_SAFE_AUTH_TOKEN_LENGTH = 6000;
 const ADMIN_SELECT_COLUMNS: Record<string, string> = {
-  profiles: "id,email,role,full_name,name,username,plan,verified,avatar_url,photo_url,profile_photo_url,profile_image_url,picture_url,created_at,updated_at",
-  candidates: "id,user_id,full_name,name,email,username,title,career_level,category,skills,skills_array,about,location,linkedin_url,plan,verified,avatar_url,photo_url,profile_photo_url,profile_image_url,image_url,avatar,created_at,updated_at",
-  employers: "id,user_id,company_name,contact_person,full_name,name,email,official_email,username,phone,location,industry,company_size,about,plan,verified,suspended,avatar_url,photo_url,profile_photo_url,logo_url,company_logo_url,company_photo_url,created_at,updated_at",
-  employees: "id,user_id,full_name,name,email,username,role,department,active,is_active,avatar_url,photo_url,profile_photo_url,created_at,updated_at"
+  profiles: "*",
+  candidates: "*",
+  employers: "*",
+  employees: "*",
+  jobs: "*"
 };
 
 const sectionMeta: Record<AdminSection, { title: string; description: string }> = {
@@ -731,8 +732,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
       setDataLoading(false);
 
       if (isSupabaseConfigured && ["users"].includes(section)) {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const token = sessionData?.session?.access_token;
+        const { token } = await getAdminSessionPayload();
         if (!token) return;
 
         const response = await fetch("/api/admin/sync-auth-users", {
