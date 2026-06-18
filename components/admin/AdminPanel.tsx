@@ -321,6 +321,55 @@ async function safeSelect(table: string) {
   return [];
 }
 
+async function fetchAdminRecords(section: AdminSection) {
+  if (!isSupabaseConfigured) return null;
+  const { token } = await getAdminSessionPayload();
+  if (!token) return null;
+
+  const response = await fetch(`/api/admin/records?section=${encodeURIComponent(section)}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store"
+  }).catch(() => null);
+
+  if (!response?.ok) return null;
+  const payload = await response.json().catch(() => ({}));
+  return payload.records || null;
+}
+
+async function saveAdminRecord(table: string, id: string, patch: AnyRecord) {
+  const { token } = await getAdminSessionPayload();
+  if (!token) throw new Error("Missing admin session token.");
+
+  const response = await fetch("/api/admin/records", {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ table, id, patch })
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.error || "Could not save admin record.");
+  return payload.record || { id, ...patch };
+}
+
+async function createAdminRecord(table: string, patch: AnyRecord) {
+  const { token } = await getAdminSessionPayload();
+  if (!token) throw new Error("Missing admin session token.");
+
+  const response = await fetch("/api/admin/records", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ table, patch })
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.error || "Could not create admin record.");
+  return payload.record || patch;
+}
+
 async function getCompactAccessToken() {
   const { data: sessionData } = await supabase.auth.getSession();
   let token = sessionData.session?.access_token || "";
@@ -680,7 +729,12 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
     async function loadAdminData() {
       setDataLoading(true);
       const requestedTables = adminSectionTables(section);
-      const selectIfNeeded = (table: string) => requestedTables.has(table) ? safeSelect(table) : Promise.resolve(null);
+      const adminRecords = await fetchAdminRecords(section);
+      const selectIfNeeded = (table: string) => {
+        if (!requestedTables.has(table)) return Promise.resolve(null);
+        if (adminRecords && Array.isArray(adminRecords[table])) return Promise.resolve(adminRecords[table]);
+        return safeSelect(table);
+      };
       const [profiles, candidates, employers, employees, jobs, applications, contactRequests, coupons, subscriptionPayments, transactions] = await Promise.all([
         selectIfNeeded("profiles"),
         selectIfNeeded("candidates"),
@@ -915,31 +969,13 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
     let savedPatch = patch;
 
     if (isSupabaseConfigured) {
-      if (table === "jobs") {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const response = await fetch(`/api/jobs/${id}`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            ...(sessionData.session?.access_token ? { Authorization: `Bearer ${sessionData.session.access_token}` } : {})
-          },
-          body: JSON.stringify(patch)
-        });
-
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          setNotice(payload.error || "Could not update job.");
-          return;
-        }
-
-        savedPatch = normalizeJobPatch(patch);
-        if (payload.status) savedPatch.status = payload.status;
-      } else {
-        const { error } = await supabase.from(table).update(patch).eq("id", id);
-        if (error) {
-          setNotice(error.message);
-          return;
-        }
+      try {
+        const savedRecord = await saveAdminRecord(table, id, table === "jobs" ? normalizeJobPatch(patch) : patch);
+        savedPatch = { ...patch, ...savedRecord };
+        if (table === "jobs" && savedRecord.status) savedPatch.status = normalizeJobStatus(savedRecord.status);
+      } catch (error) {
+        setNotice(error instanceof Error ? error.message : "Could not save admin record.");
+        return;
       }
     }
     const stateKey = ({
@@ -1004,12 +1040,13 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
           return;
         }
 
-        await supabase.from("candidates").update({ plan: nextPlan, verified }).eq("id", candidate.id);
+        await saveAdminRecord("candidates", candidate.id, { plan: nextPlan, verified });
 
         if (userId) {
-          await supabase.from("profiles").update({ plan: nextPlan, verified }).eq("id", userId);
+          await saveAdminRecord("profiles", userId, { plan: nextPlan, verified });
         } else if (email) {
-          await supabase.from("profiles").update({ plan: nextPlan, verified }).eq("email", email);
+          const profile = adminData.profiles.find((row) => String(row.email || "").toLowerCase() === email.toLowerCase());
+          if (profile?.id) await saveAdminRecord("profiles", profile.id, { plan: nextPlan, verified });
         }
       }
     }
@@ -1329,9 +1366,16 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
     };
 
     if (isSupabaseConfigured) {
-      await supabase.from("coupons").insert(coupon);
+      try {
+        const savedCoupon = await createAdminRecord("coupons", coupon);
+        setAdminData((current) => ({ ...current, coupons: [savedCoupon || { id: code, ...coupon }, ...current.coupons] }));
+      } catch (error) {
+        setNotice(error instanceof Error ? error.message : "Could not generate coupon.");
+        return;
+      }
+    } else {
+      setAdminData((current) => ({ ...current, coupons: [{ id: code, ...coupon }, ...current.coupons] }));
     }
-    setAdminData((current) => ({ ...current, coupons: [{ id: code, ...coupon }, ...current.coupons] }));
     setNotice(`Coupon ${code} generated.`);
   }
 
@@ -1342,12 +1386,13 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
     }
 
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase.from("coupons").insert(coupon).select("*").maybeSingle();
-      if (error) {
-        setNotice(error.message);
+      try {
+        const savedCoupon = await createAdminRecord("coupons", coupon);
+        setAdminData((current) => ({ ...current, coupons: [savedCoupon || { id: coupon.code, ...coupon }, ...current.coupons] }));
+      } catch (error) {
+        setNotice(error instanceof Error ? error.message : "Could not create coupon.");
         return;
       }
-      setAdminData((current) => ({ ...current, coupons: [data || { id: coupon.code, ...coupon }, ...current.coupons] }));
     } else {
       setAdminData((current) => ({ ...current, coupons: [{ id: coupon.code, ...coupon }, ...current.coupons] }));
     }
