@@ -323,30 +323,36 @@ async function safeSelect(table: string) {
 
 async function fetchAdminRecords(section: AdminSection) {
   if (!isSupabaseConfigured) return null;
-  const { token } = await getAdminSessionPayload();
-  if (!token) return null;
+  const { token, refreshToken } = await getAdminSessionPayload();
+  if (!token && !refreshToken) throw new Error("Missing admin session token.");
 
-  const response = await fetch(`/api/admin/records?section=${encodeURIComponent(section)}`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: "no-store"
-  }).catch(() => null);
+  const response = await fetch("/api/admin/records", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    cache: "no-store",
+    body: JSON.stringify({
+      action: "list",
+      section,
+      admin_token: token,
+      admin_refresh_token: refreshToken
+    })
+  });
 
-  if (!response?.ok) return null;
   const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.error || "Could not load admin records.");
   return payload.records || null;
 }
 
 async function saveAdminRecord(table: string, id: string, patch: AnyRecord) {
-  const { token } = await getAdminSessionPayload();
-  if (!token) throw new Error("Missing admin session token.");
+  const { token, refreshToken } = await getAdminSessionPayload();
+  if (!token && !refreshToken) throw new Error("Missing admin session token.");
 
   const response = await fetch("/api/admin/records", {
     method: "PATCH",
     headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`
+      "Content-Type": "application/json"
     },
-    body: JSON.stringify({ table, id, patch })
+    body: JSON.stringify({ table, id, patch, admin_token: token, admin_refresh_token: refreshToken })
   });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(payload.error || "Could not save admin record.");
@@ -354,16 +360,15 @@ async function saveAdminRecord(table: string, id: string, patch: AnyRecord) {
 }
 
 async function createAdminRecord(table: string, patch: AnyRecord) {
-  const { token } = await getAdminSessionPayload();
-  if (!token) throw new Error("Missing admin session token.");
+  const { token, refreshToken } = await getAdminSessionPayload();
+  if (!token && !refreshToken) throw new Error("Missing admin session token.");
 
   const response = await fetch("/api/admin/records", {
     method: "POST",
     headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`
+      "Content-Type": "application/json"
     },
-    body: JSON.stringify({ table, patch })
+    body: JSON.stringify({ table, patch, admin_token: token, admin_refresh_token: refreshToken })
   });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(payload.error || "Could not create admin record.");
@@ -729,7 +734,16 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
     async function loadAdminData() {
       setDataLoading(true);
       const requestedTables = adminSectionTables(section);
-      const adminRecords = await fetchAdminRecords(section);
+      let adminRecords: AnyRecord | null = null;
+      try {
+        adminRecords = await fetchAdminRecords(section);
+      } catch (error) {
+        if (active) {
+          setNotice(error instanceof Error ? error.message : "Could not load admin records.");
+          setDataLoading(false);
+        }
+        return;
+      }
       const selectIfNeeded = (table: string) => {
         if (!requestedTables.has(table)) return Promise.resolve(null);
         if (adminRecords && Array.isArray(adminRecords[table])) return Promise.resolve(adminRecords[table]);
