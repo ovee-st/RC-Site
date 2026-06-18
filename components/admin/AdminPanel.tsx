@@ -122,10 +122,10 @@ const emptyState: AdminState = {
 const ADMIN_NOTIFICATION_STORAGE_KEY = "MXVL-admin-cleared-notifications";
 const MAX_SAFE_AUTH_TOKEN_LENGTH = 6000;
 const ADMIN_SELECT_COLUMNS: Record<string, string> = {
-  profiles: "id,email,role,full_name,name,username,plan,verified,created_at,updated_at",
-  candidates: "id,user_id,full_name,name,email,username,title,career_level,category,skills,skills_array,about,location,linkedin_url,plan,verified,created_at,updated_at",
-  employers: "id,user_id,company_name,contact_person,full_name,name,email,official_email,username,phone,location,industry,company_size,about,plan,verified,suspended,created_at,updated_at",
-  employees: "id,user_id,full_name,name,email,username,role,department,is_active,created_at,updated_at"
+  profiles: "id,email,role,full_name,name,username,plan,verified,avatar_url,photo_url,profile_photo_url,profile_image_url,picture_url,created_at,updated_at",
+  candidates: "id,user_id,full_name,name,email,username,title,career_level,category,skills,skills_array,about,location,linkedin_url,plan,verified,avatar_url,photo_url,profile_photo_url,profile_image_url,image_url,avatar,created_at,updated_at",
+  employers: "id,user_id,company_name,contact_person,full_name,name,email,official_email,username,phone,location,industry,company_size,about,plan,verified,suspended,avatar_url,photo_url,profile_photo_url,logo_url,company_logo_url,company_photo_url,created_at,updated_at",
+  employees: "id,user_id,full_name,name,email,username,role,department,active,is_active,avatar_url,photo_url,profile_photo_url,created_at,updated_at"
 };
 
 const sectionMeta: Record<AdminSection, { title: string; description: string }> = {
@@ -282,10 +282,42 @@ function exportCsv(filename: string, rows: AnyRecord[]) {
 
 async function safeSelect(table: string) {
   if (!isSupabaseConfigured) return [];
-  const columns = ADMIN_SELECT_COLUMNS[table] || "*";
-  const { data, error } = await supabase.from(table).select(columns).limit(200);
-  if (error) return [];
-  return data || [];
+  const withTimeout = async <T,>(request: PromiseLike<T>) => Promise.race<T | []>([
+    Promise.resolve(request),
+    new Promise<[]>((resolve) => window.setTimeout(() => resolve([]), 8000))
+  ]);
+
+  const configuredColumns = ADMIN_SELECT_COLUMNS[table];
+  if (!configuredColumns) {
+    const result = await withTimeout(supabase.from(table).select("*").limit(200));
+    if (Array.isArray(result)) return result;
+    const { data } = result as { data?: AnyRecord[] | null };
+    return data || [];
+  }
+
+  let columns = configuredColumns.split(",").map((column) => column.trim()).filter(Boolean);
+
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const result = await withTimeout(supabase.from(table).select(columns.join(",")).limit(200));
+    if (Array.isArray(result)) return result;
+    const { data, error } = result as { data?: AnyRecord[] | null; error?: { message?: string; details?: string; hint?: string } | null };
+    if (!error) return data || [];
+
+    const message = `${error.message || ""} ${error.details || ""} ${error.hint || ""}`;
+    const missingColumn =
+      message.match(/Could not find the '([^']+)' column/i)?.[1] ||
+      message.match(/column "?([a-zA-Z0-9_]+)"? .*does not exist/i)?.[1] ||
+      null;
+
+    if (!missingColumn || !columns.includes(missingColumn)) {
+      return [];
+    }
+
+    columns = columns.filter((column) => column !== missingColumn);
+    if (!columns.length) return [];
+  }
+
+  return [];
 }
 
 async function getCompactAccessToken() {
