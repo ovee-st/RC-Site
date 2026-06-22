@@ -206,6 +206,18 @@ async function requireAdmin(
   return adminUser;
 }
 
+async function loadEmployerSubscriptions(adminClient: ReturnType<typeof createServerSupabaseClient>) {
+  const { data, error } = await adminClient
+    .from("employer_subscriptions")
+    .select("*, employers(id, user_id, company_name, email, official_email), subscription_plans(*)")
+    .order("updated_at", { ascending: false })
+    .order("starts_at", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
 export async function GET(request: Request) {
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") || request.headers.get("x-admin-token") || "";
   const refreshToken = request.headers.get("x-admin-refresh-token") || "";
@@ -215,15 +227,27 @@ export async function GET(request: Request) {
     const adminClient = createServerSupabaseClient();
     await requireAdmin(adminClient, token, refreshToken);
 
-    const { data, error } = await adminClient
-      .from("employer_subscriptions")
-      .select("*, employers(id, user_id, company_name, email, official_email), subscription_plans(*)")
-      .order("updated_at", { ascending: false })
-      .order("starts_at", { ascending: false })
-      .order("created_at", { ascending: false });
+    const subscriptions = await loadEmployerSubscriptions(adminClient);
+    return NextResponse.json({ ok: true, subscriptions });
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Could not load employer subscriptions." }, { status: 403 });
+  }
+}
 
-    if (error) throw error;
-    return NextResponse.json({ ok: true, subscriptions: data || [] });
+export async function POST(request: Request) {
+  const body = await request.json().catch(() => ({}));
+  const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") || String(body.admin_token || body.adminToken || "").trim();
+  const refreshToken = String(body.admin_refresh_token || body.adminRefreshToken || "").trim();
+
+  if (!token && !refreshToken) {
+    return NextResponse.json({ error: "Missing session token." }, { status: 401 });
+  }
+
+  try {
+    const adminClient = createServerSupabaseClient();
+    await requireAdmin(adminClient, token, refreshToken);
+    const subscriptions = await loadEmployerSubscriptions(adminClient);
+    return NextResponse.json({ ok: true, subscriptions });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Could not load employer subscriptions." }, { status: 403 });
   }
@@ -381,7 +405,24 @@ export async function PATCH(request: Request) {
         siblingSubscriptionCleanup = siblingSubscriptionCleanup.eq("employer_id", data.employer_id);
       }
 
-      await siblingSubscriptionCleanup.then(() => null);
+      let siblingCleanupResult = await siblingSubscriptionCleanup;
+      if (siblingCleanupResult.error && isOptionalDateColumnError(siblingCleanupResult.error)) {
+        let retryCleanup = adminClient
+          .from("employer_subscriptions")
+          .update({
+            status: "expired",
+            ends_at: now,
+            updated_at: now
+          })
+          .neq("id", data.id)
+          .in("status", ["trialing", "active", "past_due"]);
+
+        retryCleanup = data.employer_user_id
+          ? retryCleanup.or(`employer_id.eq.${data.employer_id},employer_user_id.eq.${data.employer_user_id}`)
+          : retryCleanup.eq("employer_id", data.employer_id);
+        siblingCleanupResult = await retryCleanup;
+      }
+      if (siblingCleanupResult.error) throw siblingCleanupResult.error;
 
       await adminClient
         .from("employers")
@@ -406,7 +447,14 @@ export async function PATCH(request: Request) {
       }).then(() => null);
     }
 
-    return NextResponse.json({ ok: true, subscription: data });
+    const { data: persistedSubscription, error: persistedSubscriptionError } = await adminClient
+      .from("employer_subscriptions")
+      .select("*, employers(id, user_id, company_name, email, official_email), subscription_plans(*)")
+      .eq("id", data.id)
+      .single();
+    if (persistedSubscriptionError) throw persistedSubscriptionError;
+
+    return NextResponse.json({ ok: true, subscription: persistedSubscription });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Could not update employer subscription." }, { status: 400 });
   }

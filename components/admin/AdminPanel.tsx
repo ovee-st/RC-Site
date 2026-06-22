@@ -831,11 +831,13 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
         if (!token && !refreshToken) return;
 
         const response = await fetch("/api/admin/employer-subscriptions", {
+          method: "POST",
           credentials: "omit",
-          headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            ...(refreshToken ? { "x-admin-refresh-token": refreshToken } : {})
-          },
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            admin_token: token,
+            admin_refresh_token: refreshToken
+          }),
           cache: "no-store"
         }).catch(() => null);
 
