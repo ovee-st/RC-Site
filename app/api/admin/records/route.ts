@@ -202,7 +202,8 @@ async function safeUpdate(adminClient: ReturnType<typeof createServerSupabaseCli
       .select("*")
       .maybeSingle();
 
-    if (!error) return data || { id, ...currentPatch };
+    if (!error && data) return data;
+    if (!error) throw new Error(`The ${table} record was not found.`);
 
     const missingColumn = missingColumnFromError(error.message);
     if (!missingColumn || !(missingColumn in currentPatch)) throw error;

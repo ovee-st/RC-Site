@@ -1006,8 +1006,54 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
     }
     setNotice("Update saved");
 
-    if ((table === "candidates" || table === "employers") && Object.prototype.hasOwnProperty.call(patch, "verified")) {
-      window.setTimeout(() => window.location.reload(), 900);
+  }
+
+  async function verifyEmployer(employer: AnyRecord) {
+    if (readOnly) {
+      setNotice("Viewer accounts can inspect employers, but cannot verify them.");
+      return;
+    }
+
+    const employerId = String(employer.id || "").trim();
+    const employerUserId = String(employer.user_id || employer.profile_id || "").trim();
+    const employerEmail = getEmail(employer).toLowerCase();
+    const linkedProfile = adminData.profiles.find((profile) => (
+      (employerUserId && profile.id === employerUserId) ||
+      (employerEmail && String(profile.email || "").toLowerCase() === employerEmail)
+    ));
+
+    try {
+      if (isSupabaseConfigured) {
+        let employerWriteError: unknown = null;
+        if (employerId && employer.source !== "profile") {
+          try {
+            await saveAdminRecord("employers", employerId, { verified: true });
+          } catch (error) {
+            employerWriteError = error;
+          }
+        }
+        if (linkedProfile?.id) {
+          await saveAdminRecord("profiles", linkedProfile.id, { verified: true });
+        }
+        if ((!employerId || employer.source === "profile") && !linkedProfile?.id) {
+          throw new Error("The linked employer profile could not be found.");
+        }
+        if (employerWriteError && !linkedProfile?.id) throw employerWriteError;
+      }
+
+      setAdminData((current) => ({
+        ...current,
+        employers: current.employers.map((row) => {
+          const sameEmployer = row.id === employer.id ||
+            (employerUserId && (row.user_id === employerUserId || row.profile_id === employerUserId)) ||
+            (employerEmail && getEmail(row).toLowerCase() === employerEmail);
+          return sameEmployer ? { ...row, verified: true } : row;
+        }),
+        profiles: current.profiles.map((profile) => profile.id === linkedProfile?.id ? { ...profile, verified: true } : profile)
+      }));
+      setNotice("Employer verified successfully.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not verify employer.");
     }
   }
 
@@ -1571,6 +1617,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
                   onUpdate={updateRecord}
                   onSubscriptionStatusChange={updateEmployerSubscriptionStatus}
                   onSubscriptionPlanChange={updateEmployerSubscriptionPlan}
+                  onVerify={verifyEmployer}
                   onDelete={deleteRecord}
                   readOnly={readOnly}
                 />
@@ -1901,6 +1948,7 @@ function EmployersSection({
   onUpdate,
   onSubscriptionStatusChange,
   onSubscriptionPlanChange,
+  onVerify,
   onDelete,
   readOnly
 }: {
@@ -1910,6 +1958,7 @@ function EmployersSection({
   onUpdate: (table: string, id: string, patch: AnyRecord) => void;
   onSubscriptionStatusChange: (subscription: AnyRecord, status: string) => void;
   onSubscriptionPlanChange: (employer: AnyRecord, subscription: AnyRecord, planSlug: string) => void;
+  onVerify: (employer: AnyRecord) => void;
   onDelete: (table: string, id: string) => void;
   readOnly: boolean;
 }) {
@@ -2018,7 +2067,7 @@ function EmployersSection({
               </div>
             ) : null}
             <div className="mt-5 flex flex-wrap gap-2">
-              <Button variant="primary" disabled={readOnly} onClick={() => onUpdate("employers", employer.id, { verified: true })}>Verify employer</Button>
+              <Button variant="primary" disabled={readOnly || Boolean(employer.verified)} onClick={() => onVerify(employer)}>{employer.verified ? "Employer verified" : "Verify employer"}</Button>
               <Button variant="secondary" disabled={readOnly} onClick={() => onUpdate("employers", employer.id, { suspended: !employer.suspended })}>Suspend</Button>
               <Button variant="secondary" className="gap-2" onClick={() => startEdit(employer)}><Edit3 className="h-4 w-4" />Edit company info</Button>
               <Button variant="ghost" className="gap-2 text-danger" disabled={readOnly} onClick={() => onDelete("employers", employer.id || employer.user_id)}><Trash2 className="h-4 w-4" />Delete</Button>
