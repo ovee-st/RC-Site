@@ -29,8 +29,13 @@ create index if not exists employer_subscriptions_user_current_idx
 create index if not exists employer_usage_current_period_idx
   on public.employer_usage (subscription_id, period_start desc, period_end);
 
-create index if not exists notifications_user_created_at_idx
-  on public.notifications (user_id, created_at desc);
+do $$
+begin
+  if to_regclass('public.notifications') is not null then
+    execute 'create index if not exists notifications_user_created_at_idx on public.notifications (user_id, created_at desc)';
+  end if;
+end
+$$;
 
 create index if not exists transactions_status_created_at_idx
   on public.transactions (status, created_at desc);

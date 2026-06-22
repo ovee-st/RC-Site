@@ -40,4 +40,4 @@ The highest-risk database paths were current employer subscription selection, cu
 
 ## Deployment note
 
-Run `supabase-performance-indexes.sql` once in the Supabase SQL editor. Every statement uses `if not exists`, so the script is safe to run against an existing MXVL schema.
+Run `supabase-performance-indexes.sql` once in the Supabase SQL editor. Every index uses `if not exists`, and optional-table indexes are guarded by a schema check, so the script is safe to rerun against an existing MXVL schema.
