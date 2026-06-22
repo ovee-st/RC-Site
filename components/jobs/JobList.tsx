@@ -32,7 +32,7 @@ function mapSupabaseJob(row: any): Job {
     location: row.job_location || row.location || "Bangladesh",
     category: row.category || "Others",
     experience: row.experience_level || row.job_level || "Any Level",
-    experienceYears: row.experience_years || "",
+    experienceYears: row.experience_level || row.experience_years || "",
     jobType: row.job_type || row.employment_type || "Full Time",
     workType: row.work_type || row.job_type || "On-site",
     salaryMin: Number(row.salary_min || 0),

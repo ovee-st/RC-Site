@@ -25,13 +25,14 @@ export function normalizeJobPatch(input: Record<string, any>) {
     company: "company_name",
     location: "job_location",
     experience: "job_level",
-    jobType: "job_type",
-    workType: "work_type",
+    experienceYears: "experience_level",
+    jobType: "employment_type",
+    workType: "job_type",
     salaryMin: "salary_min",
     salaryMax: "salary_max",
-    hideSalary: "hide_salary",
+    hideSalary: "salary_hidden",
     deadline: "last_date",
-    skills: "required_skills"
+    skills: "required_skills_array"
   };
 
   Object.entries(input).forEach(([key, value]) => {
@@ -56,8 +57,10 @@ export function normalizeJobPatch(input: Record<string, any>) {
     patch.salary_max = Number(patch.salary_max) || 0;
   }
 
-  if (Array.isArray(patch.required_skills)) {
-    patch.required_skills = Array.from(new Set(patch.required_skills.map((skill: string) => String(skill).trim()).filter(Boolean)));
+  if (Array.isArray(patch.required_skills_array)) {
+    const skills = Array.from(new Set(patch.required_skills_array.map((skill: string) => String(skill).trim()).filter(Boolean)));
+    patch.required_skills_array = skills;
+    patch.required_skills = skills.join(", ");
   }
 
   return patch;

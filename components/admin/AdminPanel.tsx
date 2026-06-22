@@ -2096,13 +2096,21 @@ function JobsSection({ rows, onUpdate, readOnly }: { rows: AnyRecord[]; onUpdate
       job_type: job.job_type || job.type || "",
       job_level: job.job_level || job.experience_level || "",
       employment_type: job.employment_type || "",
-      experience_years: job.experience_years || job.required_experience || "",
+      experience_level: job.experience_level || job.experience_years || job.required_experience || "",
+      role: job.role || "",
       salary_min: job.salary_min || "",
       salary_max: job.salary_max || "",
+      salary_hidden: Boolean(job.salary_hidden || job.hide_salary),
       status: normalizeJobStatus(job.status),
       last_date: normalizeDateValue(job.last_date || job.deadline),
+      required_skills: Array.isArray(job.required_skills_array)
+        ? job.required_skills_array.join(", ")
+        : Array.isArray(job.required_skills)
+          ? job.required_skills.join(", ")
+          : String(job.required_skills || job.skills || ""),
       description: job.description || "",
-      requirements: job.requirements || ""
+      requirements: job.requirements || "",
+      benefits: job.benefits || ""
     });
   }
 
@@ -2137,10 +2145,11 @@ function JobsSection({ rows, onUpdate, readOnly }: { rows: AnyRecord[]; onUpdate
                   <Input value={draft.company_name || ""} onChange={(event) => setDraft((current) => ({ ...current, company_name: event.target.value }))} placeholder="Company name" />
                   <Input value={draft.job_location || ""} onChange={(event) => setDraft((current) => ({ ...current, job_location: event.target.value }))} placeholder="Location" />
                   <Input value={draft.category || ""} onChange={(event) => setDraft((current) => ({ ...current, category: event.target.value }))} placeholder="Category" />
-                  <Input value={draft.job_type || ""} onChange={(event) => setDraft((current) => ({ ...current, job_type: event.target.value }))} placeholder="Job type" />
+                  <Input value={draft.job_type || ""} onChange={(event) => setDraft((current) => ({ ...current, job_type: event.target.value }))} placeholder="Work location (On-site, Hybrid, Remote)" />
                   <Input value={draft.job_level || ""} onChange={(event) => setDraft((current) => ({ ...current, job_level: event.target.value }))} placeholder="Job level" />
                   <Input value={draft.employment_type || ""} onChange={(event) => setDraft((current) => ({ ...current, employment_type: event.target.value }))} placeholder="Employment type" />
-                  <Input value={draft.experience_years || ""} onChange={(event) => setDraft((current) => ({ ...current, experience_years: event.target.value }))} placeholder="Required experience" />
+                  <Input value={draft.experience_level || ""} onChange={(event) => setDraft((current) => ({ ...current, experience_level: event.target.value }))} placeholder="Required experience (years)" />
+                  <Input value={draft.role || ""} onChange={(event) => setDraft((current) => ({ ...current, role: event.target.value }))} placeholder="Role / designation" />
                   <select value={draft.status || "active"} onChange={(event) => setDraft((current) => ({ ...current, status: event.target.value }))} className="rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-bold dark:border-white/10 dark:bg-slate-900">
                     <option value="active">Active</option>
                     <option value="archived">Archived</option>
@@ -2150,11 +2159,25 @@ function JobsSection({ rows, onUpdate, readOnly }: { rows: AnyRecord[]; onUpdate
                   <Input value={draft.salary_min || ""} onChange={(event) => setDraft((current) => ({ ...current, salary_min: event.target.value }))} placeholder="Min salary" />
                   <Input value={draft.salary_max || ""} onChange={(event) => setDraft((current) => ({ ...current, salary_max: event.target.value }))} placeholder="Max salary" />
                   <Input value={draft.last_date || ""} onChange={(event) => setDraft((current) => ({ ...current, last_date: event.target.value }))} placeholder="Application deadline" type="date" />
+                  <label className="flex min-h-[46px] items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-bold dark:border-white/10 dark:bg-slate-900">
+                    <input type="checkbox" checked={Boolean(draft.salary_hidden)} onChange={(event) => setDraft((current) => ({ ...current, salary_hidden: event.target.checked }))} className="h-4 w-4 accent-primary" />
+                    Hide salary publicly
+                  </label>
                 </div>
+                <Input value={draft.required_skills || ""} onChange={(event) => setDraft((current) => ({ ...current, required_skills: event.target.value }))} placeholder="Required skills, separated by commas" className="mt-3" />
                 <textarea value={draft.description || ""} onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))} placeholder="Description" className="mt-3 min-h-28 w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-semibold outline-none focus:border-primary dark:border-white/10 dark:bg-slate-900" />
                 <textarea value={draft.requirements || ""} onChange={(event) => setDraft((current) => ({ ...current, requirements: event.target.value }))} placeholder="Requirements" className="mt-3 min-h-28 w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-semibold outline-none focus:border-primary dark:border-white/10 dark:bg-slate-900" />
+                <textarea value={draft.benefits || ""} onChange={(event) => setDraft((current) => ({ ...current, benefits: event.target.value }))} placeholder="Benefits" className="mt-3 min-h-24 w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-semibold outline-none focus:border-primary dark:border-white/10 dark:bg-slate-900" />
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <Button disabled={readOnly} onClick={() => { onUpdate("jobs", job.id, draft); setEditingId(null); }}>Save job</Button>
+                  <Button disabled={readOnly} onClick={() => {
+                    const requiredSkills = String(draft.required_skills || "").split(",").map((skill) => skill.trim()).filter(Boolean);
+                    onUpdate("jobs", job.id, {
+                      ...draft,
+                      required_skills: requiredSkills.join(", "),
+                      required_skills_array: requiredSkills
+                    });
+                    setEditingId(null);
+                  }}>Save job</Button>
                   <Button variant="secondary" onClick={() => setEditingId(null)}>Cancel</Button>
                 </div>
               </div>

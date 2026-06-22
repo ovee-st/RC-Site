@@ -13,6 +13,54 @@ import { cn } from "@/lib/cn";
 import { useAuth } from "@/hooks/useAuth";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { normalizeDateValue, normalizeJobStatus } from "@/lib/jobUpdate";
+import { bdjobsDepartments } from "@/lib/bdjobsDepartments";
+import { employmentTypeOptions, workLocationOptions } from "@/lib/jobOptions";
+import SkillPicker from "@/components/skills/SkillPicker";
+
+type JobEditDraft = {
+  company: string;
+  title: string;
+  location: string;
+  category: string;
+  experience: string;
+  experienceYears: string;
+  jobType: string;
+  workType: string;
+  salaryMin: string;
+  salaryMax: string;
+  hideSalary: boolean;
+  deadline: string;
+  status: NonNullable<Job["status"]>;
+  skills: string[];
+  description: string;
+  requirements: string;
+};
+
+function buildEditDraft(job: Job): JobEditDraft {
+  return {
+    company: job.company,
+    title: job.title,
+    location: job.location,
+    category: job.category,
+    experience: job.experience,
+    experienceYears: job.experienceYears || "",
+    jobType: job.jobType,
+    workType: job.workType || "On-site",
+    salaryMin: String(job.salaryMin),
+    salaryMax: String(job.salaryMax),
+    hideSalary: Boolean(job.hideSalary),
+    deadline: job.deadline || "",
+    status: normalizeJobStatus(job.status),
+    skills: job.skills,
+    description: job.description,
+    requirements: job.requirements
+  };
+}
+
+function EditTextArea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  const { className, ...textAreaProps } = props;
+  return <textarea {...textAreaProps} className={cn("focus-ring min-h-32 w-full rounded-md border border-border bg-surface px-4 py-3 text-sm font-medium text-text-main placeholder:text-text-muted shadow-soft dark:border-white/10 dark:bg-surface-dark dark:text-white", className)} />;
+}
 
 function isExpired(deadline?: string) {
   if (!deadline) return false;
@@ -73,19 +121,15 @@ export default function JobItem({ job, matchScore }: { job: Job; matchScore: num
   const [applied, setApplied] = useState(false);
   const [editing, setEditing] = useState(false);
   const [localEmployerPhoto, setLocalEmployerPhoto] = useState<string | null>(null);
-  const [draft, setDraft] = useState({
-    title: job.title,
-    location: job.location,
-    salaryMin: String(job.salaryMin),
-    salaryMax: String(job.salaryMax),
-    deadline: job.deadline || ""
-  });
+  const [draft, setDraft] = useState<JobEditDraft>(() => buildEditDraft(job));
+  const [editSaving, setEditSaving] = useState(false);
+  const [editMessage, setEditMessage] = useState("");
 
   const active = selectedJob?.id === job.id;
   const compactListMode = Boolean(selectedJob);
   const highMatch = matchScore >= 85;
   const staleJob = matchScore < 45;
-  const isEmployer = role === "employer";
+  const isEmployer = role === "employer" || role === "admin";
   const isCandidate = role === "candidate";
   const archived = normalizeJobStatus(job.status) === "archived" || isExpired(job.deadline);
   const hired = job.status === "hired";
@@ -111,20 +155,40 @@ export default function JobItem({ job, matchScore }: { job: Job; matchScore: num
   }, []);
 
   const saveEdit = async () => {
-    const updates = {
-      title: draft.title,
-      location: draft.location,
-      salaryMin: Number(draft.salaryMin) || job.salaryMin,
-      salaryMax: Number(draft.salaryMax) || job.salaryMax,
-      deadline: normalizeDateValue(draft.deadline)
-    };
-    updateJob(job.id, updates);
-    setEditing(false);
+    setEditMessage("");
+    if (!draft.company.trim() || !draft.title.trim() || !draft.location.trim() || !draft.description.trim()) {
+      setEditMessage("Company, title, location, and description are required.");
+      return;
+    }
 
+    const updates: Partial<Job> = {
+      company: draft.company.trim(),
+      title: draft.title.trim(),
+      location: draft.location.trim(),
+      category: draft.category,
+      experience: draft.experience,
+      experienceYears: draft.experienceYears.trim(),
+      jobType: draft.jobType,
+      workType: draft.workType,
+      salaryMin: Number(draft.salaryMin) || 0,
+      salaryMax: Number(draft.salaryMax) || 0,
+      hideSalary: draft.hideSalary,
+      deadline: normalizeDateValue(draft.deadline),
+      status: normalizeJobStatus(draft.status),
+      skills: draft.skills,
+      description: draft.description.trim(),
+      requirements: draft.requirements.trim()
+    };
+
+    setEditSaving(true);
     try {
       await persistJobUpdate(job.id, updates);
-    } catch {
-      // The optimistic UI remains in place; a later refresh will reconcile any server failure.
+      updateJob(job.id, updates);
+      setEditing(false);
+    } catch (error) {
+      setEditMessage(error instanceof Error ? error.message : "Could not update job.");
+    } finally {
+      setEditSaving(false);
     }
   };
 
@@ -237,13 +301,8 @@ export default function JobItem({ job, matchScore }: { job: Job; matchScore: num
                     className="gap-1.5 px-3 py-2"
                     onClick={(event) => {
                       event.stopPropagation();
-                      setDraft({
-                        title: job.title,
-                        location: job.location,
-                        salaryMin: String(job.salaryMin),
-                        salaryMax: String(job.salaryMax),
-                        deadline: job.deadline || ""
-                      });
+                      setDraft(buildEditDraft(job));
+                      setEditMessage("");
                       setEditing(true);
                     }}
                   >
@@ -323,8 +382,8 @@ export default function JobItem({ job, matchScore }: { job: Job; matchScore: num
       {editing ? (
         <div className="fixed inset-0 z-[95] grid place-items-center bg-slate-950/20 p-4 backdrop-blur-sm">
           <button type="button" className="absolute inset-0 cursor-default" aria-label="Close edit job" onClick={() => setEditing(false)} />
-          <Card className="relative w-full max-w-xl p-6 shadow-elevated">
-            <div className="mb-5 flex items-start justify-between gap-4">
+          <Card className="relative flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden p-0 shadow-elevated">
+            <div className="flex shrink-0 items-start justify-between gap-4 border-b border-border/70 px-6 py-5 dark:border-white/10">
               <div>
                 <Badge variant="primary" className="type-label text-primary">Edit Job</Badge>
                 <h2 className="type-h2 mt-2">Update published role</h2>
@@ -333,18 +392,48 @@ export default function JobItem({ job, matchScore }: { job: Job; matchScore: num
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="grid gap-4">
-              <Input value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} placeholder="Job title" />
-              <Input value={draft.location} onChange={(event) => setDraft((current) => ({ ...current, location: event.target.value }))} placeholder="Location" />
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Input value={draft.salaryMin} onChange={(event) => setDraft((current) => ({ ...current, salaryMin: event.target.value }))} placeholder="Min salary" type="number" />
-                <Input value={draft.salaryMax} onChange={(event) => setDraft((current) => ({ ...current, salaryMax: event.target.value }))} placeholder="Max salary" type="number" />
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+              <div className="grid gap-4 md:grid-cols-2">
+                <Input value={draft.company} onChange={(event) => setDraft((current) => ({ ...current, company: event.target.value }))} placeholder="Company name" />
+                <Input value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} placeholder="Designation / Job title" />
+                <Input value={draft.location} onChange={(event) => setDraft((current) => ({ ...current, location: event.target.value }))} placeholder="Job location" />
+                <select value={draft.jobType} onChange={(event) => setDraft((current) => ({ ...current, jobType: event.target.value }))} className="focus-ring w-full rounded-md border border-border bg-surface px-4 py-3 text-sm font-medium text-text-main shadow-soft dark:border-white/10 dark:bg-surface-dark dark:text-white">
+                  {employmentTypeOptions.map((type) => <option key={type} value={type}>{type}</option>)}
+                </select>
+                <select value={draft.workType} onChange={(event) => setDraft((current) => ({ ...current, workType: event.target.value }))} className="focus-ring w-full rounded-md border border-border bg-surface px-4 py-3 text-sm font-medium text-text-main shadow-soft dark:border-white/10 dark:bg-surface-dark dark:text-white">
+                  {workLocationOptions.map((type) => <option key={type} value={type}>{type}</option>)}
+                </select>
+                <select value={draft.category} onChange={(event) => setDraft((current) => ({ ...current, category: event.target.value }))} className="focus-ring w-full rounded-md border border-border bg-surface px-4 py-3 text-sm font-medium text-text-main shadow-soft dark:border-white/10 dark:bg-surface-dark dark:text-white">
+                  {bdjobsDepartments.map((department) => <option key={department} value={department}>{department}</option>)}
+                </select>
+                <select value={draft.experience} onChange={(event) => setDraft((current) => ({ ...current, experience: event.target.value }))} className="focus-ring w-full rounded-md border border-border bg-surface px-4 py-3 text-sm font-medium text-text-main shadow-soft dark:border-white/10 dark:bg-surface-dark dark:text-white">
+                  <option>Entry Level</option><option>Mid Level</option><option>Senior Level</option>
+                </select>
+                <Input value={draft.experienceYears} onChange={(event) => setDraft((current) => ({ ...current, experienceYears: event.target.value }))} placeholder="Required experience (years)" type="number" min="0" />
+                <Input value={draft.salaryMin} onChange={(event) => setDraft((current) => ({ ...current, salaryMin: event.target.value }))} placeholder="Min salary" type="number" min="0" />
+                <Input value={draft.salaryMax} onChange={(event) => setDraft((current) => ({ ...current, salaryMax: event.target.value }))} placeholder="Max salary" type="number" min="0" />
+                <label className="flex min-h-[46px] items-center gap-3 rounded-md border border-border bg-surface px-4 py-3 text-sm font-bold text-text-main shadow-soft dark:border-white/10 dark:bg-surface-dark dark:text-white">
+                  <input type="checkbox" checked={draft.hideSalary} onChange={(event) => setDraft((current) => ({ ...current, hideSalary: event.target.checked }))} className="h-4 w-4 accent-primary" />
+                  Hide salary from public job post
+                </label>
+                <Input value={draft.deadline} onChange={(event) => setDraft((current) => ({ ...current, deadline: event.target.value }))} placeholder="Application deadline" type="date" />
+                <select value={draft.status} onChange={(event) => setDraft((current) => ({ ...current, status: normalizeJobStatus(event.target.value) }))} className="focus-ring w-full rounded-md border border-border bg-surface px-4 py-3 text-sm font-medium text-text-main shadow-soft dark:border-white/10 dark:bg-surface-dark dark:text-white">
+                  <option value="active">Active</option><option value="archived">Archived</option><option value="hired">Hired</option>
+                </select>
+                <div className="md:col-span-2">
+                  <div className="mb-2 flex items-center justify-between gap-3"><p className="type-label">Required Skills</p><p className="text-xs font-semibold text-text-muted">{draft.skills.length} selected</p></div>
+                  <SkillPicker compact selectedSkills={draft.skills} onChange={(skills) => setDraft((current) => ({ ...current, skills }))} />
+                </div>
+                <EditTextArea value={draft.description} onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))} placeholder="Job description" className="md:col-span-2" />
+                <EditTextArea value={draft.requirements} onChange={(event) => setDraft((current) => ({ ...current, requirements: event.target.value }))} placeholder="Requirements" className="md:col-span-2" />
               </div>
-              <Input value={draft.deadline} onChange={(event) => setDraft((current) => ({ ...current, deadline: event.target.value }))} placeholder="Application deadline" type="date" />
             </div>
-            <div className="mt-6 flex justify-end gap-3">
+            <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-border/70 bg-surface/95 px-6 py-4 backdrop-blur dark:border-white/10 dark:bg-slate-950/95">
+              {editMessage ? <p className="text-sm font-semibold text-danger">{editMessage}</p> : <span />}
+              <div className="flex gap-3">
               <Button type="button" variant="secondary" onClick={() => setEditing(false)}>Cancel</Button>
-              <Button type="button" onClick={saveEdit}>Save Changes</Button>
+              <Button type="button" onClick={saveEdit} disabled={editSaving}>{editSaving ? "Saving..." : "Save Changes"}</Button>
+              </div>
             </div>
           </Card>
         </div>
