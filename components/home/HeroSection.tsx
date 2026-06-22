@@ -13,7 +13,7 @@ export default function HeroSection() {
       <GradientOrbBackground />
       <Container className="grid items-center gap-12 lg:grid-cols-[0.94fr_1.06fr]">
         <div>
-          <Badge variant="primary" className="uppercase tracking-[0.16em]">AI-Powered Recruitment Platform for Bangladesh</Badge>
+          <Badge variant="primary" className="uppercase tracking-[0.16em]">AI Powered Recruitment Platform</Badge>
           <h1 className="mt-6 max-w-4xl text-5xl font-black leading-[0.98] tracking-[-0.07em] text-slate-950 dark:text-white sm:text-6xl lg:text-7xl">
             Every hiring tool you need in one <span className="bg-gradient-to-r from-blue-600 to-red-600 bg-clip-text text-transparent">command center.</span>
           </h1>

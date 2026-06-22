@@ -24,7 +24,7 @@ export default function Footer() {
         <div className="grid gap-8 lg:grid-cols-[1.2fr_2fr]">
           <div>
             <p className="text-xl font-black text-slate-950 dark:text-white">MX Venture Lab</p>
-            <p className="mt-3 max-w-sm text-sm leading-6 text-slate-600 dark:text-slate-300">AI-powered recruitment, managed hiring, and business support for growing teams in Bangladesh.</p>
+            <p className="mt-3 max-w-sm text-sm leading-6 text-slate-600 dark:text-slate-300">AI-powered recruitment, managed hiring, and business support for growing teams.</p>
             <p className="mt-5 text-xs font-bold uppercase tracking-[0.18em] text-slate-400">INNOVATING TALENT. EMPOWERING GROWTH.</p>
           </div>
           <div className="grid gap-6 sm:grid-cols-3">
