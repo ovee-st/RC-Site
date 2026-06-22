@@ -8,66 +8,70 @@ import { LinkButton } from "@/components/ui/Button";
 
 export const metadata: Metadata = {
   title: "Services | MX Venture Lab",
-  description: "Explore MX Venture Lab software support, infrastructure solution, mobile app, and web development services."
+  description: "Explore MX Venture Lab managed hiring, recruitment, workforce, employer support, and business operations services."
 };
 
 const services = [
   {
-    title: "Software Support",
+    title: "Managed Hiring",
     badge: "Core Service",
-    description: "Ongoing application support, issue resolution, maintenance planning, and technical guidance to keep your software stable and efficient.",
+    preview: "End-to-end recruitment support",
+    description: "Let MXVL handle candidate sourcing, screening, coordination, and shortlisting so your team can focus on selecting the right people faster.",
     icon: Code2
   },
   {
-    title: "Infrastructure Solution",
-    description: "Network setup, systems planning, office IT environments, and infrastructure upgrades designed for stable day-to-day operations.",
+    title: "White Collar Recruitment",
+    preview: "Professional talent acquisition",
+    description: "Find qualified professionals across administration, finance, HR, sales, marketing, operations, customer support, and leadership positions.",
     icon: ServerCog
   },
   {
-    title: "Mobile App",
-    description: "Android and iOS app development for startups and businesses that need user-friendly mobile products connected to real operations.",
+    title: "Blue Collar Recruitment",
+    preview: "Reliable workforce sourcing",
+    description: "Source dependable frontline workers for field operations, logistics, retail, manufacturing, support services, and operational roles.",
     icon: Smartphone
   },
   {
-    title: "Web Development",
-    description: "Corporate websites, custom portals, and web platforms built with clean UI, responsive layouts, and business-focused functionality.",
+    title: "Business Support Services",
+    preview: "Operational and administrative support",
+    description: "Extend your team with operational support services including administration, coordination, documentation, reporting, and workforce management.",
     icon: Globe2
   }
 ];
 
 const categoryGroups = [
   {
-    title: "Support & Stability",
-    description: "Keep daily systems running with structured maintenance, issue handling, and technical guidance.",
-    items: ["Software Support", "Issue Resolution", "Maintenance Planning"],
+    title: "Talent Acquisition",
+    description: "Build a stronger hiring pipeline through sourcing, screening, candidate engagement, and recruitment process optimization.",
+    items: ["Candidate Sourcing", "CV Screening", "Interview Coordination"],
     icon: Headphones
   },
   {
-    title: "Infrastructure Delivery",
-    description: "Build dependable IT environments for teams, offices, and operational workflows.",
-    items: ["Network Setup", "Systems Planning", "Office IT Upgrades"],
+    title: "Workforce Management",
+    description: "Support growing operations through workforce planning, staffing coordination, and recruitment strategy execution.",
+    items: ["Recruitment Planning", "Workforce Scaling", "Hiring Support"],
     icon: MonitorCog
   },
   {
-    title: "Product Development",
-    description: "Launch responsive web and mobile products with clean interfaces and practical business functionality.",
-    items: ["Mobile App", "Web Development", "Custom Portals"],
+    title: "Employer Solutions",
+    description: "Customized recruitment and business support packages designed around your growth objectives.",
+    items: ["Managed Hiring", "RPO Services", "Business Support"],
     icon: Layers3
   }
 ];
 
 const processSteps = [
-  { title: "Submit requirement", description: "Share the system, product, or support need your team wants to solve.", icon: Workflow },
-  { title: "AI-assisted screening", description: "We structure the request, clarify scope, and identify the right delivery path.", icon: Sparkles },
-  { title: "Solution shortlisting", description: "You get a focused execution plan, timeline, and service recommendation.", icon: CheckCircle2 },
-  { title: "Delivery & onboarding", description: "We help implement, support, and hand over the workflow cleanly.", icon: Rocket }
+  { title: "Share Your Requirement", description: "Tell us about the role, workforce need, or business support requirement.", icon: Workflow },
+  { title: "Candidate Sourcing & Screening", description: "Our team identifies, evaluates, and shortlists suitable candidates.", icon: Sparkles },
+  { title: "Interview & Selection", description: "You review qualified candidates and make final hiring decisions.", icon: CheckCircle2 },
+  { title: "Placement & Support", description: "We assist with onboarding coordination and ongoing support.", icon: Rocket }
 ];
 
 const metrics = [
-  { title: "Faster delivery", description: "Move from request to execution plan without long discovery cycles.", icon: Gauge },
-  { title: "AI matching", description: "Match service needs with the right technical workflow and support model.", icon: Sparkles },
-  { title: "Verified execution", description: "Practical delivery focused on stable systems and real business use cases.", icon: ShieldCheck },
-  { title: "Ongoing support", description: "Support beyond launch, including maintenance planning and improvements.", icon: Headphones }
+  { title: "Faster Hiring", description: "Reduce hiring delays and fill positions faster through structured recruitment processes.", icon: Gauge },
+  { title: "Better Candidate Matching", description: "AI-assisted screening and experienced recruiters help identify the most suitable candidates.", icon: Sparkles },
+  { title: "Verified Talent", description: "Access pre-screened professionals and workforce candidates matched to your requirements.", icon: ShieldCheck },
+  { title: "Ongoing Partnership", description: "Receive continuous support throughout hiring, onboarding, and workforce expansion.", icon: Headphones }
 ];
 
 export default function ServicesPage() {
@@ -80,14 +84,14 @@ export default function ServicesPage() {
             <div>
               <Badge variant="primary" className="type-label text-primary">Our Services</Badge>
               <h1 className="mt-5 max-w-4xl text-5xl font-black leading-[1.02] tracking-[-0.055em] text-text-main dark:text-white sm:text-6xl">
-                Reliable IT Services For Modern Business Growth
+                Reliable Recruitment &amp; Business Support Services for Growing Teams
               </h1>
               <p className="mt-6 max-w-2xl text-lg font-medium leading-8 text-text-muted dark:text-slate-300">
-                A simplified service page focused on practical technology delivery, support, and product development for businesses that need dependable execution.
+                From talent acquisition and managed hiring to workforce support and business operations, MX Venture Lab helps organizations build stronger teams and scale with confidence.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <LinkButton href="mailto:info@mxventurelab.com" className="rounded-2xl px-7 py-4 text-base font-black">
-                  Contact Us
+                <LinkButton href="#primary-services" className="rounded-2xl px-7 py-4 text-base font-black">
+                  Explore Services
                   <ArrowRight className="h-4 w-4" />
                 </LinkButton>
               </div>
@@ -105,7 +109,7 @@ export default function ServicesPage() {
                 </div>
               </div>
               <div className="relative mt-5 grid gap-3">
-                {services.map((service, index) => {
+                {services.map((service) => {
                   const Icon = service.icon;
                   return (
                     <div key={service.title} className="flex items-center gap-3 rounded-2xl border border-border bg-bg/80 p-4 dark:border-white/10 dark:bg-white/5">
@@ -114,9 +118,9 @@ export default function ServicesPage() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-black text-text-main dark:text-white">{service.title}</p>
-                        <p className="text-xs font-semibold text-text-muted">{index === 0 ? "Ongoing stability" : index === 1 ? "Operational infrastructure" : index === 2 ? "Mobile product delivery" : "Responsive web systems"}</p>
+                        <p className="text-xs font-semibold text-text-muted">{service.preview}</p>
                       </div>
-                      <span className="rounded-full bg-success/10 px-3 py-1 text-xs font-black text-success">Ready</span>
+                      <span className="rounded-full bg-success/10 px-3 py-1 text-xs font-black text-success">Available</span>
                     </div>
                   );
                 })}
@@ -126,12 +130,12 @@ export default function ServicesPage() {
         </Container>
       </Section>
 
-      <Section className="py-16">
+      <Section id="primary-services" className="scroll-mt-24 py-16">
         <Container>
           <div className="max-w-2xl">
             <Badge variant="primary" className="type-label text-primary">Primary Services Offered</Badge>
-            <h2 className="type-h1 mt-4">From support to full-scale product delivery</h2>
-            <p className="type-body mt-4 text-base">From day-to-day software support to full-scale product delivery, MX Venture Lab helps teams build and run dependable digital systems.</p>
+            <h2 className="type-h1 mt-4">From hiring challenges to workforce solutions</h2>
+            <p className="type-body mt-4 text-base">Whether you&apos;re hiring your next executive, scaling frontline operations, or outsourcing recruitment activities, MX Venture Lab delivers practical workforce solutions tailored to your business needs.</p>
           </div>
           <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             {services.map((service) => {
@@ -181,7 +185,7 @@ export default function ServicesPage() {
         <Container>
           <div className="text-center">
             <Badge variant="primary" className="type-label text-primary">How It Works</Badge>
-            <h2 className="type-h1 mt-4">A clear path from requirement to delivery</h2>
+            <h2 className="type-h1 mt-4">A simple path from hiring need to successful placement</h2>
           </div>
           <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {processSteps.map((step, index) => {
