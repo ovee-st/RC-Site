@@ -2001,8 +2001,8 @@ function EmployersSection({
                   <h3 className="truncate text-xl font-black text-text-main dark:text-white">{employer.company_name || getDisplayName(employer)}</h3>
                   {employer.verified ? <VerifiedBadge /> : null}
                 </div>
-                <p className="text-sm font-semibold text-text-muted">{employer.industry || "Industry not set"} ? {employer.location || "Location not set"}</p>
-                <p className="mt-1 text-xs font-bold text-text-muted">{getEmail(employer)} ? {employer.phone || "No phone"}</p>
+                <p className="text-sm font-semibold text-text-muted">{employer.industry || "Industry not set"} | {employer.location || "Location not set"}</p>
+                <p className="mt-1 text-xs font-bold text-text-muted">{getEmail(employer)} | {employer.phone || "No phone"}</p>
               </div>
               <StatusBadge value={employer.verified ? "verified" : "pending"} />
             </div>
@@ -2124,8 +2124,8 @@ function JobsSection({ rows, onUpdate, readOnly }: { rows: AnyRecord[]; onUpdate
                   <h3 className="truncate text-xl font-black text-text-main dark:text-white">{title}</h3>
                   <StatusBadge value={job.status || "active"} />
                 </div>
-                <p className="mt-1 text-sm font-semibold text-text-muted">{job.company_name || job.company || "Company not set"} ? {job.job_location || job.location || "Location not set"}</p>
-                <p className="mt-2 text-xs font-bold text-text-muted">{job.category || "No category"} ? {job.job_level || job.experience_level || "Any level"} ? {job.job_type || "Any type"}</p>
+                <p className="mt-1 text-sm font-semibold text-text-muted">{job.company_name || job.company || "Company not set"} | {job.job_location || job.location || "Location not set"}</p>
+                <p className="mt-2 text-xs font-bold text-text-muted">{job.category || "No category"} | {job.job_level || job.experience_level || "Any level"} | {job.job_type || "Any type"}</p>
               </div>
               <Button variant="secondary" className="gap-2" onClick={() => startEdit(job)}><Edit3 className="h-4 w-4" />Edit job</Button>
             </div>
