@@ -2,7 +2,7 @@
 
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { BrainCircuit, Camera, FileText, Pencil, Plus, Save, Sparkles, Trash2, UserRound, X } from "lucide-react";
+import { BrainCircuit, BriefcaseBusiness, Camera, FileText, Pencil, Plus, Save, Sparkles, Trash2, UserRound, X } from "lucide-react";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import EmptyState from "@/components/ui/EmptyState";
@@ -70,34 +70,8 @@ type CandidateProfileState = {
 
 const PROFILE_KEY = "mx_candidate_profile";
 
-const applications = [
-  {
-    id: "app-1",
-    title: "Senior Executive - Facility Management (Administration & Accounts)",
-    company: "MX Ventures Lab",
-    category: "HR & Admin",
-    status: "Shortlisted",
-    appliedDate: "4/27/2026"
-  },
-  {
-    id: "app-2",
-    title: "Admin & Operations Manager",
-    company: "MX Ventures Lab",
-    category: "HR & Admin",
-    status: "Shortlisted",
-    appliedDate: "4/27/2026"
-  },
-  {
-    id: "app-3",
-    title: "Customer Support Executive",
-    company: "MX Ventures Lab",
-    category: "Customer Service & Call Center",
-    status: "Applied",
-    appliedDate: "4/26/2026"
-  }
-];
-
 const navItems: Array<{ id: CandidateTab; label: string; icon: typeof UserRound }> = [
+  { id: "applied", label: "Applications", icon: BriefcaseBusiness },
   { id: "profile", label: "Profile", icon: UserRound },
   { id: "resume", label: "Resume Builder", icon: FileText },
   { id: "interview-prep", label: "Interview Prep", icon: BrainCircuit }
@@ -962,7 +936,8 @@ export default function CandidateDashboard() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
-  const initialTab = (searchParams.get("tab") as CandidateTab | null) || (searchParams.get("view") === "profile" ? "profile" : "home");
+  const requestedView = searchParams.get("view");
+  const initialTab = (searchParams.get("tab") as CandidateTab | null) || (requestedView === "profile" ? "profile" : requestedView === "applied" ? "applied" : "home");
   const [activeTab, setActiveTab] = useState<CandidateTab>(navItems.some((item) => item.id === initialTab) ? initialTab : "home");
   const [profile, setProfile] = useState<CandidateProfileState>(() => loadSavedProfile(user));
   const [editing, setEditing] = useState<EditableSection>(null);
@@ -1484,29 +1459,7 @@ export default function CandidateDashboard() {
             ) : null}
 
             {activeTab === "applied" ? (
-              <Card className="p-5 shadow-soft">
-                <Badge variant="primary" className="type-label text-primary">Applied Jobs</Badge>
-                <h2 className="type-h2 mt-3">Your Applications</h2>
-                <p className="type-body mt-2">Track the roles you have applied for through MX.</p>
-
-                <div className="mt-6 grid gap-4 md:grid-cols-2">
-                  {applications.map((application) => (
-                    <Card key={application.id} className="p-5 shadow-soft">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <h3 className="text-sm font-black text-text-main dark:text-white">{application.title}</h3>
-                          <p className="type-body text-xs">{application.company}</p>
-                        </div>
-                        <Badge variant={application.status === "Shortlisted" ? "primary" : "neutral"}>{application.status}</Badge>
-                      </div>
-                      <div className="mt-4 grid gap-2 text-xs text-text-muted">
-                        <p><strong>Category:</strong> {application.category}</p>
-                        <p><strong>Applied Date:</strong> {application.appliedDate}</p>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              </Card>
+              <ApplicationPipeline applications={dashboardApplications} />
             ) : null}
 
             {activeTab === "interview-prep" ? <JobInterviewPreparation compact /> : null}

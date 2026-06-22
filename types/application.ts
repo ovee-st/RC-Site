@@ -10,6 +10,9 @@ export type CandidateApplication = {
   status: ApplicationStage;
   matchScore: number;
   recruiterNotes?: string;
+  interviewInformation?: string;
+  interviewReadinessScore?: number;
+  offerInformation?: string;
   updatedAt: string;
   createdAt: string;
 };
