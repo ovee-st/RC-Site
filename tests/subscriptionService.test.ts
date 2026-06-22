@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { SubscriptionService } from "@/lib/subscriptionService";
 
-type TableName = "employer_subscriptions" | "subscription_plans" | "employer_usage";
+type TableName = "employer_subscriptions" | "subscription_plans" | "employer_usage" | "employers";
 type Row = Record<string, any>;
 
 class FakeSupabaseQuery {
@@ -153,6 +153,13 @@ function createFakeSupabase(overrides: Partial<Record<TableName, Row[]>> = {}) {
         updated_at: now
       }
     ],
+    employers: [
+      {
+        id: "employer-1",
+        email: "team@example.com",
+        official_email: "team@example.com"
+      }
+    ],
     ...overrides
   };
 
@@ -283,5 +290,38 @@ describe("SubscriptionService feature gates", () => {
     expect(talentPool.unlimited).toBe(true);
     expect(whatsapp.allowed).toBe(true);
     expect(whatsapp.unlimited).toBe(true);
+  });
+
+  it("bypasses every subscription and usage limit for the MXVL employer admin account", async () => {
+    const { client } = createFakeSupabase({
+      employers: [{ id: "employer-admin", email: "employer.admin@mxventurelab.com" }],
+      employer_subscriptions: [],
+      employer_usage: []
+    });
+    const service = new SubscriptionService(client as any);
+
+    const [jobs, candidates, ai, resumes, talentPool, whatsapp, recruiters, remaining, tracking] = await Promise.all([
+      service.canPostJob("employer-admin"),
+      service.canViewCandidate("employer-admin"),
+      service.canUseAiMatching("employer-admin"),
+      service.canSearchResume("employer-admin"),
+      service.canAccessTalentPool("employer-admin"),
+      service.hasFeature("employer-admin", "whatsapp_notifications"),
+      service.canAddRecruiter("employer-admin"),
+      service.getRemainingUsage("employer-admin"),
+      service.consumeAiCredit("employer-admin", 500)
+    ]);
+
+    [jobs, candidates, ai, resumes, talentPool, whatsapp, recruiters].forEach((access) => {
+      expect(access.allowed).toBe(true);
+      expect(access.unlimited).toBe(true);
+      expect(access.remaining).toBeNull();
+    });
+    expect(remaining.jobs.unlimited).toBe(true);
+    expect(remaining.candidateViews.unlimited).toBe(true);
+    expect(remaining.aiCredits.unlimited).toBe(true);
+    expect(remaining.recruiters.unlimited).toBe(true);
+    expect(tracking.recorded).toBe(true);
+    expect(tracking.access.unlimited).toBe(true);
   });
 });

@@ -161,12 +161,16 @@ const ACTIVE_SUBSCRIPTION_STATUSES: EmployerSubscriptionStatus[] = ["trialing", 
 const TALENT_POOL_PLAN_SLUGS = new Set(["elite", "enterprise"]);
 const RESUME_SEARCH_PLAN_SLUGS = new Set(["one_time", "growth", "elite", "enterprise"]);
 const WHATSAPP_NOTIFICATION_PLAN_SLUGS = new Set(["elite", "enterprise"]);
+const UNLIMITED_EMPLOYER_EMAILS = new Set(["employer.admin@mxventurelab.com"]);
 const ONE_DAY_IN_MS = 24 * 60 * 60 * 1000;
 
 export class SubscriptionService {
+  private readonly unlimitedEmployerCache = new Map<string, boolean>();
+
   constructor(private readonly supabase: SupabaseClient = createServerSupabaseClient()) {}
 
   async getCurrentPlan(employerId: string): Promise<CurrentPlanDto> {
+    const unlimitedEmployer = await this.isUnlimitedEmployer(employerId);
     const subscription = await this.getCurrentSubscriptionRow(employerId);
 
     if (!subscription) {
@@ -192,9 +196,11 @@ export class SubscriptionService {
       };
     }
 
+    const planDto = toPlanDto(plan);
+
     return {
       hasSubscription: true,
-      plan: toPlanDto(plan),
+      plan: unlimitedEmployer ? withUnlimitedPlanLimits(planDto) : planDto,
       subscription: toSubscriptionDto(subscription),
       usage: toUsageDto(usage ?? buildEmptyUsage(subscription))
     };
@@ -226,14 +232,15 @@ export class SubscriptionService {
 
   async getRemainingUsage(employerId: string): Promise<RemainingUsageDto> {
     const current = await this.getCurrentPlan(employerId);
+    const unlimitedEmployer = await this.isUnlimitedEmployer(employerId);
 
     return {
       employerId,
       planSlug: current.plan?.slug ?? null,
-      jobs: buildRemainingUsage(current.plan?.jobLimit ?? 0, current.usage?.jobsUsed ?? 0),
-      candidateViews: buildRemainingUsage(current.plan?.candidateViewLimit ?? 0, current.usage?.candidateViewsUsed ?? 0),
-      aiCredits: buildRemainingUsage(current.plan?.aiCreditLimit ?? 0, current.usage?.aiCreditsUsed ?? 0),
-      recruiters: buildRemainingUsage(current.plan?.recruiterLimit ?? 0, current.usage?.recruitersUsed ?? 0)
+      jobs: buildRemainingUsage(unlimitedEmployer ? null : current.plan?.jobLimit ?? 0, current.usage?.jobsUsed ?? 0),
+      candidateViews: buildRemainingUsage(unlimitedEmployer ? null : current.plan?.candidateViewLimit ?? 0, current.usage?.candidateViewsUsed ?? 0),
+      aiCredits: buildRemainingUsage(unlimitedEmployer ? null : current.plan?.aiCreditLimit ?? 0, current.usage?.aiCreditsUsed ?? 0),
+      recruiters: buildRemainingUsage(unlimitedEmployer ? null : current.plan?.recruiterLimit ?? 0, current.usage?.recruitersUsed ?? 0)
     };
   }
 
@@ -288,6 +295,10 @@ export class SubscriptionService {
     planLimitKey: "jobLimit" | "candidateViewLimit" | "aiCreditLimit" | "recruiterLimit",
     usageKey: "jobsUsed" | "candidateViewsUsed" | "aiCreditsUsed" | "recruitersUsed"
   ): Promise<FeatureAccessDto> {
+    if (await this.isUnlimitedEmployer(employerId)) {
+      return buildUnlimitedFeatureAccess(feature);
+    }
+
     const current = await this.getCurrentPlan(employerId);
     return buildAccessDto(current, feature, current.plan?.[planLimitKey] ?? 0, current.usage?.[usageKey] ?? 0);
   }
@@ -298,6 +309,10 @@ export class SubscriptionService {
     allowedPlanSlugs: Set<string>,
     unavailableReason: string
   ): Promise<FeatureAccessDto> {
+    if (await this.isUnlimitedEmployer(employerId)) {
+      return buildUnlimitedFeatureAccess(feature);
+    }
+
     const current = await this.getCurrentPlan(employerId);
     const hasUsableSubscription = Boolean(
       current.hasSubscription &&
@@ -327,6 +342,16 @@ export class SubscriptionService {
     amount: number
   ): Promise<UsageTrackingDto> {
     assertPositiveUsageAmount(amount);
+
+    if (await this.isUnlimitedEmployer(employerId)) {
+      return {
+        recorded: true,
+        metric,
+        amount,
+        access: buildUnlimitedFeatureAccess(feature),
+        usage: null
+      };
+    }
 
     const subscription = await this.getCurrentSubscriptionRow(employerId);
     if (!subscription) {
@@ -420,6 +445,33 @@ export class SubscriptionService {
     return data as EmployerUsageRow;
   }
 
+  private async isUnlimitedEmployer(employerId: string): Promise<boolean> {
+    const cached = this.unlimitedEmployerCache.get(employerId);
+    if (cached !== undefined) return cached;
+
+    let result = await this.supabase
+      .from("employers")
+      .select("email, official_email")
+      .eq("id", employerId)
+      .maybeSingle();
+
+    if (result.error && /column|schema cache|does not exist/i.test(result.error.message || "")) {
+      result = await this.supabase
+        .from("employers")
+        .select("*")
+        .eq("id", employerId)
+        .maybeSingle();
+    }
+
+    if (result.error) throw new Error(`Could not resolve employer access: ${result.error.message}`);
+    const emails = [result.data?.email, result.data?.official_email]
+      .filter(Boolean)
+      .map((email) => String(email).trim().toLowerCase());
+    const unlimited = emails.some((email) => UNLIMITED_EMPLOYER_EMAILS.has(email));
+    this.unlimitedEmployerCache.set(employerId, unlimited);
+    return unlimited;
+  }
+
   private async getCurrentSubscriptionRow(employerId: string): Promise<EmployerSubscriptionRow | null> {
     const { data, error } = await this.supabase
       .from("employer_subscriptions")
@@ -483,6 +535,29 @@ function buildAccessDto(current: CurrentPlanDto, feature: SubscriptionFeatureKey
     remaining: usage.remaining,
     unlimited: usage.unlimited,
     reason: getAccessReason(hasUsableSubscription, usage)
+  };
+}
+
+function buildUnlimitedFeatureAccess(feature: SubscriptionFeatureKey): FeatureAccessDto {
+  return {
+    feature,
+    allowed: true,
+    planSlug: null,
+    limit: null,
+    used: 0,
+    remaining: null,
+    unlimited: true,
+    reason: null
+  };
+}
+
+function withUnlimitedPlanLimits(plan: SubscriptionPlanDto): SubscriptionPlanDto {
+  return {
+    ...plan,
+    jobLimit: null,
+    candidateViewLimit: null,
+    aiCreditLimit: null,
+    recruiterLimit: null
   };
 }
 
