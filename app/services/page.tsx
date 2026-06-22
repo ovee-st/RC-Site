@@ -1,10 +1,9 @@
 ﻿import type { Metadata } from "next";
-import { ArrowRight, CheckCircle2, Code2, Gauge, Globe2, Headphones, Layers3, MonitorCog, Rocket, ServerCog, ShieldCheck, Smartphone, Sparkles, Workflow } from "lucide-react";
+import { CheckCircle2, Code2, Gauge, Globe2, Headphones, Layers3, MonitorCog, Rocket, ServerCog, ShieldCheck, Smartphone, Sparkles, Workflow } from "lucide-react";
 import Container from "@/components/layout/Container";
 import Section from "@/components/layout/Section";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
-import { LinkButton } from "@/components/ui/Button";
 
 export const metadata: Metadata = {
   title: "Services | MX Venture Lab",
@@ -89,12 +88,6 @@ export default function ServicesPage() {
               <p className="mt-6 max-w-2xl text-lg font-medium leading-8 text-text-muted dark:text-slate-300">
                 From talent acquisition and managed hiring to workforce support and business operations, MX Venture Lab helps organizations build stronger teams and scale with confidence.
               </p>
-              <div className="mt-8 flex flex-wrap gap-3">
-                <LinkButton href="#primary-services" className="rounded-2xl px-7 py-4 text-base font-black">
-                  Explore Services
-                  <ArrowRight className="h-4 w-4" />
-                </LinkButton>
-              </div>
             </div>
 
             <Card className="relative overflow-hidden rounded-[2rem] border-primary/10 bg-white/90 p-6 shadow-[0_30px_100px_rgba(37,99,235,0.15)] dark:bg-slate-900/90">
