@@ -218,22 +218,6 @@ export default function ServicesPage() {
         </Container>
       </Section>
 
-      <Section className="pb-24 pt-10">
-        <Container>
-          <div className="rounded-[2rem] bg-gradient-to-r from-blue-600 to-blue-500 px-6 py-14 text-center text-white shadow-primary sm:px-10">
-            <h2 className="text-3xl font-black tracking-tight sm:text-4xl">Need hiring support?</h2>
-            <p className="mx-auto mt-4 max-w-2xl text-base font-semibold text-white/82">Talk to MX Venture Lab about dependable software support, infrastructure, mobile app, and web development execution.</p>
-            <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <LinkButton href="/login" variant="secondary" className="rounded-2xl border-white/30 bg-white px-7 py-4 text-base font-black text-blue-700 hover:text-blue-700">
-                Contact Us
-              </LinkButton>
-              <LinkButton href="/login" className="rounded-2xl bg-white/15 px-7 py-4 text-base font-black text-white ring-1 ring-white/25 hover:bg-white/20">
-                Get Started
-              </LinkButton>
-            </div>
-          </div>
-        </Container>
-      </Section>
     </main>
   );
 }
