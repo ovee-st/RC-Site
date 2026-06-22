@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { scoreInterviewAnswer } from "@/lib/interviewPreparation";
-import { interviewSetupError, mapPreparationSession, requireCandidate } from "@/lib/interviewPreparationServer";
+import { FREE_INTERVIEW_SUBMISSION_LIMIT, interviewSetupError, mapPreparationSession, requireCandidate } from "@/lib/interviewPreparationServer";
 import type { InterviewQuestion } from "@/types/interviewPreparation";
 
 export const runtime = "nodejs";
@@ -18,7 +18,7 @@ async function getAiFeedback(question: InterviewQuestion, answer: string) {
         temperature: 0.3,
         max_tokens: 500,
         messages: [
-          { role: "system", content: "Score a mock interview answer from 0-100. Return JSON {score,feedback,strengths:string[],improvements:string[]}. Be specific, constructive, and concise." },
+          { role: "system", content: "Evaluate an interview answer. Return JSON {score,technicalScore,behavioralScore,communicationScore,feedback,strengths:string[],weaknesses:string[],suggestedImprovement}. Scores are 0-100. Be specific, constructive, and concise." },
           { role: "user", content: JSON.stringify({ question: question.question, type: question.type, focus: question.focus, answer }) }
         ]
       })
@@ -28,9 +28,13 @@ async function getAiFeedback(question: InterviewQuestion, answer: string) {
     const result = JSON.parse(payload.choices?.[0]?.message?.content || "{}");
     return {
       score: Math.max(0, Math.min(100, Number(result.score) || fallback.score)),
+      technicalScore: Math.max(0, Math.min(100, Number(result.technicalScore) || fallback.technicalScore)),
+      behavioralScore: Math.max(0, Math.min(100, Number(result.behavioralScore) || fallback.behavioralScore)),
+      communicationScore: Math.max(0, Math.min(100, Number(result.communicationScore) || fallback.communicationScore)),
       feedback: String(result.feedback || fallback.feedback),
       strengths: Array.isArray(result.strengths) ? result.strengths.map(String).slice(0, 4) : fallback.strengths,
-      improvements: Array.isArray(result.improvements) ? result.improvements.map(String).slice(0, 4) : fallback.improvements
+      improvements: Array.isArray(result.weaknesses) ? result.weaknesses.map(String).slice(0, 4) : fallback.improvements,
+      suggestedImprovement: String(result.suggestedImprovement || fallback.suggestedImprovement)
     };
   } catch {
     return fallback;
@@ -44,38 +48,67 @@ export async function POST(request: Request, context: { params: Promise<{ sessio
     const body = await request.json().catch(() => ({}));
     const questionId = String(body.question_id || body.questionId || "").trim();
     const answer = String(body.answer || "").trim();
-    if (!questionId || answer.length < 20) {
-      return NextResponse.json({ error: "Choose a question and provide an answer of at least 20 characters." }, { status: 400 });
+    const action = body.action === "draft" ? "draft" : "submit";
+    const minimumLength = action === "draft" ? 1 : 20;
+    if (!questionId || answer.length < minimumLength) {
+      return NextResponse.json({ error: action === "draft" ? "Enter an answer before saving the draft." : "Provide an answer of at least 20 characters before submitting." }, { status: 400 });
     }
 
     const { data: session, error: sessionError } = await client.from("interview_preparation_sessions").select("*").eq("id", sessionId).eq("candidate_user_id", user.id).maybeSingle();
     if (sessionError) throw sessionError;
     if (!session) return NextResponse.json({ error: "Interview preparation session was not found." }, { status: 404 });
-    if (!session.is_pro || session.mode !== "mock") {
-      return NextResponse.json({ error: "AI answer scoring is available with Candidate Pro mock interviews." }, { status: 403 });
-    }
-
     const questions = Array.isArray(session.questions) ? session.questions as InterviewQuestion[] : [];
     const question = questions.find((item) => item.id === questionId);
     if (!question) return NextResponse.json({ error: "Interview question was not found." }, { status: 404 });
-    const result = await getAiFeedback(question, answer);
     const now = new Date().toISOString();
+
+    if (action === "draft") {
+      const { error: draftError } = await client.from("interview_preparation_responses").upsert({
+        session_id: sessionId,
+        question_id: questionId,
+        question: question.question,
+        question_type: question.type,
+        answer,
+        submission_status: "draft",
+        updated_at: now
+      }, { onConflict: "session_id,question_id" });
+      if (draftError) throw draftError;
+      return NextResponse.json({ preparation: await mapPreparationSession(client, session), saved: "draft" });
+    }
+
+    const { data: existingResponses, error: existingError } = await client.from("interview_preparation_responses").select("question_id, submission_status").eq("session_id", sessionId);
+    if (existingError) throw existingError;
+    const submittedQuestionIds = new Set((existingResponses || []).filter((row) => row.submission_status === "submitted").map((row) => String(row.question_id)));
+    if (!session.is_pro && !submittedQuestionIds.has(questionId) && submittedQuestionIds.size >= FREE_INTERVIEW_SUBMISSION_LIMIT) {
+      return NextResponse.json({ error: `Free candidates can submit ${FREE_INTERVIEW_SUBMISSION_LIMIT} answers per interview. Upgrade to Candidate Pro for unlimited submissions and mock interviews.` }, { status: 429 });
+    }
+
+    const result = await getAiFeedback(question, answer);
     const { error: responseError } = await client.from("interview_preparation_responses").upsert({
       session_id: sessionId,
       question_id: questionId,
+      question: question.question,
+      question_type: question.type,
       answer,
+      submission_status: "submitted",
       ai_score: result.score,
+      technical_score: result.technicalScore,
+      behavioral_score: result.behavioralScore,
+      communication_score: result.communicationScore,
       feedback: result.feedback,
+      suggested_improvement: result.suggestedImprovement,
       strengths: result.strengths,
       improvements: result.improvements,
+      submitted_at: now,
       updated_at: now
     }, { onConflict: "session_id,question_id" });
     if (responseError) throw responseError;
 
-    const { data: scoredResponses, error: scoreError } = await client.from("interview_preparation_responses").select("ai_score").eq("session_id", sessionId);
+    const { data: scoredResponses, error: scoreError } = await client.from("interview_preparation_responses").select("ai_score").eq("session_id", sessionId).eq("submission_status", "submitted");
     if (scoreError) throw scoreError;
     const scores = (scoredResponses || []).map((row) => Number(row.ai_score)).filter(Number.isFinite);
-    const readinessScore = scores.length ? Math.round((Number(session.readiness_score || 0) + scores.reduce((sum, score) => sum + score, 0) / scores.length) / 2) : Number(session.readiness_score || 0);
+    const answerAverage = scores.length ? scores.reduce((sum, score) => sum + score, 0) / scores.length : Number(session.readiness_score || 0);
+    const readinessScore = Math.round(Number(session.readiness_score || 0) * 0.35 + answerAverage * 0.65);
     const completed = scores.length >= questions.length;
     const { data: updatedSession, error: updateError } = await client.from("interview_preparation_sessions").update({
       current_question: Math.min(questions.length, scores.length),
@@ -85,7 +118,7 @@ export async function POST(request: Request, context: { params: Promise<{ sessio
       updated_at: now
     }).eq("id", sessionId).select("*").single();
     if (updateError) throw updateError;
-    return NextResponse.json({ preparation: await mapPreparationSession(client, updatedSession) });
+    return NextResponse.json({ preparation: await mapPreparationSession(client, updatedSession), saved: "submitted" });
   } catch (error) {
     const status = Number((error as any)?.status || 500);
     return NextResponse.json({ error: interviewSetupError(error) }, { status });

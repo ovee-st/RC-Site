@@ -37,5 +37,9 @@ describe("job-specific interview preparation", () => {
     const strong = scoreInterviewAnswer("The situation involved a delayed release. I led the recovery plan, coordinated the API work, and reduced defects by 30%. The result was an on-time launch.", question);
     expect(strong.score).toBeGreaterThan(basic.score);
     expect(strong.strengths.join(" ")).toMatch(/result/i);
+    expect(strong.technicalScore).toBeGreaterThan(0);
+    expect(strong.behavioralScore).toBeGreaterThan(0);
+    expect(strong.communicationScore).toBeGreaterThan(0);
+    expect(strong.suggestedImprovement).toBeTruthy();
   });
 });

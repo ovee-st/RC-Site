@@ -13,11 +13,23 @@ export type InterviewAnswerFeedback = {
   id: string;
   questionId: string;
   answer: string;
+  status: "draft" | "submitted";
   score: number | null;
+  technicalScore: number | null;
+  behavioralScore: number | null;
+  communicationScore: number | null;
   feedback: string | null;
+  suggestedImprovement: string | null;
   strengths: string[];
   improvements: string[];
   createdAt: string;
+};
+
+export type InterviewScoreReport = {
+  technicalScore: number;
+  behavioralScore: number;
+  communicationScore: number;
+  overallReadinessScore: number;
 };
 
 export type InterviewPreparationDto = {
@@ -36,6 +48,11 @@ export type InterviewPreparationDto = {
   improvementAreas: string[];
   questions: InterviewQuestion[];
   answers: InterviewAnswerFeedback[];
+  submittedAnswers: number;
+  remainingQuestions: number;
+  completionPercentage: number;
+  freeSubmissionLimit: number | null;
+  report: InterviewScoreReport;
   currentQuestion: number;
   createdAt: string;
   updatedAt: string;

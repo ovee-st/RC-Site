@@ -25,15 +25,32 @@ create table if not exists public.interview_preparation_responses (
   id uuid primary key default gen_random_uuid(),
   session_id uuid not null references public.interview_preparation_sessions(id) on delete cascade,
   question_id text not null,
+  question text not null default '',
+  question_type text check (question_type in ('technical', 'behavioral', 'situational')),
   answer text not null,
+  submission_status text not null default 'draft' check (submission_status in ('draft', 'submitted')),
   ai_score integer check (ai_score between 0 and 100),
+  technical_score integer check (technical_score between 0 and 100),
+  behavioral_score integer check (behavioral_score between 0 and 100),
+  communication_score integer check (communication_score between 0 and 100),
   feedback text,
+  suggested_improvement text,
   strengths text[] not null default '{}',
   improvements text[] not null default '{}',
+  submitted_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (session_id, question_id)
 );
+
+alter table public.interview_preparation_responses add column if not exists question text not null default '';
+alter table public.interview_preparation_responses add column if not exists question_type text;
+alter table public.interview_preparation_responses add column if not exists submission_status text not null default 'draft';
+alter table public.interview_preparation_responses add column if not exists technical_score integer;
+alter table public.interview_preparation_responses add column if not exists behavioral_score integer;
+alter table public.interview_preparation_responses add column if not exists communication_score integer;
+alter table public.interview_preparation_responses add column if not exists suggested_improvement text;
+alter table public.interview_preparation_responses add column if not exists submitted_at timestamptz;
 
 create index if not exists interview_prep_candidate_job_idx
   on public.interview_preparation_sessions(candidate_user_id, job_id, created_at desc);

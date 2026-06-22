@@ -93,5 +93,17 @@ export function scoreInterviewAnswer(answer: string, question: InterviewQuestion
     !actionSignals ? "Clarify your personal actions rather than only describing the team." : "Explain one difficult decision and why you made it.",
     !resultSignals ? "Finish with a measurable result or lesson learned." : `Connect the example more explicitly to ${question.focus}.`
   ];
-  return { score, strengths, improvements, feedback: `Your answer is ${score >= 75 ? "interview-ready" : "a useful draft"}. ${improvements[0]}` };
+  const technicalScore = question.type === "technical" ? score : Math.max(35, score - 8);
+  const behavioralScore = question.type === "behavioral" ? score : Math.max(35, score - 5);
+  const communicationScore = Math.max(25, Math.min(95, score + (structureSignals ? 4 : -4)));
+  return {
+    score,
+    technicalScore,
+    behavioralScore,
+    communicationScore,
+    strengths,
+    improvements,
+    suggestedImprovement: improvements[0],
+    feedback: `Your answer is ${score >= 75 ? "interview-ready" : "a useful draft"}. ${improvements[0]}`
+  };
 }
