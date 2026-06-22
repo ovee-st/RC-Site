@@ -34,8 +34,8 @@ export default function Footer() {
         <div className="grid gap-8 lg:grid-cols-[1.2fr_2fr]">
           <div>
             <p className="text-xl font-black text-slate-950 dark:text-white">MX Venture Lab</p>
-            <p className="mt-3 max-w-sm text-sm leading-6 text-slate-600 dark:text-slate-300">Connecting talent, supporting businesses, and helping organizations grow through smarter recruitment and workforce solutions.</p>
-            <p className="mt-5 text-xs font-bold uppercase tracking-[0.18em] text-slate-400">INNOVATING TALENT. EMPOWERING GROWTH.</p>
+            <p className="mt-3 max-w-sm text-sm leading-6 text-slate-600 dark:text-slate-300">Helping organizations improve operations, strengthen infrastructure, and achieve sustainable growth through technology, facilities, project management, and business support services.</p>
+            <p className="mt-5 text-xs font-bold uppercase tracking-[0.18em] text-slate-400">INNOVATING BUSINESS. EMPOWERING GROWTH.</p>
           </div>
           <div className={`grid gap-6 sm:grid-cols-2 ${role === "candidate" ? "lg:grid-cols-2" : "lg:grid-cols-3"}`}>
             {visibleColumns.map((column) => (
