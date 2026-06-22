@@ -2,7 +2,7 @@
 
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Camera, FileText, Pencil, Plus, Save, Sparkles, Trash2, UserRound, X } from "lucide-react";
+import { BrainCircuit, Camera, FileText, Pencil, Plus, Save, Sparkles, Trash2, UserRound, X } from "lucide-react";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import EmptyState from "@/components/ui/EmptyState";
@@ -26,10 +26,11 @@ import ResumeSection from "@/components/dashboard/ResumeSection";
 import InterviewSection from "@/components/dashboard/InterviewSection";
 import AnalyticsPanel from "@/components/dashboard/AnalyticsPanel";
 import JobRecommendations from "@/components/dashboard/JobRecommendations";
+import JobInterviewPreparation from "@/components/candidate/JobInterviewPreparation";
 import type { CandidateAnalytics, CandidateDocument, CandidateProfile, InterviewEvent } from "@/types/candidate";
 import type { CandidateApplication, JobRecommendation } from "@/types/application";
 
-type CandidateTab = "home" | "profile" | "jobs" | "applied" | "resume";
+type CandidateTab = "home" | "profile" | "jobs" | "applied" | "resume" | "interview-prep";
 type EditableSection = "profile" | "about" | "skills" | "experience" | "education" | "certifications" | "salary" | "availability" | null;
 
 type CandidateProfileState = {
@@ -98,7 +99,8 @@ const applications = [
 
 const navItems: Array<{ id: CandidateTab; label: string; icon: typeof UserRound }> = [
   { id: "profile", label: "Profile", icon: UserRound },
-  { id: "resume", label: "Resume Builder", icon: FileText }
+  { id: "resume", label: "Resume Builder", icon: FileText },
+  { id: "interview-prep", label: "Interview Prep", icon: BrainCircuit }
 ];
 
 const dashboardApplications: CandidateApplication[] = [
@@ -1506,6 +1508,8 @@ export default function CandidateDashboard() {
                 </div>
               </Card>
             ) : null}
+
+            {activeTab === "interview-prep" ? <JobInterviewPreparation compact /> : null}
 
             {activeTab === "resume" ? (
               <Card className="p-5 shadow-soft">

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useJobStore } from "@/store/useJobStore";
-import { Button } from "@/components/ui/Button";
+import { Button, LinkButton } from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import PriorityIndicator from "@/components/ui/PriorityIndicator";
@@ -242,6 +242,12 @@ export default function JobPreview({ mode = "panel" }: { mode?: "panel" | "modal
               <span className="hidden rounded-md border border-white/30 px-1.5 py-0.5 text-[10px] sm:inline">A</span>
             </Button>
           </div>
+          {applied && role === "candidate" ? (
+            <LinkButton href={`/candidate/interview-prep?job=${encodeURIComponent(selectedJob.id)}`} variant="secondary" className="mt-3 w-full gap-2 py-3">
+              <Sparkles className="h-4 w-4" />
+              Prepare for this interview
+            </LinkButton>
+          ) : null}
         </div>
         )}
       </Card>
