@@ -15,14 +15,15 @@ const TABLES = new Set([
   "contact_requests",
   "coupons",
   "transactions",
-  "subscription_payment_requests"
+  "subscription_payment_requests",
+  "employer_subscriptions"
 ]);
 
 const SECTION_TABLES: Record<string, string[]> = {
-  dashboard: ["profiles", "candidates", "employers", "jobs", "applications", "contact_requests", "subscription_payment_requests", "transactions"],
+  dashboard: ["profiles", "candidates", "employers", "jobs", "applications", "contact_requests", "subscription_payment_requests", "transactions", "employer_subscriptions"],
   users: ["profiles"],
   candidates: ["profiles", "candidates", "applications"],
-  employers: ["profiles", "employers", "jobs"],
+  employers: ["profiles", "employers", "jobs", "employer_subscriptions"],
   jobs: ["jobs", "employers"],
   employees: ["profiles", "employees"],
   "contact-requests": ["contact_requests"],
@@ -146,6 +147,7 @@ function getRequestedTables(section: string, requestedTableText = "") {
 }
 
 async function loadRecords(token: string, refreshToken: string, section: string, requestedTableText = "") {
+  const startedAt = performance.now();
   const tables = getRequestedTables(section, requestedTableText);
 
   if (!tables.length) {
@@ -157,10 +159,22 @@ async function loadRecords(token: string, refreshToken: string, section: string,
     tables.map(async (table) => [table, await safeSelect(adminClient, table)] as const)
   );
 
-  return NextResponse.json({ ok: true, records: Object.fromEntries(entries) });
+  const response = NextResponse.json({ ok: true, records: Object.fromEntries(entries) });
+  response.headers.set("Server-Timing", `admin-db;dur=${(performance.now() - startedAt).toFixed(1)}`);
+  return response;
 }
 
 async function safeSelect(adminClient: ReturnType<typeof createServerSupabaseClient>, table: string) {
+  if (table === "employer_subscriptions") {
+    const { data, error } = await adminClient
+      .from(table)
+      .select("*, employers(id, user_id, company_name, email, official_email), subscription_plans(*)")
+      .order("updated_at", { ascending: false })
+      .limit(1000);
+    if (error) throw error;
+    return data || [];
+  }
+
   const { data, error } = await adminClient
     .from(table)
     .select("*")

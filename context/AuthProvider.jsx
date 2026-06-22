@@ -13,6 +13,10 @@ export const AuthContext = createContext({
   role: null
 });
 
+const PROFILE_CACHE_TTL_MS = 60_000;
+const profileCache = new Map();
+const profileRequests = new Map();
+
 function normalizeUser(authUser, profile, fallbackUser) {
   if (!authUser) return null;
 
@@ -58,6 +62,23 @@ function normalizeUser(authUser, profile, fallbackUser) {
 
 async function loadProfile(authUser) {
   if (!authUser || !isSupabaseConfigured) return null;
+  const cached = profileCache.get(authUser.id);
+  if (cached && cached.expiresAt > Date.now()) return cached.profile;
+  const pending = profileRequests.get(authUser.id);
+  if (pending) return pending;
+
+  const request = loadProfileFromDatabase(authUser);
+  profileRequests.set(authUser.id, request);
+  try {
+    const profile = await request;
+    profileCache.set(authUser.id, { profile, expiresAt: Date.now() + PROFILE_CACHE_TTL_MS });
+    return profile;
+  } finally {
+    profileRequests.delete(authUser.id);
+  }
+}
+
+async function loadProfileFromDatabase(authUser) {
 
   const { data } = await supabase
     .from("profiles")
@@ -65,24 +86,7 @@ async function loadProfile(authUser) {
     .eq("id", authUser.id)
     .maybeSingle();
 
-  let profile = data || null;
-
-  const [candidateResult, employerResult] = await Promise.allSettled([
-    supabase.from("candidates").select("*").eq("user_id", authUser.id).maybeSingle(),
-    supabase.from("employers").select("*").eq("user_id", authUser.id).maybeSingle()
-  ]);
-  const candidate = candidateResult.status === "fulfilled" ? candidateResult.value.data : null;
-  const employer = employerResult.status === "fulfilled" ? employerResult.value.data : null;
-
-  if (candidate || employer) {
-    profile = {
-      ...(profile || {}),
-      candidate: candidate || undefined,
-      employer: employer || undefined,
-      avatar_url: getBestAvatarUrl(profile) || getBestAvatarUrl(candidate) || getBestAvatarUrl(employer) || profile?.avatar_url || null,
-      photo_url: getBestAvatarUrl(profile) || getBestAvatarUrl(candidate) || getBestAvatarUrl(employer) || profile?.photo_url || null
-    };
-  }
+  const profile = data || null;
 
   if (profile?.role) return profile;
 
@@ -243,14 +247,15 @@ export function AuthProvider({ children }) {
         setLoading(false);
       }
 
-      const { data } = await supabase.auth.getUser();
-      await syncAuth(data?.user || null);
+      const { data } = await supabase.auth.getSession();
+      await syncAuth(data?.session?.user || null);
     }
 
     hydrate();
 
     const handleFallbackAuthChange = () => {
       if (isSupabaseConfigured) {
+        profileCache.clear();
         supabase.auth.getUser().then(({ data }) => {
           syncAuth(data?.user || null);
         });

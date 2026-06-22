@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Bell,
@@ -27,20 +28,6 @@ import {
   Users,
   XCircle
 } from "lucide-react";
-import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis
-} from "recharts";
 import { useAuth } from "@/hooks/useAuth";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import Card from "@/components/ui/Card";
@@ -121,6 +108,9 @@ const emptyState: AdminState = {
 
 const ADMIN_NOTIFICATION_STORAGE_KEY = "MXVL-admin-cleared-notifications";
 const MAX_SAFE_AUTH_TOKEN_LENGTH = 6000;
+const ADMIN_RECORD_CACHE_TTL_MS = 30_000;
+const adminRecordCache = new Map<AdminSection, { expiresAt: number; records: AnyRecord }>();
+const adminRecordRequests = new Map<AdminSection, Promise<AnyRecord | null>>();
 const ADMIN_SELECT_COLUMNS: Record<string, string> = {
   profiles: "*",
   candidates: "*",
@@ -323,6 +313,23 @@ async function safeSelect(table: string) {
 
 async function fetchAdminRecords(section: AdminSection) {
   if (!isSupabaseConfigured) return null;
+  const cached = adminRecordCache.get(section);
+  if (cached && cached.expiresAt > Date.now()) return cached.records;
+  const pending = adminRecordRequests.get(section);
+  if (pending) return pending;
+
+  const request = loadAdminRecords(section);
+  adminRecordRequests.set(section, request);
+  try {
+    const records = await request;
+    if (records) adminRecordCache.set(section, { expiresAt: Date.now() + ADMIN_RECORD_CACHE_TTL_MS, records });
+    return records;
+  } finally {
+    adminRecordRequests.delete(section);
+  }
+}
+
+async function loadAdminRecords(section: AdminSection) {
   const { token, refreshToken } = await getAdminSessionPayload();
   if (!token && !refreshToken) throw new Error("Missing admin session token.");
 
@@ -343,6 +350,10 @@ async function fetchAdminRecords(section: AdminSection) {
   return payload.records || null;
 }
 
+function invalidateAdminRecordCache() {
+  adminRecordCache.clear();
+}
+
 async function saveAdminRecord(table: string, id: string, patch: AnyRecord) {
   const { token, refreshToken } = await getAdminSessionPayload();
   if (!token && !refreshToken) throw new Error("Missing admin session token.");
@@ -356,6 +367,7 @@ async function saveAdminRecord(table: string, id: string, patch: AnyRecord) {
   });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(payload.error || "Could not save admin record.");
+  invalidateAdminRecordCache();
   return payload.record || { id, ...patch };
 }
 
@@ -372,6 +384,7 @@ async function createAdminRecord(table: string, patch: AnyRecord) {
   });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(payload.error || "Could not create admin record.");
+  invalidateAdminRecordCache();
   return payload.record || patch;
 }
 
@@ -429,10 +442,10 @@ async function getAdminSessionPayload() {
 
 function adminSectionTables(section: AdminSection) {
   const tablesBySection: Record<AdminSection, string[]> = {
-    dashboard: ["profiles", "candidates", "employers", "jobs", "applications", "contact_requests", "subscription_payment_requests", "transactions"],
+    dashboard: ["profiles", "candidates", "employers", "jobs", "applications", "contact_requests", "subscription_payment_requests", "transactions", "employer_subscriptions"],
     users: ["profiles"],
     candidates: ["profiles", "candidates"],
-    employers: ["profiles", "employers", "jobs"],
+    employers: ["profiles", "employers", "jobs", "employer_subscriptions"],
     jobs: ["jobs", "employers"],
     employees: ["profiles", "employees"],
     "contact-requests": ["contact_requests"],
@@ -749,7 +762,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
         if (adminRecords && Array.isArray(adminRecords[table])) return Promise.resolve(adminRecords[table]);
         return safeSelect(table);
       };
-      const [profiles, candidates, employers, employees, jobs, applications, contactRequests, coupons, subscriptionPayments, transactions] = await Promise.all([
+      const [profiles, candidates, employers, employees, jobs, applications, contactRequests, coupons, subscriptionPayments, transactions, employerSubscriptions] = await Promise.all([
         selectIfNeeded("profiles"),
         selectIfNeeded("candidates"),
         selectIfNeeded("employers"),
@@ -759,7 +772,8 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
         selectIfNeeded("contact_requests"),
         selectIfNeeded("coupons"),
         selectIfNeeded("subscription_payment_requests"),
-        selectIfNeeded("transactions")
+        selectIfNeeded("transactions"),
+        selectIfNeeded("employer_subscriptions")
       ]);
 
       if (!active) return;
@@ -787,14 +801,17 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
           ...current,
           profiles: normalizedInitialData.profiles,
           candidates: normalizedInitialData.candidates,
-          employers: normalizedInitialData.employers,
+          employers: employerSubscriptions === null
+            ? normalizedInitialData.employers
+            : applySubscriptionPlansToEmployers(normalizedInitialData.employers, employerSubscriptions),
           employees: normalizedInitialData.employees,
           jobs: jobs === null ? current.jobs : jobs,
           applications: applications === null ? current.applications : applications,
           contactRequests: contactRequests === null ? current.contactRequests : contactRequests.length ? contactRequests : fallbackContacts,
           coupons: coupons === null ? current.coupons : coupons.length ? coupons : fallbackCoupons,
           subscriptionPayments: subscriptionPayments === null ? current.subscriptionPayments : subscriptionPayments,
-          transactions: transactions === null ? current.transactions : transactions.length ? transactions : fallbackTransactions
+          transactions: transactions === null ? current.transactions : transactions.length ? transactions : fallbackTransactions,
+          employerSubscriptions: employerSubscriptions === null ? current.employerSubscriptions : employerSubscriptions
         };
       });
       setDataLoading(false);
@@ -824,32 +841,6 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
             employees: current.employees
           })
         }));
-      }
-
-      if (isSupabaseConfigured && ["employers", "dashboard"].includes(section)) {
-        const { token, refreshToken } = await getAdminSessionPayload();
-        if (!token && !refreshToken) return;
-
-        const response = await fetch("/api/admin/employer-subscriptions", {
-          method: "POST",
-          credentials: "omit",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            admin_token: token,
-            admin_refresh_token: refreshToken
-          }),
-          cache: "no-store"
-        }).catch(() => null);
-
-        if (!active || !response?.ok) return;
-        const payload = await response.json().catch(() => ({}));
-        if (Array.isArray(payload.subscriptions)) {
-          setAdminData((current) => ({
-            ...current,
-            employers: applySubscriptionPlansToEmployers(current.employers, payload.subscriptions),
-            employerSubscriptions: payload.subscriptions
-          }));
-        }
       }
 
       if (isSupabaseConfigured && section === "subscription-payments") {
@@ -1222,6 +1213,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
     }
 
     const selectedPlan = EMPLOYER_PLANS.find((plan) => plan.id === planSlug);
+    invalidateAdminRecordCache();
     setAdminData((current) => {
       const updatedSubscription = payload.subscription;
       const remainingSubscriptions = current.employerSubscriptions.filter((row) => row.id !== updatedSubscription?.id);
@@ -1609,49 +1601,7 @@ function DashboardSection({ analytics, chartData, revenueData, data }: { analyti
         <AdminStatCard label="Revenue" value={`BDT ${analytics.monthlyRevenue.toLocaleString()}`} detail="Tracked paid tx" icon={CreditCard} accent="bg-emerald-400/20" />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
-        <Card className="rounded-3xl p-6">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="type-label text-primary">Revenue Trend</p>
-              <h2 className="mt-2 text-2xl font-black text-text-main dark:text-white">Monthly platform revenue</h2>
-            </div>
-            <Badge variant="success">Live</Badge>
-          </div>
-          <div className="mt-6 h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={revenueData}>
-                <defs>
-                  <linearGradient id="adminRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2563eb" stopOpacity={0.45} />
-                    <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(100,116,139,0.18)" />
-                <XAxis dataKey="month" stroke="#64748b" />
-                <YAxis stroke="#64748b" />
-                <Tooltip />
-                <Area type="monotone" dataKey="revenue" stroke="#2563eb" strokeWidth={3} fill="url(#adminRevenue)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
-
-        <Card className="rounded-3xl p-6">
-          <p className="type-label text-primary">Platform Mix</p>
-          <h2 className="mt-2 text-2xl font-black text-text-main dark:text-white">Operational distribution</h2>
-          <div className="mt-6 h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={chartData} dataKey="value" nameKey="name" innerRadius={58} outerRadius={96} paddingAngle={5}>
-                  {chartData.map((_, index) => <Cell key={index} fill={["#2563eb", "#16a34a", "#f59e0b", "#8b5cf6"][index % 4]} />)}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
-      </div>
+      <LazyAdminDashboardCharts chartData={chartData} revenueData={revenueData} />
 
       <div className="grid min-w-0 gap-6 xl:grid-cols-3">
         <RecentList title="Recent Signups" rows={data.profiles.slice(0, 5)} />
@@ -2382,6 +2332,11 @@ function CouponsSection({
     </div>
   );
 }
+
+const LazyAdminDashboardCharts = dynamic(() => import("@/components/admin/AdminDashboardCharts"), {
+  ssr: false,
+  loading: () => <div className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]"><Card className="h-[376px] animate-pulse rounded-3xl" /><Card className="h-[376px] animate-pulse rounded-3xl" /></div>
+});
 
 function SubscriptionPaymentsSection({
   rows,
