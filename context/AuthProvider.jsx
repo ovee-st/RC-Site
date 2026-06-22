@@ -203,7 +203,13 @@ export function AuthProvider({ children }) {
 
     async function syncAuth(authUser) {
       if (!authUser) {
-        applyMockUser();
+        if (isSupabaseConfigured) {
+          setUser(null);
+          setRole(null);
+          setLoading(false);
+        } else {
+          applyMockUser();
+        }
         return;
       }
 
@@ -238,13 +244,6 @@ export function AuthProvider({ children }) {
       if (!isSupabaseConfigured) {
         applyMockUser();
         return;
-      }
-
-      const cachedUser = applyUserDefaults(getMockUser());
-      if (cachedUser && active) {
-        setUser(cachedUser);
-        setRole(normalizeRole(cachedUser.role || cachedUser.user_metadata?.role));
-        setLoading(false);
       }
 
       const { data } = await supabase.auth.getSession();
@@ -282,7 +281,8 @@ export function AuthProvider({ children }) {
       };
     }
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT") profileCache.clear();
       syncAuth(session?.user || null);
     });
 

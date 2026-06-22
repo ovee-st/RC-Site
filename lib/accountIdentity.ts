@@ -1,6 +1,15 @@
 export const MOCK_USER_KEY = "mx_mock_user";
 export const AUTH_CHANGE_EVENT = "mx-auth-change";
 
+export function clearStoredAuthIdentity() {
+  if (typeof window === "undefined") return;
+
+  window.localStorage.removeItem(MOCK_USER_KEY);
+  Object.keys(window.localStorage)
+    .filter((key) => key === "supabase.auth.token" || (/^sb-/i.test(key) && key.includes("auth-token")))
+    .forEach((key) => window.localStorage.removeItem(key));
+}
+
 export function createStableUsername(name?: string | null, email?: string | null, id?: string | null) {
   const source = name || email?.split("@")[0] || id || "mx-user";
   const cleanSource = source

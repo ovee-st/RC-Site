@@ -15,7 +15,7 @@ import { jobLocationOptions } from "@/lib/jobOptions";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/cn";
-import { AUTH_CHANGE_EVENT, MOCK_USER_KEY } from "@/lib/accountIdentity";
+import { AUTH_CHANGE_EVENT, clearStoredAuthIdentity } from "@/lib/accountIdentity";
 import { authSafeAvatarAliases, avatarAliases, normalizeProfileImageUrl, stripInlineAuthAvatarMetadata, syncProfileImageState } from "@/lib/profileImageSync";
 import AccountSettings from "@/components/account/AccountSettings";
 import SkillPicker from "@/components/skills/SkillPicker";
@@ -1162,13 +1162,16 @@ export default function CandidateDashboard() {
   };
 
   const handleLogout = async () => {
-    if (isSupabaseConfigured) {
-      await supabase.auth.signOut();
-    }
-
-    window.localStorage.removeItem(MOCK_USER_KEY);
+    clearStoredAuthIdentity();
     window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
-    router.push("/");
+    try {
+      if (isSupabaseConfigured) {
+        await supabase.auth.signOut({ scope: "local" });
+      }
+    } finally {
+      clearStoredAuthIdentity();
+      window.location.replace("/login");
+    }
   };
 
   const downloadAtsCv = () => {

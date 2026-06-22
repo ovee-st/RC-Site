@@ -11,7 +11,7 @@ import GlobalSearch from "@/components/search/GlobalSearch";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/cn";
-import { MOCK_USER_KEY } from "@/lib/accountIdentity";
+import { clearStoredAuthIdentity, MOCK_USER_KEY } from "@/lib/accountIdentity";
 
 const SITE_LOGO_LIGHT = "/mxvl-logo.png";
 const SITE_LOGO_DARK = "/mxvl-logo-dark.png";
@@ -504,13 +504,20 @@ export default function Navbar() {
   }, [role]);
 
   const handleLogout = async () => {
-    if (isSupabaseConfigured) {
-      await supabase.auth.signOut();
+    if (typeof window !== "undefined") {
+      clearStoredAuthIdentity();
+      window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
     }
 
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem("mx_mock_user");
-      window.location.href = "/";
+    try {
+      if (isSupabaseConfigured) {
+        await supabase.auth.signOut({ scope: "local" });
+      }
+    } finally {
+      if (typeof window !== "undefined") {
+        clearStoredAuthIdentity();
+        window.location.replace("/login");
+      }
     }
   };
 
