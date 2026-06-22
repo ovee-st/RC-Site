@@ -1,112 +1,77 @@
-﻿"use client";
+"use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import { BriefcaseBusiness, CheckCircle2, Sparkles, UsersRound, type LucideIcon } from "lucide-react";
+import { BriefcaseBusiness, CheckCircle2, Sparkles, UserRound, UsersRound, type LucideIcon } from "lucide-react";
 import Badge from "@/components/ui/Badge";
 import Card from "@/components/ui/Card";
 
-const cockpitMetrics: Array<{ value: string; label: string; Icon: LucideIcon }> = [
-  { value: "12", label: "interviews", Icon: UsersRound },
-  { value: "3", label: "offers", Icon: CheckCircle2 },
-  { value: "94%", label: "match score", Icon: Sparkles },
-  { value: "8", label: "applications", Icon: BriefcaseBusiness }
+const candidateMetrics: Array<{ value: string; label: string; Icon: LucideIcon }> = [
+  { value: "8", label: "Applications", Icon: BriefcaseBusiness },
+  { value: "3", label: "Interviews", Icon: UsersRound },
+  { value: "88%", label: "Profile Strength", Icon: UserRound },
+  { value: "12", label: "Job Matches", Icon: Sparkles }
 ];
-const candidates = [
-  { name: "Md Jahid Anwar", role: "Admin & Operations", score: 94, skills: ["Admin", "Excel", "Coordination"], initials: "MJ", avatar: "/avatars/candidate-jahid.svg" },
-  { name: "Nusrat Jahan", role: "Customer Support", score: 88, skills: ["CRM", "Communication"], initials: "NJ", avatar: "/avatars/candidate-nusrat.svg" },
-  { name: "Rakib Ahmed", role: "Business Promoter", score: 92, skills: ["Sales", "Field Ops"], initials: "RA", avatar: "/avatars/candidate-rakib.svg" }
+
+const employerMetrics: Array<{ value: string; label: string; Icon: LucideIcon }> = [
+  { value: "186", label: "Candidates", Icon: UsersRound },
+  { value: "14", label: "Shortlists", Icon: CheckCircle2 },
+  { value: "6", label: "Interviews", Icon: UserRound },
+  { value: "72%", label: "Hiring Progress", Icon: BriefcaseBusiness }
 ];
+
+function HubPanel({ title, subtitle, metrics, tone }: { title: string; subtitle: string; metrics: typeof candidateMetrics; tone: "candidate" | "employer" }) {
+  const isCandidate = tone === "candidate";
+  return (
+    <div className={`rounded-2xl border p-4 ${isCandidate ? "border-blue-200 bg-blue-50/90 dark:border-blue-400/20 dark:bg-blue-950/30" : "border-emerald-200 bg-emerald-50/90 dark:border-emerald-400/20 dark:bg-emerald-950/30"}`}>
+      <div className="flex items-center gap-3">
+        <div className={`grid h-11 w-11 place-items-center rounded-xl text-white ${isCandidate ? "bg-blue-600" : "bg-emerald-600"}`}>
+          {isCandidate ? <UserRound className="h-5 w-5" /> : <BriefcaseBusiness className="h-5 w-5" />}
+        </div>
+        <div>
+          <h2 className="text-lg font-black text-slate-950 dark:text-white">{title}</h2>
+          <p className="text-xs font-semibold text-slate-500 dark:text-slate-300">{subtitle}</p>
+        </div>
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        {metrics.map(({ value, label, Icon }) => (
+          <div key={label} className="min-h-24 rounded-xl border border-white/80 bg-white/90 p-3 shadow-sm dark:border-white/10 dark:bg-slate-900/70">
+            <Icon className={`h-4 w-4 ${isCandidate ? "text-blue-600" : "text-emerald-600"}`} />
+            <p className="mt-2 text-xl font-black text-slate-950 dark:text-white">{value}</p>
+            <p className="text-[10px] font-black uppercase tracking-normal text-slate-500 dark:text-slate-400">{label}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function DashboardMockup() {
   const reduceMotion = useReducedMotion();
 
   return (
     <motion.div
-      className="relative mx-auto max-w-xl lg:max-w-none"
-      initial={reduceMotion ? false : { opacity: 0, y: 32, scale: 0.96 }}
+      className="relative mx-auto w-full max-w-2xl lg:max-w-none"
+      initial={reduceMotion ? false : { opacity: 0, y: 24, scale: 0.97 }}
       animate={reduceMotion ? undefined : { opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.7, ease: "easeOut" }}
+      transition={{ duration: 0.65, ease: "easeOut" }}
     >
-      <div className="absolute -inset-8 rounded-[3rem] bg-gradient-to-br from-blue-500/25 via-red-500/10 to-emerald-400/20 blur-3xl" />
-      <Card className="relative overflow-hidden rounded-[2rem] border-white/70 bg-white/90 p-3 shadow-[0_30px_100px_rgba(37,99,235,0.18)] backdrop-blur dark:border-white/10 dark:bg-slate-900/90 sm:p-5">
-        <div className="grid gap-4 lg:grid-cols-[0.78fr_1fr]">
+      <Card className="relative overflow-hidden rounded-3xl border-white/70 bg-white/95 p-4 shadow-[0_30px_100px_rgba(37,99,235,0.18)] dark:border-white/10 dark:bg-slate-900/95 sm:p-5">
+        <div className="grid gap-3 md:grid-cols-[1fr_128px_1fr] md:items-center">
+          <HubPanel title="Candidate Hub" subtitle="Your career in motion" metrics={candidateMetrics} tone="candidate" />
+
           <motion.div
-            className="relative overflow-hidden rounded-[1.5rem] bg-gradient-to-br from-slate-950 via-blue-900 to-blue-600 p-5 text-white shadow-2xl"
-            animate={reduceMotion ? undefined : { y: [0, -8, 0] }}
-            transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+            className="flex min-h-28 flex-col items-center justify-center rounded-2xl bg-slate-950 px-3 py-5 text-center text-white"
+            animate={reduceMotion ? undefined : { scale: [1, 1.035, 1] }}
+            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
           >
-            <div className="absolute inset-0 bg-slate-950/35" />
-            <div className="absolute -right-12 top-8 h-36 w-36 rounded-full bg-blue-200/25 blur-3xl" />
-            <div className="absolute -left-16 bottom-6 h-32 w-32 rounded-full bg-red-400/20 blur-3xl" />
-            <div className="relative flex items-center justify-between">
-              <Badge className="border-white/25 bg-white/10 text-white shadow-none">Live cockpit</Badge>
-              <motion.div animate={reduceMotion ? undefined : { rotate: [0, 12, -10, 0], scale: [1, 1.1, 1] }} transition={{ duration: 4, repeat: Infinity }}>
-                <Sparkles className="h-6 w-6 text-blue-100" />
-              </motion.div>
-            </div>
-            <h2 className="relative mt-6 text-2xl font-black tracking-tight text-white drop-shadow-sm">Recruiter command center</h2>
-            <p className="relative mt-3 text-sm font-semibold leading-6 text-blue-50/95 drop-shadow-sm">Ranked shortlists, live pipelines, support signals, and hiring progress in one glance.</p>
-            <div className="relative mt-6 grid grid-cols-2 gap-3">
-              {cockpitMetrics.map(({ value, label, Icon }, index) => (
-                <motion.div
-                  key={String(label)}
-                  className="rounded-2xl border border-white/20 bg-white/16 p-4 shadow-inner backdrop-blur"
-                  initial={reduceMotion ? false : { opacity: 0, y: 16 }}
-                  animate={reduceMotion ? undefined : { opacity: 1, y: [0, -5, 0] }}
-                  transition={{ opacity: { delay: index * 0.08 }, y: { duration: 3.4, repeat: Infinity, delay: index * 0.35 } }}
-                >
-                  <Icon className="mb-3 h-4 w-4 text-blue-100" />
-                  <p className="text-2xl font-black text-white drop-shadow-sm">{value}</p>
-                  <p className="text-[10px] font-black uppercase tracking-wider text-blue-50/90">{label}</p>
-                </motion.div>
-              ))}
-            </div>
+            <Sparkles className="h-6 w-6 text-blue-300" />
+            <Badge className="mt-3 border-white/20 bg-white/10 text-[10px] text-white shadow-none">AI Matching Engine</Badge>
+            <p className="mt-2 text-xs font-black leading-5">Talent meets opportunity</p>
           </motion.div>
 
-          <div className="relative space-y-3 overflow-hidden rounded-[1.5rem] bg-slate-50/70 p-3 dark:bg-white/5 sm:p-4">
-            <motion.div
-              aria-hidden="true"
-              className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-transparent via-blue-400/15 to-transparent"
-              animate={reduceMotion ? undefined : { x: ["-150%", "580%"] }}
-              transition={{ duration: 4.6, repeat: Infinity, ease: "linear" }}
-            />
-            {candidates.map((candidate, index) => (
-              <motion.div
-                key={candidate.name}
-                className="relative rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm transition hover:-translate-y-1 hover:border-blue-300 hover:shadow-xl dark:border-white/10 dark:bg-slate-950/70"
-                initial={reduceMotion ? false : { opacity: 0, x: 28 }}
-                animate={reduceMotion ? undefined : { opacity: 1, x: 0, y: [0, -7, 0] }}
-                transition={{ opacity: { delay: index * 0.1 }, x: { delay: index * 0.1 }, y: { duration: 4, repeat: Infinity, delay: index * 0.5 } }}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-emerald-500 text-sm font-black text-white shadow-lg">
-                      {candidate.avatar ? <img src={candidate.avatar} alt={`${candidate.name} profile`} className="h-full w-full object-cover" /> : candidate.initials}
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="truncate text-base font-black text-slate-950 dark:text-white">{candidate.name}</h3>
-                      <p className="truncate text-xs font-semibold text-slate-500 dark:text-slate-300">{candidate.role}</p>
-                    </div>
-                  </div>
-                  <motion.div animate={reduceMotion ? undefined : { scale: [1, 1.08, 1] }} transition={{ duration: 2.4, repeat: Infinity, delay: index * 0.35 }}>
-                    <Badge variant="match-score">{candidate.score}%</Badge>
-                  </motion.div>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {candidate.skills.map((skill) => (
-                    <Badge key={skill} variant="success" className="text-[11px]">{skill}</Badge>
-                  ))}
-                </div>
-              </motion.div>
-            ))}
-          </div>
+          <HubPanel title="Employer Hub" subtitle="Your hiring pipeline" metrics={employerMetrics} tone="employer" />
         </div>
       </Card>
     </motion.div>
   );
 }
-
-
-
-
-

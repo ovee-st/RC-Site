@@ -9,7 +9,7 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
   title: "MX Venture Lab | AI-Powered Recruitment & Business Solutions",
-  description: "AI-powered recruitment platform for candidates and employers in Bangladesh. ATS CV builder, smart matching, managed hiring, and business solutions.",
+  description: "AI-powered recruitment platform connecting candidates and employers through smart matching, career tools, managed hiring, and business solutions.",
   applicationName: "MX Venture Lab",
   manifest: "/manifest.webmanifest",
   appleWebApp: {

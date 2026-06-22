@@ -8,41 +8,41 @@ import FadeInSection from "./FadeInSection";
 
 const categories = [
   {
-    title: "White Collar",
+    title: "White Collar Jobs",
     icon: Building2,
-    text: "Admin, HR, finance, customer support, IT, operations, sales, and office roles.",
+    text: "Discover or hire for roles across admin, HR, finance, support, IT, operations, sales, and office teams.",
     label: "Office ops",
     keywords: ["Admin", "HR", "IT"],
     sceneClass: "after:absolute after:right-5 after:top-5 after:h-16 after:w-24 after:rounded-2xl after:border after:border-white/25 after:bg-white/10 after:shadow-[0_16px_40px_rgba(15,23,42,0.18)] before:absolute before:right-12 before:top-12 before:h-8 before:w-16 before:rounded-lg before:border before:border-white/20 before:bg-white/10"
   },
   {
-    title: "Blue Collar",
+    title: "Blue Collar Opportunities",
     icon: BriefcaseBusiness,
-    text: "Drivers, cleaners, security, production, hospitality, warehouse, and field teams.",
+    text: "Connect with practical opportunities and dependable talent across logistics, security, production, hospitality, and field teams.",
     label: "Field team",
     keywords: ["Driver", "Ops", "Shift"],
     sceneClass: "after:absolute after:right-5 after:top-6 after:h-14 after:w-28 after:rounded-xl after:border after:border-white/25 after:bg-white/10 before:absolute before:right-16 before:bottom-5 before:h-10 before:w-20 before:rounded-full before:border before:border-white/20 before:bg-white/10"
   },
   {
-    title: "Business Promoters",
+    title: "Business Promotions",
     icon: Users,
-    text: "Promoters, brand ambassadors, field activation, retail support, and campaign staff.",
+    text: "Find campaign work or build activation teams with promoters, brand ambassadors, retail support, and field staff.",
     label: "Campaign",
     keywords: ["Retail", "Field", "Brand"],
     sceneClass: "after:absolute after:right-8 after:top-5 after:h-16 after:w-16 after:rounded-full after:border after:border-white/25 after:bg-white/10 before:absolute before:right-5 before:bottom-5 before:h-8 before:w-28 before:rounded-full before:border before:border-white/20 before:bg-white/10"
   },
   {
-    title: "Remote Professionals",
+    title: "Remote Careers",
     icon: Headset,
-    text: "Remote operations, support, sales, design, and coordination teams.",
+    text: "Explore flexible careers and recruit remote professionals in operations, support, sales, design, and coordination.",
     label: "Remote desk",
     keywords: ["Support", "Sales", "Design"],
     sceneClass: "after:absolute after:right-6 after:top-5 after:h-14 after:w-24 after:rounded-2xl after:border after:border-white/25 after:bg-white/10 before:absolute before:right-10 before:bottom-5 before:h-6 before:w-32 before:rounded-full before:border before:border-white/20 before:bg-white/10"
   },
   {
-    title: "Contract Staffing",
+    title: "Contract Work",
     icon: ShieldCheck,
-    text: "Flexible workforce support for campaigns, seasonal demand, and special projects.",
+    text: "Access flexible work or workforce support for campaigns, seasonal demand, and time-bound projects.",
     label: "Flex crew",
     keywords: ["Seasonal", "Crew", "SLA"],
     sceneClass: "after:absolute after:right-5 after:top-5 after:h-16 after:w-16 after:rotate-12 after:rounded-2xl after:border after:border-white/25 after:bg-white/10 before:absolute before:right-20 before:bottom-5 before:h-8 before:w-20 before:rounded-xl before:border before:border-white/20 before:bg-white/10"
@@ -50,7 +50,7 @@ const categories = [
   {
     title: "Executive Search",
     icon: Handshake,
-    text: "Senior and strategic hires supported with sharper screening and recruiter context.",
+    text: "Connect experienced leaders with senior and strategic roles through focused search and sharper screening.",
     label: "Leadership",
     keywords: ["Senior", "CXO", "Fit"],
     sceneClass: "after:absolute after:right-5 after:top-6 after:h-14 after:w-24 after:rounded-full after:border after:border-white/25 after:bg-white/10 before:absolute before:right-8 before:bottom-5 before:h-10 before:w-20 before:rounded-2xl before:border before:border-white/20 before:bg-white/10"
@@ -64,9 +64,9 @@ export default function ServiceCategories() {
         <div className="mb-10 flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
             <Badge variant="primary">Service categories</Badge>
-            <h2 className="mt-4 text-3xl font-black tracking-tight text-slate-950 dark:text-white md:text-5xl">Built for high-volume hiring categories.</h2>
+            <h2 className="mt-4 text-3xl font-black tracking-normal text-slate-950 dark:text-white md:text-5xl">Opportunities and talent across every way of working.</h2>
           </div>
-          <p className="max-w-md text-sm leading-6 text-slate-600 dark:text-slate-300">MX Venture Lab supports structured recruitment across business, operations, office, field, and managed staffing needs.</p>
+          <p className="max-w-md text-sm leading-6 text-slate-600 dark:text-slate-300">Candidates discover relevant work while employers reach qualified people across professional, field, remote, contract, and leadership categories.</p>
         </div>
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {categories.map((item) => (

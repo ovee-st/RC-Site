@@ -7,10 +7,10 @@ import Container from "@/components/layout/Container";
 import FadeInSection from "./FadeInSection";
 
 const steps = [
-  { title: "Post the role", text: "Create a structured job with category, skills, salary, workplace, and deadline." },
-  { title: "AI ranks talent", text: "MXVL compares candidate skills, experience, availability, and semantic profile fit." },
-  { title: "Review top matches", text: "Recruiters get explainable shortlists instead of a pile of unfiltered CVs." },
-  { title: "Hire confidently", text: "Move candidates through pipeline stages with support and analytics attached." }
+  { title: "Create Your Profile or Company", text: "Candidates showcase their experience while employers set up their hiring workspace." },
+  { title: "Get Matched", text: "MXVL uses profile, role, skill, and experience signals to surface relevant opportunities and talent." },
+  { title: "Connect", text: "Apply to roles, review candidates, schedule conversations, and keep every next step visible." },
+  { title: "Hire or Get Hired", text: "Move from a strong match to the right career opportunity or a confident new hire." }
 ];
 
 export default function HowItWorks() {
@@ -19,7 +19,7 @@ export default function HowItWorks() {
       <Container>
         <div className="mb-10 max-w-3xl">
           <Badge variant="primary">How it works</Badge>
-          <h2 className="mt-4 text-3xl font-black tracking-tight text-slate-950 dark:text-white md:text-5xl">From job post to top candidates — in under 48 hours.</h2>
+          <h2 className="mt-4 text-3xl font-black tracking-normal text-slate-950 dark:text-white md:text-5xl">From profile to possibility in four clear steps.</h2>
         </div>
         <div className="relative grid gap-5 lg:grid-cols-4">
           <div className="absolute left-0 right-0 top-10 hidden h-px bg-gradient-to-r from-blue-200 via-blue-500 to-red-200 lg:block" />

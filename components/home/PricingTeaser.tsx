@@ -11,12 +11,14 @@ const plans = [
   {
     title: "Candidate Pro",
     icon: UserRound,
+    description: "Unlock career tools, stronger visibility, and support for your next move.",
     items: ["Unlimited AI Career Coach", "CV downloads", "Priority visibility"],
     href: "/login"
   },
   {
     title: "Employer Plans",
     icon: BriefcaseBusiness,
+    description: "Unlock hiring tools, candidate access, and recruitment automation.",
     items: ["AI shortlists", "Talent search", "Hiring analytics"],
     href: "/subscriptions"
   }
@@ -29,8 +31,8 @@ export default function PricingTeaser() {
         <FadeInSection>
           <div className="mx-auto max-w-3xl text-center">
             <Badge variant="neutral">Flexible plans</Badge>
-            <h2 className="mt-4 text-3xl font-black tracking-tight text-slate-950 dark:text-white md:text-5xl">
-              Upgrade when your hiring pipeline is ready to move faster.
+            <h2 className="mt-4 text-3xl font-black tracking-normal text-slate-950 dark:text-white md:text-5xl">
+              Flexible options for career growth and hiring growth.
             </h2>
           </div>
         </FadeInSection>
@@ -46,6 +48,7 @@ export default function PricingTeaser() {
                     </div>
                     <h3 className="text-2xl font-black text-slate-950 dark:text-white">{plan.title}</h3>
                   </div>
+                  <p className="mt-5 text-sm font-semibold leading-6 text-slate-600 dark:text-slate-300">{plan.description}</p>
                   <ul className="mt-6 space-y-3 text-sm font-semibold text-slate-600 dark:text-slate-300">
                     {plan.items.map((item) => (
                       <li key={item}>✓ {item}</li>

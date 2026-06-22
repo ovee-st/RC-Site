@@ -4,19 +4,29 @@ import Link from "next/link";
 import Container from "@/components/layout/Container";
 import { useAuth } from "@/hooks/useAuth";
 
-const serviceLinks = [
-  { label: "My Services", href: "/services" },
-  { label: "We Hire For You", href: "/we-hire-for-you", hideForCandidate: true }
+const audienceColumns = [
+  {
+    title: "Candidates",
+    links: [["Jobs", "/jobs"], ["Career Resources", "/services"], ["Help Center", "/help-center"]]
+  },
+  {
+    title: "Employers",
+    hideForCandidate: true,
+    links: [["Plans", "/subscriptions"], ["We Hire For You", "/we-hire-for-you"], ["Employer Solutions", "/services"]]
+  }
 ];
 
-const columns = [
-  { title: "Company", links: [["About", "/about"], ["Contact", "/contact"], ["Privacy", "/privacy"]] },
-  { title: "Support", links: [["Help Center", "/help-center"], ["Terms", "/terms"]] }
-] as const;
+const companyColumn = {
+  title: "Company",
+  links: [["About", "/about"], ["Contact", "/contact"], ["Privacy", "/privacy"], ["Terms", "/terms"]]
+};
 
 export default function Footer() {
   const { role } = useAuth();
-  const visibleServiceLinks = serviceLinks.filter((link) => !(role === "candidate" && link.hideForCandidate));
+  const visibleColumns = [
+    ...audienceColumns.filter((column) => !(role === "candidate" && column.hideForCandidate)),
+    companyColumn
+  ];
 
   return (
     <footer className="border-t border-slate-200 bg-white/70 py-12 backdrop-blur dark:border-white/10 dark:bg-slate-950/70">
@@ -24,21 +34,11 @@ export default function Footer() {
         <div className="grid gap-8 lg:grid-cols-[1.2fr_2fr]">
           <div>
             <p className="text-xl font-black text-slate-950 dark:text-white">MX Venture Lab</p>
-            <p className="mt-3 max-w-sm text-sm leading-6 text-slate-600 dark:text-slate-300">AI-powered recruitment, managed hiring, and business support for growing teams.</p>
+            <p className="mt-3 max-w-sm text-sm leading-6 text-slate-600 dark:text-slate-300">AI-powered recruitment, career growth, managed hiring, and business support for ambitious people and growing teams.</p>
             <p className="mt-5 text-xs font-bold uppercase tracking-[0.18em] text-slate-400">INNOVATING TALENT. EMPOWERING GROWTH.</p>
           </div>
-          <div className="grid gap-6 sm:grid-cols-3">
-            <div>
-              <p className="text-sm font-black text-slate-950 dark:text-white">Services</p>
-              <div className="mt-3 space-y-2">
-                {visibleServiceLinks.map((link) => (
-                  <Link key={link.label} href={link.href} className="block text-sm font-semibold text-slate-500 transition hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-300">
-                    {link.label}
-                  </Link>
-                ))}
-              </div>
-            </div>
-            {columns.map((column) => (
+          <div className={`grid gap-6 sm:grid-cols-2 ${role === "candidate" ? "lg:grid-cols-2" : "lg:grid-cols-3"}`}>
+            {visibleColumns.map((column) => (
               <div key={column.title}>
                 <p className="text-sm font-black text-slate-950 dark:text-white">{column.title}</p>
                 <div className="mt-3 space-y-2">
@@ -52,7 +52,7 @@ export default function Footer() {
             ))}
           </div>
         </div>
-        <div className="mt-10 border-t border-slate-200 pt-6 text-sm font-semibold text-slate-500 dark:border-white/10 dark:text-slate-400">© 2026 MX Venture Lab. All rights reserved.</div>
+        <div className="mt-10 border-t border-slate-200 pt-6 text-sm font-semibold text-slate-500 dark:border-white/10 dark:text-slate-400">(c) 2026 MX Venture Lab. All rights reserved.</div>
       </Container>
     </footer>
   );

@@ -1,16 +1,16 @@
 ﻿"use client";
 
-import { Headphones, Target, Timer, Users } from "lucide-react";
+import { BriefcaseBusiness, Building2, Timer, Users } from "lucide-react";
 import Card from "@/components/ui/Card";
 import Container from "@/components/layout/Container";
 import AnimatedCounter from "./AnimatedCounter";
 import FadeInSection from "./FadeInSection";
 
 const metrics = [
-  { value: 48, suffix: "h", label: "average shortlist delivery", icon: Timer },
-  { value: 90, suffix: "%", label: "match accuracy", icon: Target },
-  { value: 10, suffix: "k+", label: "candidate profiles", icon: Users },
-  { value: 24, suffix: "/7", label: "support", icon: Headphones }
+  { value: 10, suffix: "k+", label: "Candidate Profiles", icon: Users },
+  { value: 500, suffix: "+", label: "Active Employers", icon: Building2 },
+  { value: 1000, suffix: "+", label: "Jobs Posted", icon: BriefcaseBusiness },
+  { value: 48, suffix: " Hours", label: "Average Hiring Response", icon: Timer }
 ];
 
 export default function MetricsBar() {
