@@ -14,6 +14,7 @@ import { useJobStore } from "@/store/useJobStore";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
 import { mapSupabaseJob } from "@/lib/mapSupabaseJob";
+import { getBestAvatarUrl } from "@/lib/authUserSync";
 
 const CANDIDATE_PROFILE_KEY = "mx_candidate_profile";
 
@@ -149,7 +150,7 @@ function mapCandidateRow(row: CandidateRow): RegisteredCandidate {
     experience: row.career_level || "Any Level",
     skills: skills.length ? skills : ["Admin", "Excel", "Communication"],
     profile: row.about || row.profile || "Registered candidate profile from MX Venture Lab.",
-    avatar: row.photo_url || row.avatar_url || row.profile_photo_url || row.avatar,
+    avatar: getBestAvatarUrl(row) || undefined,
     linkedin_url: row.linkedin_url || "",
     location: row.location || "Bangladesh",
     availability: {
@@ -227,11 +228,11 @@ export default function EmployerCandidates() {
         if (profileIds.length) {
           const { data: profiles } = await supabase
             .from("profiles")
-            .select("id, avatar_url, photo_url")
+            .select("id, avatar_url")
             .in("id", profileIds);
 
           profileAvatars = new Map(
-            (profiles || []).map((profile) => [profile.id, profile.avatar_url || profile.photo_url || null])
+            (profiles || []).map((profile) => [profile.id, getBestAvatarUrl(profile)])
           );
         }
 

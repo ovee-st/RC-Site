@@ -11,6 +11,7 @@ import { Bookmark, CalendarDays, Check, MousePointerClick, Send, Sparkles, X } f
 import { useAuth } from "@/hooks/useAuth";
 import { demoCandidates } from "@/lib/demoData";
 import { matchCandidateToJob } from "@/lib/ai/matching";
+import { normalizeProfileImageUrl } from "@/lib/profileImageSync";
 
 export default function JobPreview({ mode = "panel" }: { mode?: "panel" | "modal" }) {
   const { selectedJob, setSelectedJob } = useJobStore();
@@ -27,8 +28,8 @@ export default function JobPreview({ mode = "panel" }: { mode?: "panel" | "modal
       const saved = window.localStorage.getItem("mx_employer_profile");
       const profile = saved ? JSON.parse(saved) : null;
       setEmployerBranding({
-        bannerUrl: profile?.banner_url || null,
-        photoUrl: profile?.photo_url || null
+        bannerUrl: normalizeProfileImageUrl(profile?.banner_url),
+        photoUrl: normalizeProfileImageUrl(profile?.photo_url)
       });
     } catch {
       setEmployerBranding({ bannerUrl: null, photoUrl: null });

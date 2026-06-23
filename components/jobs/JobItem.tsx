@@ -16,6 +16,7 @@ import { normalizeDateValue, normalizeJobStatus } from "@/lib/jobUpdate";
 import { bdjobsDepartments } from "@/lib/bdjobsDepartments";
 import { employmentTypeOptions, workLocationOptions } from "@/lib/jobOptions";
 import SkillPicker from "@/components/skills/SkillPicker";
+import { normalizeProfileImageUrl } from "@/lib/profileImageSync";
 
 type JobEditDraft = {
   company: string;
@@ -148,7 +149,7 @@ export default function JobItem({ job, matchScore }: { job: Job; matchScore: num
     try {
       const saved = window.localStorage.getItem("mx_employer_profile");
       const profile = saved ? JSON.parse(saved) : null;
-      setLocalEmployerPhoto(profile?.photo_url || null);
+      setLocalEmployerPhoto(normalizeProfileImageUrl(profile?.photo_url));
     } catch {
       setLocalEmployerPhoto(null);
     }

@@ -1,4 +1,5 @@
 import { AUTH_CHANGE_EVENT, MOCK_USER_KEY } from "@/lib/accountIdentity";
+import { supabase } from "@/lib/supabaseClient";
 
 type ProfileRole = "candidate" | "employer" | "admin" | "viewer" | "employee" | "support_agent" | "support_senior" | "support_manager";
 
@@ -12,7 +13,34 @@ type SyncProfileImageOptions = {
 
 export function normalizeProfileImageUrl(value?: string | null) {
   const cleanValue = String(value || "").trim();
-  return cleanValue || null;
+  if (!cleanValue) return null;
+  if (/^(https?:|data:image\/|blob:)/i.test(cleanValue) || cleanValue.startsWith("/")) return cleanValue;
+
+  const storagePath = cleanValue.replace(/^\.?\//, "").replace(/^storage\/v1\/object\/public\//, "");
+  if (/^(profile-photos|profile_photos|profile-images|profile_images|avatars|candidates|employers|logos|uploads)\//i.test(storagePath)) {
+    const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/+$/, "");
+    return baseUrl ? `${baseUrl}/storage/v1/object/public/${storagePath}` : cleanValue;
+  }
+
+  return cleanValue;
+}
+
+export async function uploadProfileMedia(file: File, userId: string, kind: "avatar" | "banner" = "avatar") {
+  if (!file.type.startsWith("image/")) throw new Error("Please select an image file.");
+  if (file.size > 8 * 1024 * 1024) throw new Error("Profile images must be 8 MB or smaller.");
+  if (!userId) throw new Error("Please sign in before uploading an image.");
+
+  const extension = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+  const path = `${userId}/${kind}-${Date.now()}.${extension}`;
+  const { error } = await supabase.storage.from("profile-photos").upload(path, file, {
+    cacheControl: "3600",
+    contentType: file.type,
+    upsert: false
+  });
+  if (error) throw new Error(error.message);
+  const { data } = supabase.storage.from("profile-photos").getPublicUrl(path);
+  if (!data.publicUrl) throw new Error("Could not create a public image URL.");
+  return data.publicUrl;
 }
 
 export function avatarAliases(avatarUrl?: string | null) {

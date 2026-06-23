@@ -12,6 +12,7 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/cn";
 import { clearStoredAuthIdentity, MOCK_USER_KEY } from "@/lib/accountIdentity";
+import { getBestAvatarUrl } from "@/lib/authUserSync";
 
 const SITE_LOGO_LIGHT = "/mxvl-logo.png";
 const SITE_LOGO_DARK = "/mxvl-logo-dark.png";
@@ -272,27 +273,7 @@ function getInitials(name?: string | null) {
 }
 
 function resolveProfileAvatar(row?: Record<string, any> | null) {
-  if (!row) return null;
-
-  const metadata = row.user_metadata || {};
-  return (
-    row.photo_url ||
-    row.avatar ||
-    row.avatar_url ||
-    row.profile_photo_url ||
-    row.profile_image_url ||
-    row.logo_url ||
-    row.company_logo_url ||
-    metadata.photo_url ||
-    metadata.avatar ||
-    metadata.avatar_url ||
-    metadata.profile_photo_url ||
-    metadata.profile_image_url ||
-    metadata.logo_url ||
-    metadata.company_logo_url ||
-    metadata.picture ||
-    null
-  );
+  return getBestAvatarUrl(row);
 }
 
 export default function Navbar() {

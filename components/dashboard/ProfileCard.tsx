@@ -8,22 +8,24 @@ import Badge from "@/components/ui/Badge";
 import Input from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
-import { avatarAliases, normalizeProfileImageUrl, syncProfileImageState } from "@/lib/profileImageSync";
+import { normalizeProfileImageUrl, syncProfileImageState, uploadProfileMedia } from "@/lib/profileImageSync";
 
 export default function ProfileCard({ profile, onProfileUpdate }: { profile: CandidateProfile; onProfileUpdate: (profile: CandidateProfile) => void }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(profile);
   const initials = profile.name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase();
 
-  function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
+  async function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      setDraft((current) => ({ ...current, avatarUrl: String(reader.result) }));
-    };
-    reader.readAsDataURL(file);
+    if (!draft.userId || !isSupabaseConfigured) return;
+    try {
+      const avatarUrl = await uploadProfileMedia(file, draft.userId, "avatar");
+      setDraft((current) => ({ ...current, avatarUrl }));
+    } catch {
+      // Keep the existing image when storage is unavailable.
+    }
   }
 
   async function saveProfile() {
@@ -54,7 +56,7 @@ export default function ProfileCard({ profile, onProfileUpdate }: { profile: Can
         about: nextDraft.bio,
         skills: nextDraft.skills,
         linkedin: nextDraft.socials.linkedin,
-        ...avatarAliases(nextDraft.avatarUrl)
+        photo_url: nextDraft.avatarUrl || null
       }, { onConflict: "user_id" });
     }
   }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { normalizePlatformRole } from "@/lib/authUserSync";
+import { getBestAvatarUrl, normalizePlatformRole } from "@/lib/authUserSync";
 import { validateCandidateProfileAccessPolicy } from "@/lib/candidateProfileAccessPolicy";
 import { createServerSupabaseClient } from "@/lib/supabaseServer";
 import { SubscriptionService } from "@/lib/subscriptionService";
@@ -13,7 +13,7 @@ function normalizeCandidateProfile(candidate: Record<string, any>, profile: Reco
         email: profile.email,
         full_name: profile.full_name,
         username: profile.username,
-        avatar_url: profile.avatar_url || profile.photo_url || profile.profile_photo_url || null,
+        avatar_url: getBestAvatarUrl(profile),
         verified: Boolean(profile.verified)
       }
       : null

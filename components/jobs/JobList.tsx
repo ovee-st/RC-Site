@@ -14,6 +14,8 @@ import Card from "@/components/ui/Card";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import type { Job } from "@/types";
 import { normalizeJobStatus } from "@/lib/jobUpdate";
+import { getBestAvatarUrl } from "@/lib/authUserSync";
+import { normalizeProfileImageUrl } from "@/lib/profileImageSync";
 
 function mapSupabaseJob(row: any): Job {
   const skills = Array.isArray(row.required_skills_array)
@@ -39,8 +41,8 @@ function mapSupabaseJob(row: any): Job {
     salaryMax: Number(row.salary_max || 0),
     hideSalary: Boolean(row.hide_salary || row.salary_hidden),
     deadline: row.last_date || row.deadline || "",
-    bannerUrl: row.banner_url || null,
-    employerPhotoUrl: row.employer_photo_url || row.photo_url || row.company_logo_url || null,
+    bannerUrl: normalizeProfileImageUrl(row.banner_url),
+    employerPhotoUrl: getBestAvatarUrl(row),
     status: normalizeJobStatus(row.status) as Job["status"],
     skills,
     description: row.description || "Job description will be shared by the employer.",
@@ -84,8 +86,8 @@ export default function JobList({ headerAction, showArchived = false }: { header
         const branding = brandingByEmployer.get(row.employer_id);
         return mapSupabaseJob({
           ...row,
-          banner_url: row.banner_url || branding?.banner_url || null,
-          employer_photo_url: row.employer_photo_url || branding?.photo_url || null
+          banner_url: normalizeProfileImageUrl(row.banner_url || branding?.banner_url),
+          employer_photo_url: getBestAvatarUrl(row) || getBestAvatarUrl(branding) || null
         });
       }));
     }

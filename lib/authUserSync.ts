@@ -31,7 +31,7 @@ export function getBestAvatarUrl(row?: AnyRecord | null) {
 
     const looksLikeStoredImage =
       /\.(png|jpe?g|webp|gif|avif|svg)(\?.*)?$/i.test(image) ||
-      /^(avatars|profile-images|profile_images|profiles|candidates|employers|logos|uploads)\//i.test(image);
+      /^(avatars|profile-photos|profile_photos|profile-images|profile_images|profiles|candidates|employers|logos|uploads)\//i.test(image);
 
     if (looksLikeStoredImage && supabaseUrl) {
       const cleanPath = image.replace(/^\/+/, "");

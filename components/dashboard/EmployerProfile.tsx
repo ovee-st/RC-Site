@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
-import { authSafeAvatarAliases, avatarAliases, normalizeProfileImageUrl, stripInlineAuthAvatarMetadata, syncProfileImageState } from "@/lib/profileImageSync";
+import { authSafeAvatarAliases, avatarAliases, normalizeProfileImageUrl, stripInlineAuthAvatarMetadata, syncProfileImageState, uploadProfileMedia } from "@/lib/profileImageSync";
 
 type EmployerProfileState = {
   company_name: string;
@@ -62,14 +62,28 @@ function loadLocalProfile(userEmail?: string | null) {
 
   try {
     const saved = window.localStorage.getItem(PROFILE_KEY);
-    return {
+    const profile = {
       ...defaultProfile,
       email: userEmail || defaultProfile.email,
       ...(saved ? JSON.parse(saved) : {})
     };
+    return {
+      ...profile,
+      photo_url: normalizeProfileImageUrl(profile.photo_url),
+      banner_url: normalizeProfileImageUrl(profile.banner_url)
+    };
   } catch {
     return { ...defaultProfile, email: userEmail || defaultProfile.email };
   }
+}
+
+function readImageFile(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("Could not read the selected image."));
+    reader.readAsDataURL(file);
+  });
 }
 
 export default function EmployerProfile() {
@@ -104,6 +118,8 @@ export default function EmployerProfile() {
       const nextProfile = {
         ...localProfile,
         ...(data || {}),
+        photo_url: normalizeProfileImageUrl(data?.photo_url || localProfile.photo_url),
+        banner_url: normalizeProfileImageUrl(data?.banner_url || localProfile.banner_url),
         email: data?.email || user.email || localProfile.email
       };
 
@@ -127,26 +143,32 @@ export default function EmployerProfile() {
     setDraft((current) => ({ ...current, [key]: value }));
   };
 
-  const handlePhotoChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      updateDraft("photo_url", String(reader.result));
-    };
-    reader.readAsDataURL(file);
+    try {
+      const photoUrl = user?.id && isSupabaseConfigured
+        ? await uploadProfileMedia(file, user.id, "avatar")
+        : await readImageFile(file);
+      updateDraft("photo_url", photoUrl);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not upload profile image.");
+    }
   };
 
-  const handleBannerChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleBannerChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      updateDraft("banner_url", String(reader.result));
-    };
-    reader.readAsDataURL(file);
+    try {
+      const bannerUrl = user?.id && isSupabaseConfigured
+        ? await uploadProfileMedia(file, user.id, "banner")
+        : await readImageFile(file);
+      updateDraft("banner_url", bannerUrl);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not upload company banner.");
+    }
   };
 
   const saveProfile = async () => {
@@ -155,7 +177,7 @@ export default function EmployerProfile() {
       return;
     }
 
-    const nextDraft = { ...draft, photo_url: normalizeProfileImageUrl(draft.photo_url) };
+    const nextDraft = { ...draft, photo_url: normalizeProfileImageUrl(draft.photo_url), banner_url: normalizeProfileImageUrl(draft.banner_url) };
     setProfile(nextDraft);
     setEditing(false);
     setMessage("Profile saved successfully.");
@@ -173,28 +195,30 @@ export default function EmployerProfile() {
 
     if (user?.id && isSupabaseConfigured) {
       try {
-        await supabase
+        const employerWrite = await supabase
           .from("employers")
           .upsert({
             user_id: user.id,
-            ...nextDraft,
-            ...avatarAliases(nextDraft.photo_url)
-          }, { onConflict: "user_id" })
-          .throwOnError();
-        await supabase
+            ...nextDraft
+          }, { onConflict: "user_id" });
+        if (employerWrite.error) {
+          const employerUpdate = await supabase.from("employers").update(nextDraft).eq("user_id", user.id);
+          if (employerUpdate.error) throw employerUpdate.error;
+        }
+
+        const profileWrite = await supabase
           .from("profiles")
           .upsert({
             id: user.id,
             email: user.email || nextDraft.email || "",
             full_name: nextDraft.contact_person || nextDraft.company_name,
             name: nextDraft.contact_person || nextDraft.company_name,
-            company_name: nextDraft.company_name,
-            contact_person: nextDraft.contact_person,
             role: "employer",
-            ...avatarAliases(nextDraft.photo_url),
+            avatar_url: nextDraft.photo_url,
             updated_at: new Date().toISOString()
-          }, { onConflict: "id" })
-          .throwOnError();
+          }, { onConflict: "id" });
+        if (profileWrite.error) throw profileWrite.error;
+
         await supabase.auth.updateUser({
           data: {
             ...stripInlineAuthAvatarMetadata(user.user_metadata || {}),

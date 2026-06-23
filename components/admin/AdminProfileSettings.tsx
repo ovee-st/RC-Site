@@ -9,7 +9,7 @@ import Card from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
 import { useAuth } from "@/hooks/useAuth";
 import { AUTH_CHANGE_EVENT, MOCK_USER_KEY, getStableUsername } from "@/lib/accountIdentity";
-import { authSafeAvatarAliases, avatarAliases, normalizeProfileImageUrl, stripInlineAuthAvatarMetadata } from "@/lib/profileImageSync";
+import { authSafeAvatarAliases, avatarAliases, normalizeProfileImageUrl, stripInlineAuthAvatarMetadata, uploadProfileMedia } from "@/lib/profileImageSync";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 
 function initials(name: string) {
@@ -68,15 +68,18 @@ export default function AdminProfileSettings() {
     setAvatarUrl(user?.user_metadata?.avatar_url || user?.user_metadata?.picture || user?.avatar || "");
   }, [user]);
 
-  function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
+  async function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      setAvatarUrl(String(reader.result));
-    };
-    reader.readAsDataURL(file);
+    try {
+      const uploadedUrl = user?.id && isSupabaseConfigured
+        ? await uploadProfileMedia(file, user.id, "avatar")
+        : "";
+      setAvatarUrl(uploadedUrl);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not upload profile image.");
+    }
   }
 
   async function saveProfile() {
@@ -114,7 +117,7 @@ export default function AdminProfileSettings() {
 
       const { error: profileError } = await supabase
         .from("profiles")
-        .update({ full_name: cleanName, ...avatarAliases(cleanAvatar), username })
+        .update({ full_name: cleanName, name: cleanName, avatar_url: cleanAvatar, username })
         .eq("id", user?.id);
 
       if (profileError) {

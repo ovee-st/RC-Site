@@ -16,7 +16,7 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/cn";
 import { AUTH_CHANGE_EVENT, clearStoredAuthIdentity } from "@/lib/accountIdentity";
-import { authSafeAvatarAliases, avatarAliases, normalizeProfileImageUrl, stripInlineAuthAvatarMetadata, syncProfileImageState } from "@/lib/profileImageSync";
+import { authSafeAvatarAliases, avatarAliases, normalizeProfileImageUrl, stripInlineAuthAvatarMetadata, syncProfileImageState, uploadProfileMedia } from "@/lib/profileImageSync";
 import AccountSettings from "@/components/account/AccountSettings";
 import SkillPicker from "@/components/skills/SkillPicker";
 import StatsCards from "@/components/dashboard/StatsCards";
@@ -232,6 +232,7 @@ const createEmptyCertification = (): CandidateProfileState["certifications"][num
 function normalizeProfile(profile: CandidateProfileState): CandidateProfileState {
   return {
     ...profile,
+    avatar: normalizeProfileImageUrl(profile.avatar),
     preferredJobLocation: profile.preferredJobLocation || "",
     availability: {
       immediate: profile.availability?.immediate ?? true,
@@ -326,7 +327,7 @@ async function syncCandidateProfile(nextProfile: CandidateProfileState, user: Re
     full_name: nextProfile.name,
     name: nextProfile.name,
     role: "candidate",
-    ...avatarAliases(avatarUrl),
+    avatar_url: avatarUrl,
     updated_at: new Date().toISOString()
   };
 
@@ -351,7 +352,7 @@ async function syncCandidateProfile(nextProfile: CandidateProfileState, user: Re
     about: nextProfile.about,
     skills: nextProfile.skills,
     skills_array: nextProfile.skills,
-    ...avatarAliases(avatarUrl),
+    photo_url: avatarUrl,
     category: demoCandidates[0]?.category || "HR & Admin",
     career_level: demoCandidates[0]?.experience || "Mid Level",
     immediate_availability: nextProfile.availability.immediate,
@@ -1127,15 +1128,23 @@ export default function CandidateDashboard() {
     });
   };
 
-  const handlePhotoChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      setDraft((current) => ({ ...current, avatar: String(reader.result) }));
-    };
-    reader.readAsDataURL(file);
+    try {
+      const avatar = user?.id && isSupabaseConfigured
+        ? await uploadProfileMedia(file, user.id, "avatar")
+        : await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result));
+            reader.onerror = () => reject(new Error("Could not read the selected image."));
+            reader.readAsDataURL(file);
+          });
+      setDraft((current) => ({ ...current, avatar }));
+    } catch (error) {
+      console.error("Candidate photo upload failed", error);
+    }
   };
 
   const handleLogout = async () => {
