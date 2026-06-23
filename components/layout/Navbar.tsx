@@ -301,6 +301,7 @@ export default function Navbar() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [profileAvatar, setProfileAvatar] = useState<string | null>(null);
+  const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [remoteNotifications, setRemoteNotifications] = useState<NavbarNotification[]>([]);
   const [clearedNotificationIds, setClearedNotificationIds] = useState<string[]>([]);
@@ -326,8 +327,9 @@ export default function Navbar() {
     metadata.company_logo_url ||
     metadata.picture ||
     null;
+  const effectiveAvatarSrc = avatarLoadFailed ? null : avatarSrc;
   const verified = Boolean(user?.user_metadata?.verified) || String(user?.user_metadata?.plan || "").toLowerCase() === "pro";
-  const isLogoAvatar = Boolean(avatarSrc && /mx-logo|mx[\\/_-]?venture|MX\.png/i.test(avatarSrc));
+  const isLogoAvatar = Boolean(effectiveAvatarSrc && /mx-logo|mx[\\/_-]?venture|MX\.png/i.test(effectiveAvatarSrc));
   const initials = getInitials(displayName);
   const resolvedRole = user ? (currentRole === "admin" ? "admin" : currentRole === "viewer" ? "viewer" : isSupportRole ? "support" : currentRole === "employee" ? "employee" : currentRole === "employer" ? "employer" : "candidate") : "guest";
   const navItems = navItemsByRole[resolvedRole];
@@ -345,11 +347,12 @@ export default function Navbar() {
   );
   const visibleRoleNotifications = allRoleNotifications.filter((notification) => !clearedNotificationIds.includes(notification.id));
 
-  const avatar = avatarSrc ? (
+  const avatar = effectiveAvatarSrc ? (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={avatarSrc}
+      src={effectiveAvatarSrc}
       alt={displayName}
+      onError={() => setAvatarLoadFailed(true)}
       className={cn(
         "h-8 w-8 rounded-full ring-2 ring-gray-200 transition hover:ring-blue-500 dark:ring-white/20 dark:hover:ring-blue-400",
         isLogoAvatar ? "bg-white p-1 object-contain" : "object-cover"
@@ -478,30 +481,55 @@ export default function Navbar() {
   }, [profileOpen]);
 
   useEffect(() => {
-    const loadProfileAvatar = () => {
+    let active = true;
+
+    const loadProfileAvatar = async () => {
       if (typeof window === "undefined") return;
 
+      let localAvatar: string | null = null;
       try {
         const key = role === "employer" ? EMPLOYER_PROFILE_KEY : role === "candidate" ? CANDIDATE_PROFILE_KEY : null;
         const savedProfile = key ? window.localStorage.getItem(key) : null;
         const savedMockUser = window.localStorage.getItem(MOCK_USER_KEY);
         const parsedProfile = savedProfile ? JSON.parse(savedProfile) : null;
         const parsedMockUser = savedMockUser ? JSON.parse(savedMockUser) : null;
-        setProfileAvatar(resolveProfileAvatar(parsedProfile) || resolveProfileAvatar(parsedMockUser));
+        localAvatar = resolveProfileAvatar(parsedProfile) || resolveProfileAvatar(parsedMockUser);
+        if (active) setProfileAvatar(localAvatar);
       } catch {
-        setProfileAvatar(null);
+        if (active) setProfileAvatar(null);
+      }
+
+      if (!isSupabaseConfigured || !user?.id) return;
+      try {
+        const profileRequest = supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
+        const roleRequest = role === "candidate"
+          ? supabase.from("candidates").select("*").or(`user_id.eq.${user.id},id.eq.${user.id}`).limit(1).maybeSingle()
+          : role === "employer"
+            ? supabase.from("employers").select("*").or(`user_id.eq.${user.id},id.eq.${user.id}`).limit(1).maybeSingle()
+            : Promise.resolve({ data: null });
+        const [profileResult, roleResult] = await Promise.all([profileRequest, roleRequest]);
+        const databaseAvatar = resolveProfileAvatar(roleResult.data) || resolveProfileAvatar(profileResult.data);
+        if (active) setProfileAvatar(databaseAvatar || localAvatar || resolveProfileAvatar(user as any));
+      } catch {
+        if (active && !localAvatar) setProfileAvatar(resolveProfileAvatar(user as any));
       }
     };
 
-    loadProfileAvatar();
-    window.addEventListener(AUTH_CHANGE_EVENT, loadProfileAvatar);
-    window.addEventListener("storage", loadProfileAvatar);
+    void loadProfileAvatar();
+    const handleProfileChange = () => { void loadProfileAvatar(); };
+    window.addEventListener(AUTH_CHANGE_EVENT, handleProfileChange);
+    window.addEventListener("storage", handleProfileChange);
 
     return () => {
-      window.removeEventListener(AUTH_CHANGE_EVENT, loadProfileAvatar);
-      window.removeEventListener("storage", loadProfileAvatar);
+      active = false;
+      window.removeEventListener(AUTH_CHANGE_EVENT, handleProfileChange);
+      window.removeEventListener("storage", handleProfileChange);
     };
-  }, [role]);
+  }, [role, user?.id]);
+
+  useEffect(() => {
+    setAvatarLoadFailed(false);
+  }, [avatarSrc]);
 
   const handleLogout = async () => {
     if (typeof window !== "undefined") {

@@ -4,7 +4,8 @@ create table if not exists public.interview_preparation_sessions (
   id uuid primary key default gen_random_uuid(),
   candidate_user_id uuid not null references auth.users(id) on delete cascade,
   application_id uuid references public.applications(id) on delete set null,
-  job_id uuid not null references public.jobs(id) on delete cascade,
+  job_id uuid references public.jobs(id) on delete cascade,
+  job_reference text,
   mode text not null default 'basic' check (mode in ('basic', 'mock')),
   status text not null default 'in_progress' check (status in ('in_progress', 'completed')),
   is_pro boolean not null default false,
@@ -20,6 +21,9 @@ create table if not exists public.interview_preparation_sessions (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.interview_preparation_sessions alter column job_id drop not null;
+alter table public.interview_preparation_sessions add column if not exists job_reference text;
 
 create table if not exists public.interview_preparation_responses (
   id uuid primary key default gen_random_uuid(),
@@ -54,6 +58,8 @@ alter table public.interview_preparation_responses add column if not exists subm
 
 create index if not exists interview_prep_candidate_job_idx
   on public.interview_preparation_sessions(candidate_user_id, job_id, created_at desc);
+create index if not exists interview_prep_candidate_job_reference_idx
+  on public.interview_preparation_sessions(candidate_user_id, job_reference, created_at desc);
 create index if not exists interview_prep_application_idx
   on public.interview_preparation_sessions(application_id);
 create index if not exists interview_prep_responses_session_idx

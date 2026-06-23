@@ -1,8 +1,27 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServerSupabaseClient } from "@/lib/supabaseServer";
 import type { InterviewAnswerFeedback, InterviewPreparationDto, InterviewQuestion } from "@/types/interviewPreparation";
+import { demoJobs } from "@/lib/demoData";
 
 export const FREE_INTERVIEW_SUBMISSION_LIMIT = 2;
+
+export function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+export function getDemoInterviewJob(jobReference: string) {
+  const job = demoJobs.find((item) => item.id === jobReference);
+  if (!job) return null;
+  return {
+    id: job.id,
+    job_title: job.title,
+    company_name: job.company,
+    description: job.description,
+    requirements: job.requirements,
+    required_skills: job.skills.join(", "),
+    required_skills_array: job.skills
+  };
+}
 
 export async function requireCandidate(request: Request) {
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
@@ -52,8 +71,12 @@ function mapAnswer(row: Record<string, any>): InterviewAnswerFeedback {
 export async function mapPreparationSession(client: SupabaseClient, row: Record<string, any>, job?: Record<string, any> | null): Promise<InterviewPreparationDto> {
   let jobRow = job;
   if (!jobRow) {
-    const result = await client.from("jobs").select("id, job_title, company_name").eq("id", row.job_id).maybeSingle();
-    jobRow = result.data;
+    if (row.job_id) {
+      const result = await client.from("jobs").select("id, job_title, company_name").eq("id", row.job_id).maybeSingle();
+      jobRow = result.data;
+    } else {
+      jobRow = getDemoInterviewJob(String(row.job_reference || ""));
+    }
   }
   const { data: responseRows } = await client.from("interview_preparation_responses").select("*").eq("session_id", row.id).order("created_at", { ascending: true });
   const answers = (responseRows || []).map(mapAnswer);
@@ -67,7 +90,7 @@ export async function mapPreparationSession(client: SupabaseClient, row: Record<
 
   return {
     id: String(row.id),
-    jobId: String(row.job_id),
+    jobId: String(row.job_reference || row.job_id),
     applicationId: row.application_id ? String(row.application_id) : null,
     jobTitle: String(jobRow?.job_title || "Interview preparation"),
     companyName: String(jobRow?.company_name || "Employer"),

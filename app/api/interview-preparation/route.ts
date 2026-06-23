@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { analyzeInterviewFit, generateFallbackInterviewQuestions, normalizeSkillList } from "@/lib/interviewPreparation";
-import { interviewSetupError, isCandidatePro, mapPreparationSession, requireCandidate } from "@/lib/interviewPreparationServer";
+import { getDemoInterviewJob, interviewSetupError, isCandidatePro, isUuid, mapPreparationSession, requireCandidate } from "@/lib/interviewPreparationServer";
 import type { InterviewQuestion } from "@/types/interviewPreparation";
 
 export const runtime = "nodejs";
@@ -54,7 +54,7 @@ export async function GET(request: Request) {
 
     if (sessionId || jobId) {
       let query = client.from("interview_preparation_sessions").select("*").eq("candidate_user_id", user.id);
-      query = sessionId ? query.eq("id", sessionId) : query.eq("job_id", jobId!);
+      query = sessionId ? query.eq("id", sessionId) : isUuid(jobId!) ? query.eq("job_id", jobId!) : query.eq("job_reference", jobId!);
       const { data, error } = await query.order("created_at", { ascending: false }).limit(1).maybeSingle();
       if (error) throw error;
       return NextResponse.json({ preparation: data ? await mapPreparationSession(client, data) : null });
@@ -75,7 +75,8 @@ export async function GET(request: Request) {
     const jobsById = new Map((jobs || []).map((job) => [String(job.id), job]));
     const latestSessionByJob = new Map<string, Record<string, any>>();
     (sessionRows || []).forEach((session) => {
-      if (!latestSessionByJob.has(String(session.job_id))) latestSessionByJob.set(String(session.job_id), session);
+      const sessionJobId = String(session.job_reference || session.job_id);
+      if (!latestSessionByJob.has(sessionJobId)) latestSessionByJob.set(sessionJobId, session);
     });
 
     const appliedJobs = (applicationRows || []).filter((application) => application.job_id && jobsById.has(String(application.job_id))).map((application) => {
@@ -105,8 +106,9 @@ export async function POST(request: Request) {
     const requestedMode = body.mode === "mock" ? "mock" : "basic";
     if (!jobId) return NextResponse.json({ error: "A job is required for interview preparation." }, { status: 400 });
 
-    const { data: job, error: jobError } = await client.from("jobs").select("*").eq("id", jobId).maybeSingle();
-    if (jobError) throw jobError;
+    const databaseJob = isUuid(jobId) ? await client.from("jobs").select("*").eq("id", jobId).maybeSingle() : { data: null, error: null };
+    const job = databaseJob.data || getDemoInterviewJob(jobId);
+    if (databaseJob.error) throw databaseJob.error;
     if (!job) return NextResponse.json({ error: "The selected job was not found." }, { status: 404 });
 
     const isPro = isCandidatePro(profile, user.user_metadata || {});
@@ -118,7 +120,7 @@ export async function POST(request: Request) {
       .from("interview_preparation_sessions")
       .select("*")
       .eq("candidate_user_id", user.id)
-      .eq("job_id", jobId)
+      .eq(isUuid(jobId) ? "job_id" : "job_reference", jobId)
       .eq("mode", requestedMode)
       .order("created_at", { ascending: false })
       .limit(1)
@@ -128,10 +130,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ preparation: await mapPreparationSession(client, existingSession, job), reused: true });
     }
 
-    const [{ data: candidate }, { data: application }] = await Promise.all([
+    const [{ data: candidate }, applicationResult] = await Promise.all([
       client.from("candidates").select("*").or(`user_id.eq.${user.id},id.eq.${user.id}`).limit(1).maybeSingle(),
-      client.from("applications").select("id").or(`candidate_user_id.eq.${user.id},candidate_id.eq.${user.id}`).eq("job_id", jobId).order("created_at", { ascending: false }).limit(1).maybeSingle()
+      isUuid(jobId)
+        ? client.from("applications").select("id").or(`candidate_user_id.eq.${user.id},candidate_id.eq.${user.id}`).eq("job_id", jobId).order("created_at", { ascending: false }).limit(1).maybeSingle()
+        : Promise.resolve({ data: null, error: null })
     ]);
+    const application = applicationResult.data;
     const candidateSkills = normalizeSkillList(candidate?.skills_array || candidate?.skills || candidate?.other_skills);
     const jobSkills = normalizeSkillList(job.required_skills_array || job.required_skills);
     const fit = analyzeInterviewFit({ skills: candidateSkills, title: candidate?.target_role || profile.full_name, about: candidate?.about, experience: candidate?.experience_json }, {
@@ -143,7 +148,8 @@ export async function POST(request: Request) {
     const { data: session, error: insertError } = await client.from("interview_preparation_sessions").insert({
       candidate_user_id: user.id,
       application_id: application?.id || null,
-      job_id: jobId,
+      job_id: isUuid(jobId) ? jobId : null,
+      job_reference: jobId,
       mode: requestedMode,
       status: "in_progress",
       is_pro: isPro,
