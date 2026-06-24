@@ -131,14 +131,14 @@ export default function ManagedHiringPage() {
     <main className="bg-bg text-text-main dark:bg-slate-950 dark:text-white">
       <section className="relative min-h-[calc(100svh-7rem)] max-h-[760px] overflow-hidden">
         <Image src="/managed-hiring-consultation.png" alt="Employer leaders working with recruitment specialists on a managed hiring shortlist" fill priority className="object-cover object-[68%_center]" sizes="100vw" />
-        <div className="absolute inset-0 bg-slate-950/62" />
+        <div className="absolute inset-0 bg-slate-950/70" />
         <Container className="relative flex min-h-[calc(100svh-7rem)] max-h-[760px] items-center py-14">
-          <div className="max-w-3xl text-white">
-            <Badge variant="primary" className="border-white/20 bg-white/10 text-white">Employer Managed Hiring</Badge>
-            <h1 className="mt-5 text-4xl font-black leading-tight sm:text-5xl lg:text-6xl">Managed Hiring, Delivered by MXVL</h1>
-            <p className="mt-5 max-w-2xl text-base font-semibold leading-7 text-white/85 sm:text-lg">Extend your recruitment capacity with a specialist team that sources, screens, coordinates, and supports hiring from requirement discovery through joining.</p>
+          <div className="max-w-3xl !text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.55)]">
+            <Badge variant="primary" className="border-white/30 bg-slate-950/45 !text-white">Employer Managed Hiring</Badge>
+            <h1 className="mt-5 text-4xl font-black leading-tight !text-white sm:text-5xl lg:text-6xl">Managed Hiring, Delivered by MXVL</h1>
+            <p className="mt-5 max-w-2xl text-base font-semibold leading-7 !text-white sm:text-lg">Extend your recruitment capacity with a specialist team that sources, screens, coordinates, and supports hiring from requirement discovery through joining.</p>
             <div className="mt-7 flex flex-wrap gap-3"><Button type="button" onClick={openConsultation} className="gap-2 px-5 py-3"><ClipboardCheck className="h-4 w-4" />Request Hiring Consultation</Button><a href="#services" className="focus-ring inline-flex items-center gap-2 rounded-xl border border-white/35 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/10">Explore Services<ChevronRight className="h-4 w-4" /></a></div>
-            <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm font-bold text-white/75"><span>Dedicated recruitment specialists</span><span>Structured shortlisting</span><span>End-to-end coordination</span></div>
+            <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm font-bold !text-white"><span>Dedicated recruitment specialists</span><span>Structured shortlisting</span><span>End-to-end coordination</span></div>
           </div>
         </Container>
       </section>
