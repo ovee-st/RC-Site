@@ -32,10 +32,6 @@ export default function ContactPage() {
                 ))}
               </div>
             </Card>
-            <Card className="rounded-md p-6">
-              <p className="text-sm font-black text-text-main dark:text-white">bKash/Nagad</p>
-              <p className="mt-2 text-2xl font-black text-primary">01979611120</p>
-            </Card>
           </div>
 
           <Card className="rounded-md p-6">
