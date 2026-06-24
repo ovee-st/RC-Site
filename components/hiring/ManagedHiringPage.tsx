@@ -10,6 +10,7 @@ import Container from "@/components/layout/Container";
 import Badge from "@/components/ui/Badge";
 import Input from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { analyticsEvents } from "@/lib/analytics";
 
 const services = [
   { title: "White Collar Hiring", copy: "Specialist sourcing and assessment for professional, operational, technical, sales, finance, and administrative roles.", icon: Building2 },
@@ -98,6 +99,7 @@ export default function ManagedHiringPage() {
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || "Could not submit consultation request.");
+      analyticsEvents.weHireForYouSubmission(form.hiring_type, Number(form.hiring_volume) || undefined);
       setSuccess(true);
       setMessage("Your hiring consultation request has been submitted. Our recruitment team will contact you within 24 hours.");
     } catch (error) {

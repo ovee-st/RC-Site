@@ -7,6 +7,7 @@ import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { analyticsEvents } from "@/lib/analytics";
 
 export default function ResumeSection({ profile, documents: initialDocuments }: { profile: CandidateProfile; documents: CandidateDocument[] }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -25,6 +26,7 @@ export default function ResumeSection({ profile, documents: initialDocuments }: 
       }
     }
     setDocuments((current) => [{ id: `doc-${Date.now()}`, name: file.name, type: "Resume", url, uploadedAt: new Date().toISOString(), score: 86 }, ...current]);
+    analyticsEvents.resumeUpload(file.type || file.name.split(".").pop());
     setUploading(false);
   }
 

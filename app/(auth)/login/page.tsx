@@ -13,6 +13,7 @@ import PageContainer from "@/components/layout/PageContainer";
 import { demoCandidates } from "@/lib/demoData";
 import { AUTH_CHANGE_EVENT, MOCK_USER_KEY, createStableUsername } from "@/lib/accountIdentity";
 import { roleHomeRoutes } from "@/lib/rbac";
+import { analyticsEvents } from "@/lib/analytics";
 
 const features = [
   { icon: Brain, label: "AI ranked matches" },
@@ -141,6 +142,10 @@ export default function LoginPage() {
     const loggedInUser = { id: user?.id || "demo-user", name: displayName, email, avatar, username: metadata.username || createStableUsername(displayName, email, user?.id || "demo-user") };
     setUser(loggedInUser, resolvedRole);
     persistAuthFallback(loggedInUser, resolvedRole);
+    if (mode === "signup") {
+      if (resolvedRole === "employer") analyticsEvents.employerRegistration();
+      else analyticsEvents.candidateRegistration();
+    }
     router.push(roleHomeRoutes[resolvedRole] || "/");
   };
 

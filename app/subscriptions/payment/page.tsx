@@ -12,6 +12,7 @@ import { useAuth } from "@/context/AuthProvider";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { MANUAL_PAYMENT_METHODS, PAYMENT_REFERENCE, type ManualPaymentMethod } from "@/lib/manualSubscriptionPayments";
 import { EMPLOYER_PLANS, formatCurrencyBDT } from "@/lib/subscriptions";
+import { analyticsEvents } from "@/lib/analytics";
 
 type Breakdown = {
   originalAmount: number;
@@ -255,6 +256,7 @@ export default function ManualSubscriptionPaymentPage() {
         responsePayload
       });
       if (!response.ok) throw new Error(formatCouponMessageValue(responsePayload?.error || responsePayload) || "Could not submit payment request.");
+      analyticsEvents.employerSubscriptionPurchase(selectedPlan.id, breakdown.finalAmount, paymentMethod);
       setMessageTone("success");
       setMessage("Payment request submitted successfully. MXVL admin will verify it shortly.");
       setTransactionId("");

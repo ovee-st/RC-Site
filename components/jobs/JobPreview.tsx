@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useJobStore } from "@/store/useJobStore";
 import { Button, LinkButton } from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
@@ -12,12 +12,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { demoCandidates } from "@/lib/demoData";
 import { matchCandidateToJob } from "@/lib/ai/matching";
 import { normalizeProfileImageUrl } from "@/lib/profileImageSync";
+import { analyticsEvents } from "@/lib/analytics";
 
 export default function JobPreview({ mode = "panel" }: { mode?: "panel" | "modal" }) {
   const { selectedJob, setSelectedJob } = useJobStore();
   const { user, role } = useAuth();
   const [savedJobs, setSavedJobs] = useState<Record<string, boolean>>({});
   const [appliedJobs, setAppliedJobs] = useState<Record<string, boolean>>({});
+  const trackedApplicationIds = useRef(new Set<string>());
   const [employerBranding, setEmployerBranding] = useState<{ bannerUrl: string | null; photoUrl: string | null }>({
     bannerUrl: null,
     photoUrl: null
@@ -53,6 +55,10 @@ export default function JobPreview({ mode = "panel" }: { mode?: "panel" | "modal
           return;
         }
 
+        if (!trackedApplicationIds.current.has(selectedJob.id)) {
+          trackedApplicationIds.current.add(selectedJob.id);
+          analyticsEvents.jobApplication(selectedJob.id, selectedJob.title);
+        }
         setAppliedJobs((current) => ({ ...current, [selectedJob.id]: true }));
       }
     };
@@ -97,6 +103,10 @@ export default function JobPreview({ mode = "panel" }: { mode?: "panel" | "modal
       return;
     }
 
+    if (!trackedApplicationIds.current.has(selectedJob.id)) {
+      trackedApplicationIds.current.add(selectedJob.id);
+      analyticsEvents.jobApplication(selectedJob.id, selectedJob.title);
+    }
     setAppliedJobs((current) => ({ ...current, [selectedJob.id]: true }));
   };
 

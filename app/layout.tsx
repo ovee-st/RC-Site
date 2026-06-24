@@ -4,6 +4,7 @@ import "./globals.css";
 import Providers from "./providers";
 import AppLayout from "@/components/layout/AppLayout";
 import { AuthProvider } from "@/context/AuthProvider";
+import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -58,6 +59,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <AppLayout>{children}</AppLayout>
           </Providers>
         </AuthProvider>
+        <GoogleAnalytics />
       </body>
     </html>
   );
