@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { SubscriptionService } from "@/lib/subscriptionService";
+import { ensureRoleRecord, normalizePlatformRole } from "@/lib/authUserSync";
 
 export type JobCreationPolicyResult =
   | {
@@ -25,11 +26,36 @@ export async function validateJobCreationPolicy(
   subscriptionService: SubscriptionService,
   userId: string
 ): Promise<JobCreationPolicyResult> {
-  const { data: employer, error: employerError } = await adminClient
+  let { data: employer, error: employerError } = await adminClient
     .from("employers")
     .select("id, user_id")
     .eq("user_id", userId)
     .maybeSingle();
+
+  if (!employer?.id) {
+    try {
+      const { data: profile } = await adminClient
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .maybeSingle();
+
+      if (profile?.id && normalizePlatformRole(profile.role) === "employer") {
+        const ensured = await ensureRoleRecord(adminClient, profile);
+        if (!ensured?.error) {
+          const retry = await adminClient
+            .from("employers")
+            .select("id, user_id")
+            .eq("user_id", userId)
+            .maybeSingle();
+          employer = retry.data;
+          employerError = retry.error;
+        }
+      }
+    } catch {
+      // The response below remains the stable failure contract when repair is impossible.
+    }
+  }
 
   if (employerError || !employer?.id) {
     return {

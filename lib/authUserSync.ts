@@ -376,6 +376,35 @@ export function employerFromProfile(profile: AnyRecord) {
   };
 }
 
+export function employerRoleInsertPayload(profile: AnyRecord) {
+  const fallback = employerFromProfile(profile);
+  const email = profile.official_email || profile.email || fallback.email || "";
+  const phone = profile.contact_number || profile.phone || fallback.phone || "Not provided";
+
+  return {
+    id: profile.id,
+    user_id: profile.id,
+    company_name: profile.company_name || fallback.company_name,
+    contact_person: profile.contact_person || fallback.contact_person,
+    email,
+    phone,
+    location: profile.location || fallback.location,
+    industry: profile.industry || fallback.industry,
+    company_size: profile.company_size || fallback.company_size,
+    about: profile.about || fallback.about,
+    contact_number: phone,
+    official_email: email,
+    monthly_needed_hiring: Math.max(0, Number(profile.monthly_needed_hiring) || 0),
+    plan_interest: profile.plan_interest || profile.plan || "No subscription",
+    category: profile.category || null,
+    role_needed: profile.role_needed || null,
+    required_skills: profile.required_skills || null,
+    number_of_positions: Math.max(0, Number(profile.number_of_positions) || 0),
+    salary_range: profile.salary_range || null,
+    talent_categories_role_requirements: profile.talent_categories_role_requirements || profile.role_needed || "Not provided"
+  };
+}
+
 export function mergeRowsWithProfiles(rows: AnyRecord[], profiles: AnyRecord[], role: "candidate" | "employer") {
   const map = new Map<string, AnyRecord>();
 
@@ -428,6 +457,9 @@ export async function ensureRoleRecord(client: SupabaseClient, profile: AnyRecor
   if (update.error && /column|schema cache/i.test(String(update.error.message))) return;
   if (!update.error && update.count && update.count > 0) return;
 
-  await safeInsert(client, table, { id: profile.id, ...safePayload });
+  const insertPayload = role === "employer"
+    ? employerRoleInsertPayload(profile)
+    : { id: profile.id, ...safePayload };
+  return safeInsert(client, table, insertPayload);
 }
 
