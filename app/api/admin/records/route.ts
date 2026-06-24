@@ -13,6 +13,7 @@ const TABLES = new Set([
   "jobs",
   "applications",
   "contact_requests",
+  "hiring_requests",
   "coupons",
   "transactions",
   "subscription_payment_requests",
@@ -27,6 +28,7 @@ const SECTION_TABLES: Record<string, string[]> = {
   jobs: ["jobs", "employers"],
   employees: ["profiles", "employees"],
   "contact-requests": ["contact_requests"],
+  "hiring-consultations": ["hiring_requests"],
   coupons: ["coupons"],
   "subscription-payments": ["subscription_payment_requests", "employers"],
   transactions: ["transactions"]

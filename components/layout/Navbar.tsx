@@ -21,8 +21,7 @@ const navItemsByRole = {
   guest: [
   { label: "Home", href: "/" },
   { label: "Jobs", href: "/jobs" },
-  { label: "Services", href: "/services" },
-  { label: "We Hire for You", href: "/we-hire-for-you" }
+  { label: "Services", href: "/services" }
   ],
   candidate: [
     { label: "Home", href: "/" },

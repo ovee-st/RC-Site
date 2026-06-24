@@ -8,6 +8,7 @@ import {
   Bell,
   BriefcaseBusiness,
   CheckCircle2,
+  ClipboardList,
   CircleDollarSign,
   Copy,
   CreditCard,
@@ -55,6 +56,7 @@ type AdminSection =
   | "jobs"
   | "employees"
   | "contact-requests"
+  | "hiring-consultations"
   | "coupons"
   | "subscription-payments"
   | "transactions";
@@ -86,6 +88,7 @@ type AdminState = {
   jobs: AnyRecord[];
   applications: AnyRecord[];
   contactRequests: AnyRecord[];
+  hiringRequests: AnyRecord[];
   coupons: AnyRecord[];
   employerSubscriptions: AnyRecord[];
   subscriptionPayments: AnyRecord[];
@@ -100,6 +103,7 @@ const emptyState: AdminState = {
   jobs: [],
   applications: [],
   contactRequests: [],
+  hiringRequests: [],
   coupons: [],
   employerSubscriptions: [],
   subscriptionPayments: [],
@@ -152,6 +156,10 @@ const sectionMeta: Record<AdminSection, { title: string; description: string }> 
     title: "Coupon Management",
     description: "Create, copy, disable, and track promotional coupons for subscriptions."
   },
+  "hiring-consultations": {
+    title: "Hiring Consultation Requests",
+    description: "Review managed hiring requirements, contact employers, and track consultation follow-up."
+  },
   "subscription-payments": {
     title: "Subscription Payments",
     description: "Verify manual bKash payments, approve subscription activation, and review proof submissions."
@@ -171,6 +179,7 @@ const navItems = [
   { label: "Employees", href: "/admin/employees", key: "employees", icon: UserCog },
   { label: "Support Tickets", href: "/admin/support", key: "support", icon: Bell },
   { label: "Contact Requests", href: "/admin/contact-requests", key: "contact-requests", icon: Mail },
+  { label: "Hiring Consultations", href: "/admin/hiring-consultations", key: "hiring-consultations", icon: ClipboardList },
   { label: "Coupons", href: "/admin/coupons", key: "coupons", icon: Gift },
   { label: "Subscription Payments", href: "/admin/subscription-payments", key: "subscription-payments", icon: CircleDollarSign },
   { label: "Transactions", href: "/admin/transactions", key: "transactions", icon: CreditCard }
@@ -449,6 +458,7 @@ function adminSectionTables(section: AdminSection) {
     jobs: ["jobs", "employers"],
     employees: ["profiles", "employees"],
     "contact-requests": ["contact_requests"],
+    "hiring-consultations": ["hiring_requests"],
     coupons: ["coupons"],
     "subscription-payments": ["subscription_payment_requests", "employers"],
     transactions: ["transactions"]
@@ -762,7 +772,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
         if (adminRecords && Array.isArray(adminRecords[table])) return Promise.resolve(adminRecords[table]);
         return safeSelect(table);
       };
-      const [profiles, candidates, employers, employees, jobs, applications, contactRequests, coupons, subscriptionPayments, transactions, employerSubscriptions] = await Promise.all([
+      const [profiles, candidates, employers, employees, jobs, applications, contactRequests, hiringRequests, coupons, subscriptionPayments, transactions, employerSubscriptions] = await Promise.all([
         selectIfNeeded("profiles"),
         selectIfNeeded("candidates"),
         selectIfNeeded("employers"),
@@ -770,6 +780,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
         selectIfNeeded("jobs"),
         selectIfNeeded("applications"),
         selectIfNeeded("contact_requests"),
+        selectIfNeeded("hiring_requests"),
         selectIfNeeded("coupons"),
         selectIfNeeded("subscription_payment_requests"),
         selectIfNeeded("transactions"),
@@ -808,6 +819,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
           jobs: jobs === null ? current.jobs : jobs,
           applications: applications === null ? current.applications : applications,
           contactRequests: contactRequests === null ? current.contactRequests : contactRequests.length ? contactRequests : fallbackContacts,
+          hiringRequests: hiringRequests === null ? current.hiringRequests : hiringRequests,
           coupons: coupons === null ? current.coupons : coupons.length ? coupons : fallbackCoupons,
           subscriptionPayments: subscriptionPayments === null ? current.subscriptionPayments : subscriptionPayments,
           transactions: transactions === null ? current.transactions : transactions.length ? transactions : fallbackTransactions,
@@ -1625,6 +1637,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
               {section === "jobs" ? <JobsSection rows={adminData.jobs} onUpdate={updateRecord} readOnly={readOnly} /> : null}
               {section === "employees" ? <EmployeesSection rows={adminData.employees} onUpdate={updateRecord} onDelete={deleteRecord} readOnly={readOnly} /> : null}
               {section === "contact-requests" ? <ContactRequestsSection rows={adminData.contactRequests} onUpdate={updateRecord} onDelete={deleteRecord} /> : null}
+              {section === "hiring-consultations" ? <HiringConsultationRequestsSection rows={adminData.hiringRequests} onUpdate={updateRecord} onDelete={deleteRecord} readOnly={readOnly} /> : null}
               {section === "coupons" ? <CouponsSection rows={adminData.coupons} onCreate={createCoupon} onGenerate={generateCoupon} onUpdate={updateRecord} onDelete={deleteRecord} readOnly={readOnly} /> : null}
               {section === "subscription-payments" ? <SubscriptionPaymentsSection rows={adminData.subscriptionPayments} onAction={updateSubscriptionPayment} readOnly={readOnly} /> : null}
               {section === "transactions" ? <TransactionsSection rows={adminData.transactions} /> : null}
@@ -2278,6 +2291,78 @@ function ContactRequestsSection({ rows, onUpdate, onDelete }: { rows: AnyRecord[
           </div>
         </Card>
       ))}
+    </div>
+  );
+}
+
+function HiringConsultationRequestsSection({
+  rows,
+  onUpdate,
+  onDelete,
+  readOnly
+}: {
+  rows: AnyRecord[];
+  onUpdate: (table: string, id: string, patch: AnyRecord) => void;
+  onDelete: (table: string, id: string) => void;
+  readOnly: boolean;
+}) {
+  if (!rows.length) {
+    return (
+      <Card className="p-8 text-center">
+        <ClipboardList className="mx-auto h-8 w-8 text-primary" />
+        <h3 className="mt-3 text-lg font-black text-text-main dark:text-white">No consultation requests yet</h3>
+        <p className="mt-2 text-sm font-semibold text-text-muted">Employer hiring requirements will appear here after submission.</p>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="grid gap-4">
+      {rows.map((request) => {
+        const status = String(request.status || "new").toLowerCase();
+        return (
+          <Card key={request.id} className="p-5">
+            <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-xl font-black text-text-main dark:text-white">{request.company_name || "Company not provided"}</h3>
+                  <StatusBadge value={status} />
+                </div>
+                <p className="mt-1 text-sm font-semibold text-text-muted">
+                  {request.contact_person || "Contact not provided"} · {request.email || "No email"} · {request.phone || "No phone"}
+                </p>
+                <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <div><p className="type-label">Hiring Type</p><p className="mt-1 text-sm font-bold">{request.hiring_type || request.hiring_category || "Not specified"}</p></div>
+                  <div><p className="type-label">Positions</p><p className="mt-1 text-sm font-bold">{request.positions_required || request.job_roles || request.roles || "Not specified"}</p></div>
+                  <div><p className="type-label">Hiring Volume</p><p className="mt-1 text-sm font-bold">{request.hiring_volume || request.number_of_employees || request.quantity || "Not specified"}</p></div>
+                  <div><p className="type-label">Job Location</p><p className="mt-1 text-sm font-bold">{request.job_location || request.location || "Not specified"}</p></div>
+                </div>
+                <div className="mt-5 border-t border-border pt-4 dark:border-white/10">
+                  <p className="type-label">Requirement Details</p>
+                  <p className="mt-2 max-w-5xl whitespace-pre-wrap text-sm font-medium leading-6 text-text-muted">{request.requirement_details || request.details || "No additional details provided."}</p>
+                  <p className="mt-3 text-xs font-bold text-text-muted">Submitted {formatDate(request.created_at)}</p>
+                </div>
+              </div>
+              <div className="flex shrink-0 flex-wrap gap-2 xl:max-w-64 xl:justify-end">
+                {["new", "contacted", "in progress", "closed"].map((nextStatus) => (
+                  <Button
+                    key={nextStatus}
+                    variant={status === nextStatus ? "primary" : "secondary"}
+                    className="px-3 py-2"
+                    disabled={readOnly || status === nextStatus}
+                    onClick={() => onUpdate("hiring_requests", request.id, { status: nextStatus, updated_at: new Date().toISOString() })}
+                  >
+                    {nextStatus}
+                  </Button>
+                ))}
+                <Button variant="ghost" className="px-3 py-2 text-danger" disabled={readOnly} onClick={() => onDelete("hiring_requests", request.id)} aria-label="Delete consultation request">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </Card>
+        );
+      })}
     </div>
   );
 }

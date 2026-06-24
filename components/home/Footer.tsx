@@ -11,7 +11,7 @@ const audienceColumns = [
   },
   {
     title: "Employers",
-    hideForCandidate: true,
+    employerOnly: true,
     links: [["Plans", "/subscriptions"], ["We Hire For You", "/we-hire-for-you"], ["Employer Solutions", "/services"]]
   }
 ];
@@ -24,7 +24,7 @@ const companyColumn = {
 export default function Footer() {
   const { role } = useAuth();
   const visibleColumns = [
-    ...audienceColumns.filter((column) => !(role === "candidate" && column.hideForCandidate)),
+    ...audienceColumns.filter((column) => !column.employerOnly || role === "employer" || role === "admin"),
     companyColumn
   ];
 
@@ -37,7 +37,7 @@ export default function Footer() {
             <p className="mt-3 max-w-sm text-sm leading-6 text-slate-600 dark:text-slate-300">Helping organizations improve operations, strengthen infrastructure, and achieve sustainable growth through technology, facilities, project management, and business support services.</p>
             <p className="mt-5 text-xs font-bold uppercase tracking-[0.18em] text-slate-400">INNOVATING BUSINESS. EMPOWERING GROWTH.</p>
           </div>
-          <div className={`grid gap-6 sm:grid-cols-2 ${role === "candidate" ? "lg:grid-cols-2" : "lg:grid-cols-3"}`}>
+          <div className={`grid gap-6 sm:grid-cols-2 ${visibleColumns.length > 2 ? "lg:grid-cols-3" : "lg:grid-cols-2"}`}>
             {visibleColumns.map((column) => (
               <div key={column.title}>
                 <p className="text-sm font-black text-slate-950 dark:text-white">{column.title}</p>
