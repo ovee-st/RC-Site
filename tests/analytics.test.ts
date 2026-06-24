@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { DEFAULT_GA_MEASUREMENT_ID, analyticsEvents, trackPageView } from "@/lib/analytics";
+import { DEFAULT_GA_MEASUREMENT_ID, analyticsEvents, initializeGoogleAnalytics, trackPageView } from "@/lib/analytics";
 
 const originalWindow = globalThis.window;
 const originalDocument = globalThis.document;
@@ -33,6 +33,16 @@ describe("Google Analytics utilities", () => {
     expect(browser.dataLayer).toHaveLength(1);
   });
 
+  it("queues js and config before the initial page view", () => {
+    const browser = installBrowserGlobals();
+    initializeGoogleAnalytics();
+    trackPageView("/jobs");
+    expect(browser.dataLayer).toHaveLength(3);
+    expect(browser.dataLayer[0]).toEqual(expect.arrayContaining(["js"]));
+    expect(browser.dataLayer[1]).toEqual(["config", "G-GMHJFVM0MJ", { send_page_view: false }]);
+    expect(browser.dataLayer[2]).toEqual(expect.arrayContaining(["event", "page_view"]));
+  });
+
   it("queues typed business events", () => {
     const browser = installBrowserGlobals();
     analyticsEvents.jobApplication("job-1", "Operations Manager");
@@ -40,4 +50,3 @@ describe("Google Analytics utilities", () => {
     expect(browser.dataLayer[0]).toEqual(expect.arrayContaining(["event", "job_application"]));
   });
 });
-
