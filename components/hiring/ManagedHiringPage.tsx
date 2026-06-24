@@ -42,9 +42,9 @@ const initialForm = {
   contact_person: "",
   email: "",
   phone: "",
-  hiring_type: "White Collar Hiring",
+  hiring_type: "",
   positions_required: "",
-  hiring_volume: "1",
+  hiring_volume: "",
   job_location: "",
   requirement_details: ""
 };
@@ -69,25 +69,6 @@ export default function ManagedHiringPage() {
   }, [allowed, loading, role, router, user]);
 
   useEffect(() => {
-    if (!user || !allowed) return;
-    const metadata = user.user_metadata as Record<string, string | undefined> | undefined;
-    let employerProfile: Record<string, string> = {};
-    try {
-      employerProfile = JSON.parse(window.localStorage.getItem("mx_employer_profile") || "{}");
-    } catch {
-      employerProfile = {};
-    }
-    setForm((current) => ({
-      ...current,
-      company_name: employerProfile.company_name || metadata?.company_name || current.company_name,
-      contact_person: employerProfile.contact_person || metadata?.full_name || user.name || current.contact_person,
-      email: employerProfile.email || user.email || current.email,
-      phone: employerProfile.phone || current.phone,
-      job_location: employerProfile.location || current.job_location
-    }));
-  }, [allowed, user]);
-
-  useEffect(() => {
     if (!open) return;
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -95,6 +76,7 @@ export default function ManagedHiringPage() {
   }, [open]);
 
   const openConsultation = () => {
+    setForm(initialForm);
     setMessage("");
     setSuccess(false);
     setOpen(true);
