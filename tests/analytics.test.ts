@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { DEFAULT_GA_MEASUREMENT_ID, analyticsEvents, initializeGoogleAnalytics, trackPageView } from "@/lib/analytics";
+import { DEFAULT_GA_MEASUREMENT_ID, analyticsEvents } from "@/lib/analytics";
 
 const originalWindow = globalThis.window;
 const originalDocument = globalThis.document;
@@ -24,23 +24,6 @@ function installBrowserGlobals() {
 describe("Google Analytics utilities", () => {
   it("uses the MXVL measurement ID by default", () => {
     expect(DEFAULT_GA_MEASUREMENT_ID).toBe("G-GMHJFVM0MJ");
-  });
-
-  it("deduplicates repeated page views for the same route", () => {
-    const browser = installBrowserGlobals();
-    trackPageView("/jobs");
-    trackPageView("/jobs");
-    expect(browser.dataLayer).toHaveLength(1);
-  });
-
-  it("queues js and config before the initial page view", () => {
-    const browser = installBrowserGlobals();
-    initializeGoogleAnalytics();
-    trackPageView("/jobs");
-    expect(browser.dataLayer).toHaveLength(3);
-    expect(browser.dataLayer[0]).toEqual(expect.arrayContaining(["js"]));
-    expect(browser.dataLayer[1]).toEqual(["config", "G-GMHJFVM0MJ", { send_page_view: false }]);
-    expect(browser.dataLayer[2]).toEqual(expect.arrayContaining(["event", "page_view"]));
   });
 
   it("queues typed business events", () => {

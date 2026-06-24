@@ -8,8 +8,6 @@ declare global {
   interface Window {
     dataLayer?: unknown[];
     gtag?: (...args: unknown[]) => void;
-    __mxvlLastGaPath?: string;
-    __mxvlGaInitialized?: boolean;
   }
 }
 
@@ -21,30 +19,6 @@ function sendToDataLayer(...args: unknown[]) {
     return;
   }
   window.dataLayer.push(args);
-}
-
-export function initializeGoogleAnalytics() {
-  if (typeof window === "undefined" || !GA_MEASUREMENT_ID) return;
-  window.dataLayer = window.dataLayer || [];
-  window.gtag = window.gtag || ((...args: unknown[]) => {
-    window.dataLayer?.push(args);
-  });
-
-  if (window.__mxvlGaInitialized) return;
-  window.__mxvlGaInitialized = true;
-  window.gtag("js", new Date());
-  window.gtag("config", GA_MEASUREMENT_ID, { send_page_view: false });
-}
-
-export function trackPageView(path: string) {
-  if (typeof window === "undefined" || !path || window.__mxvlLastGaPath === path) return;
-  window.__mxvlLastGaPath = path;
-  sendToDataLayer("event", "page_view", {
-    page_path: path,
-    page_location: window.location.href,
-    page_title: document.title,
-    send_to: GA_MEASUREMENT_ID
-  });
 }
 
 export function trackEvent(eventName: string, parameters: AnalyticsParameters = {}) {
