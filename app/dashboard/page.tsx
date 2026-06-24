@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/Button";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import type { CandidateAnalytics, CandidateDocument, CandidateNotification, CandidateProfile, InterviewEvent, RecruiterMessage, SkillAssessment } from "@/types/candidate";
 import type { CandidateApplication, JobRecommendation } from "@/types/application";
+import { normalizeProfileImageUrl } from "@/lib/profileImageSync";
 
 const fallbackProfile: CandidateProfile = {
   id: "candidate-demo",
@@ -118,7 +119,7 @@ export default function CandidateDashboardPage() {
         name: data?.name || user.user_metadata?.name || current.name,
         email: data?.email || user.email || "",
         phone: data?.phone || current.phone,
-        avatarUrl: data?.photo_url || user.user_metadata?.avatar_url || current.avatarUrl,
+        avatarUrl: normalizeProfileImageUrl(data?.photo_url || user.user_metadata?.avatar_url || current.avatarUrl) || undefined,
         title: data?.title || data?.career_level || current.title,
         location: data?.location || current.location,
         bio: data?.about || current.bio,

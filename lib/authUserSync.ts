@@ -1,4 +1,5 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
+import { normalizeProfileImageUrl } from "@/lib/profileImageSync";
 
 type AnyRecord = Record<string, any>;
 
@@ -20,23 +21,16 @@ export function getBestAvatarUrl(row?: AnyRecord | null) {
     const image = value.trim();
     if (!image) return null;
 
-    if (
-      image.startsWith("data:image/") ||
-      image.startsWith("/") ||
-      /^https?:\/\//i.test(image) ||
-      /supabase\.co\/storage\/v1\/object/i.test(image)
-    ) {
-      return image;
-    }
+    const normalized = normalizeProfileImageUrl(image);
+    if (normalized && normalized !== image) return normalized;
+
+    if (image.startsWith("data:image/") || image.startsWith("/") || /^https?:\/\//i.test(image)) return image;
 
     const looksLikeStoredImage =
       /\.(png|jpe?g|webp|gif|avif|svg)(\?.*)?$/i.test(image) ||
       /^(avatars|profile-photos|profile_photos|profile-images|profile_images|profiles|candidates|employers|logos|uploads)\//i.test(image);
 
-    if (looksLikeStoredImage && supabaseUrl) {
-      const cleanPath = image.replace(/^\/+/, "");
-      return `${supabaseUrl.replace(/\/+$/, "")}/storage/v1/object/public/${cleanPath}`;
-    }
+    if (looksLikeStoredImage && supabaseUrl) return normalizeProfileImageUrl(image);
 
     return null;
   };

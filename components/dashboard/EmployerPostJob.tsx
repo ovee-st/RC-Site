@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { bdjobsDepartments } from "@/lib/bdjobsDepartments";
 import { employmentTypeOptions, workLocationOptions } from "@/lib/jobOptions";
 import SkillPicker from "@/components/skills/SkillPicker";
+import { normalizeProfileImageUrl } from "@/lib/profileImageSync";
 
 const defaultJob = {
   title: "",
@@ -169,8 +170,8 @@ Responsibilities:
       const saved = window.localStorage.getItem("mx_employer_profile");
       const profile = saved ? JSON.parse(saved) : null;
       return {
-        bannerUrl: profile?.banner_url || null,
-        photoUrl: profile?.photo_url || null
+        bannerUrl: normalizeProfileImageUrl(profile?.banner_url),
+        photoUrl: normalizeProfileImageUrl(profile?.photo_url || profile?.logo_url)
       };
     } catch {
       return { bannerUrl: null, photoUrl: null };

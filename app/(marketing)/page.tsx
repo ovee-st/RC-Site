@@ -29,6 +29,7 @@ import PublicHome from "@/components/home/PublicHome";
 import AdminPanel from "@/components/admin/AdminPanel";
 import type { CandidateAnalytics, CandidateDocument, CandidateProfile, InterviewEvent } from "@/types/candidate";
 import type { CandidateApplication, JobRecommendation } from "@/types/application";
+import { normalizeProfileImageUrl } from "@/lib/profileImageSync";
 
 const steps = [
   { title: "Post the role", text: "Add category, skills, salary, deadline, and workplace preferences in a structured hiring form." },
@@ -189,7 +190,7 @@ export default function LandingPage() {
       userId: user?.id,
       name: user?.user_metadata?.name || user?.user_metadata?.full_name || user?.name || candidateHomeProfile.name,
       email: user?.email || "",
-      avatarUrl: user?.avatar || user?.user_metadata?.avatar_url || user?.user_metadata?.picture || candidateHomeProfile.avatarUrl
+      avatarUrl: normalizeProfileImageUrl(user?.avatar || user?.user_metadata?.avatar_url || user?.user_metadata?.picture || candidateHomeProfile.avatarUrl) || undefined
     };
 
     return <CandidateHomeDashboard profile={candidateProfile} />;

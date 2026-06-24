@@ -23,6 +23,17 @@ describe("profile media URL resolution", () => {
     );
   });
 
+  it("repairs legacy bare profile-photo object paths", () => {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
+    const path = "7388f3fe-e1ed-4bcb-88dc-1007e58b4c62/1777194368867.png";
+    expect(normalizeProfileImageUrl(path)).toBe(
+      `https://project.supabase.co/storage/v1/object/public/profile-photos/${path}`
+    );
+    expect(getBestAvatarUrl({ photo_url: path })).toBe(
+      `https://project.supabase.co/storage/v1/object/public/profile-photos/${path}`
+    );
+  });
+
   it("preserves public and inline image URLs", () => {
     expect(normalizeProfileImageUrl("https://cdn.example.com/avatar.png")).toBe("https://cdn.example.com/avatar.png");
     expect(normalizeProfileImageUrl("data:image/png;base64,abc")).toBe("data:image/png;base64,abc");

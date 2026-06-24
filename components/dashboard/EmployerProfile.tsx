@@ -109,7 +109,7 @@ export default function EmployerProfile() {
 
       const { data } = await supabase
         .from("employers")
-        .select("company_name, contact_person, email, photo_url, banner_url, phone, location, industry, company_size, about, linkedin_url, website_url, facebook_url")
+        .select("*")
         .eq("user_id", user.id)
         .maybeSingle();
 
@@ -118,7 +118,7 @@ export default function EmployerProfile() {
       const nextProfile = {
         ...localProfile,
         ...(data || {}),
-        photo_url: normalizeProfileImageUrl(data?.photo_url || localProfile.photo_url),
+        photo_url: normalizeProfileImageUrl(data?.photo_url || data?.logo_url || localProfile.photo_url),
         banner_url: normalizeProfileImageUrl(data?.banner_url || localProfile.banner_url),
         email: data?.email || user.email || localProfile.email
       };
@@ -298,8 +298,8 @@ export default function EmployerProfile() {
               </div>
             )}
             <div>
-              <p className="text-sm font-black text-text-main dark:text-white">Company profile image</p>
-              <p className="type-body mt-1 text-xs">Upload a logo or employer profile photo.</p>
+              <p className="text-sm font-black text-text-main dark:text-white">Company logo</p>
+              <p className="type-body mt-1 text-xs">Upload the logo used across your company profile and job listings.</p>
               <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-border bg-surface px-4 py-2 text-sm font-bold text-text-main shadow-soft transition hover:border-primary/25 hover:text-primary dark:border-white/10 dark:bg-surface-dark dark:text-white">
                 <Camera className="h-4 w-4" />
                 Upload Image

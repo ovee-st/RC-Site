@@ -39,6 +39,7 @@ type CandidateProfileState = {
   location: string;
   preferredJobLocation: string;
   avatar: string | null;
+  banner: string | null;
   about: string;
   skills: string[];
   experience: {
@@ -165,6 +166,7 @@ function getDefaultProfile(user: ReturnType<typeof useAuth>["user"]): CandidateP
     metadata.picture ||
     candidate.avatar ||
     null;
+  const banner = userRecord?.banner_url || metadata.banner_url || null;
 
   return {
     name,
@@ -172,6 +174,7 @@ function getDefaultProfile(user: ReturnType<typeof useAuth>["user"]): CandidateP
     location: "Dhaka",
     preferredJobLocation: "On-site",
     avatar,
+    banner,
     about:
       "I am an Assistant Manager - Administration with 7+ years of experience supporting fast-growing organizations through efficient workplace, facilities, and operational management. Currently at Pathao, I work across site acquisition, vendor management, security operations, and renovation projects, ensuring smooth day-to-day operations in a dynamic, high-growth environment.",
     skills: candidate.skills.concat(["Photoshop", "Autocad 2d", "Sketchup 3d"]),
@@ -233,6 +236,7 @@ function normalizeProfile(profile: CandidateProfileState): CandidateProfileState
   return {
     ...profile,
     avatar: normalizeProfileImageUrl(profile.avatar),
+    banner: normalizeProfileImageUrl(profile.banner),
     preferredJobLocation: profile.preferredJobLocation || "",
     availability: {
       immediate: profile.availability?.immediate ?? true,
@@ -245,13 +249,13 @@ function normalizeProfile(profile: CandidateProfileState): CandidateProfileState
 function loadSavedProfile(user: ReturnType<typeof useAuth>["user"]) {
   const fallback = getDefaultProfile(user);
 
-  if (typeof window === "undefined") return fallback;
+  if (typeof window === "undefined") return normalizeProfile(fallback);
 
   try {
     const saved = window.localStorage.getItem(PROFILE_KEY);
-    return saved ? normalizeProfile({ ...fallback, ...JSON.parse(saved) }) : fallback;
+    return normalizeProfile(saved ? { ...fallback, ...JSON.parse(saved) } : fallback);
   } catch {
-    return fallback;
+    return normalizeProfile(fallback);
   }
 }
 
@@ -328,16 +332,22 @@ async function syncCandidateProfile(nextProfile: CandidateProfileState, user: Re
     name: nextProfile.name,
     role: "candidate",
     avatar_url: avatarUrl,
+    banner_url: normalizeProfileImageUrl(nextProfile.banner),
     updated_at: new Date().toISOString()
   };
 
-  await supabase.from("profiles").upsert(profilePatch, { onConflict: "id" });
+  const profileWrite = await supabase.from("profiles").upsert(profilePatch, { onConflict: "id" });
+  if (profileWrite.error && /banner_url/i.test(profileWrite.error.message || "")) {
+    const { banner_url, ...compatibleProfilePatch } = profilePatch;
+    await supabase.from("profiles").upsert(compatibleProfilePatch, { onConflict: "id" });
+  }
   await supabase.auth.updateUser({
     data: {
       ...stripInlineAuthAvatarMetadata(user.user_metadata || {}),
       full_name: nextProfile.name,
       name: nextProfile.name,
       ...authSafeAvatarAliases(avatarUrl),
+      banner_url: normalizeProfileImageUrl(nextProfile.banner),
       role: "candidate"
     }
   });
@@ -353,6 +363,7 @@ async function syncCandidateProfile(nextProfile: CandidateProfileState, user: Re
     skills: nextProfile.skills,
     skills_array: nextProfile.skills,
     photo_url: avatarUrl,
+    banner_url: normalizeProfileImageUrl(nextProfile.banner),
     category: demoCandidates[0]?.category || "HR & Admin",
     career_level: demoCandidates[0]?.experience || "Mid Level",
     immediate_availability: nextProfile.availability.immediate,
@@ -362,9 +373,9 @@ async function syncCandidateProfile(nextProfile: CandidateProfileState, user: Re
 
   const { error } = await supabase.from("candidates").upsert(candidatePatch, { onConflict: "user_id" });
   if (error) {
-    const missingAvailabilityColumns = /immediate_availability|notice_period|preferred_job_location/i.test(error.message || "");
+    const missingAvailabilityColumns = /immediate_availability|notice_period|preferred_job_location|banner_url/i.test(error.message || "");
     if (missingAvailabilityColumns) {
-      const { immediate_availability, notice_period_value, notice_period_unit, preferred_job_location, ...fallbackPatch } = candidatePatch;
+      const { immediate_availability, notice_period_value, notice_period_unit, preferred_job_location, banner_url, ...fallbackPatch } = candidatePatch;
       const { error: fallbackError } = await supabase.from("candidates").upsert(fallbackPatch, { onConflict: "user_id" });
       if (fallbackError) {
         await supabase.from("candidates").update(fallbackPatch).eq("user_id", user.id);
@@ -1068,7 +1079,11 @@ export default function CandidateDashboard() {
   }, [user]);
 
   const persistProfile = (nextProfile: CandidateProfileState) => {
-    const normalizedProfile = { ...nextProfile, avatar: normalizeProfileImageUrl(nextProfile.avatar) };
+    const normalizedProfile = {
+      ...nextProfile,
+      avatar: normalizeProfileImageUrl(nextProfile.avatar),
+      banner: normalizeProfileImageUrl(nextProfile.banner)
+    };
     setProfile(normalizedProfile);
     setDraft(normalizedProfile);
     window.localStorage.setItem(PROFILE_KEY, JSON.stringify({
@@ -1144,6 +1159,25 @@ export default function CandidateDashboard() {
       setDraft((current) => ({ ...current, avatar }));
     } catch (error) {
       console.error("Candidate photo upload failed", error);
+    }
+  };
+
+  const handleBannerChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const banner = user?.id && isSupabaseConfigured
+        ? await uploadProfileMedia(file, user.id, "banner")
+        : await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result));
+            reader.onerror = () => reject(new Error("Could not read the selected banner."));
+            reader.readAsDataURL(file);
+          });
+      setDraft((current) => ({ ...current, banner }));
+    } catch (error) {
+      console.error("Candidate banner upload failed", error);
     }
   };
 
@@ -1322,17 +1356,25 @@ export default function CandidateDashboard() {
 
             {activeTab === "profile" ? (
               <div className="grid gap-5">
-                <Card className="flex flex-col justify-between gap-4 p-5 shadow-soft md:flex-row md:items-center">
-                  <div className="flex items-center gap-4">
-                    <ProfileAvatar src={profile.avatar} name={profile.name} className="h-16 w-16 text-base" />
-                    <div>
-                      <h2 className="type-h3 font-black">{profile.name}</h2>
-                      <p className="type-body">{profile.title} | {candidate.experience} | {profile.location}</p>
+                <Card className="overflow-hidden p-0 shadow-soft">
+                  {profile.banner ? (
+                    <div className="aspect-[5/1] min-h-24 w-full bg-primary/10">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={profile.banner} alt={`${profile.name} profile banner`} className="h-full w-full object-cover" />
                     </div>
+                  ) : null}
+                  <div className="flex flex-col justify-between gap-4 p-5 md:flex-row md:items-center">
+                    <div className="flex items-center gap-4">
+                      <ProfileAvatar src={profile.avatar} name={profile.name} className="h-16 w-16 text-base" />
+                      <div>
+                        <h2 className="type-h3 font-black">{profile.name}</h2>
+                        <p className="type-body">{profile.title} | {candidate.experience} | {profile.location}</p>
+                      </div>
+                    </div>
+                    <Button type="button" variant="success" onClick={() => openEditor("profile")} className="w-fit rounded-lg px-4 py-2">
+                      Edit Profile
+                    </Button>
                   </div>
-                  <Button type="button" variant="success" onClick={() => openEditor("profile")} className="w-fit rounded-lg px-4 py-2">
-                    Edit Profile
-                  </Button>
                 </Card>
 
                 <SectionCard title="About" onEdit={() => openEditor("about")}>
@@ -1585,6 +1627,19 @@ export default function CandidateDashboard() {
 
               {editing === "profile" ? (
                 <div className="grid gap-4">
+                  <div className="overflow-hidden rounded-md border border-border bg-primary/5 dark:border-white/10">
+                    <div className="aspect-[5/1] min-h-24">
+                      {draft.banner ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={draft.banner} alt={`${draft.name} banner preview`} className="h-full w-full object-cover" />
+                      ) : <div className="grid h-full place-items-center text-sm font-bold text-text-muted">Banner preview</div>}
+                    </div>
+                    <label className="flex cursor-pointer items-center justify-center gap-2 border-t border-border px-4 py-3 text-sm font-bold text-text-main transition hover:text-primary dark:border-white/10 dark:text-white">
+                      <Camera className="h-4 w-4" />
+                      Update Banner
+                      <input type="file" accept="image/*" onChange={handleBannerChange} className="hidden" />
+                    </label>
+                  </div>
                   <div className="flex items-center gap-4">
                     <ProfileAvatar src={draft.avatar} name={draft.name} className="h-16 w-16 text-base" />
                     <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-border bg-bg px-4 py-2 text-sm font-bold text-text-main transition hover:border-primary/25 hover:text-primary dark:border-white/10 dark:bg-white/5 dark:text-white">

@@ -1,7 +1,9 @@
 alter table public.profiles add column if not exists name text;
 alter table public.profiles add column if not exists username text;
 alter table public.profiles add column if not exists avatar_url text;
+alter table public.profiles add column if not exists banner_url text;
 alter table public.candidates add column if not exists photo_url text;
+alter table public.candidates add column if not exists banner_url text;
 alter table public.employers add column if not exists photo_url text;
 alter table public.employers add column if not exists banner_url text;
 alter table public.employers add column if not exists linkedin_url text;

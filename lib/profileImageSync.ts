@@ -16,10 +16,14 @@ export function normalizeProfileImageUrl(value?: string | null) {
   if (!cleanValue) return null;
   if (/^(https?:|data:image\/|blob:)/i.test(cleanValue) || cleanValue.startsWith("/")) return cleanValue;
 
-  const storagePath = cleanValue.replace(/^\.?\//, "").replace(/^storage\/v1\/object\/public\//, "");
-  if (/^(profile-photos|profile_photos|profile-images|profile_images|avatars|candidates|employers|logos|uploads)\//i.test(storagePath)) {
+  const storagePath = cleanValue
+    .replace(/^\.?\//, "")
+    .replace(/^storage\/v1\/object\/(?:public|sign)\//, "");
+  const bareProfileObject = /^[0-9a-f]{8}-[0-9a-f-]{27,}\/(?:avatar-|banner-)?[^/]+\.(?:png|jpe?g|webp|gif|avif|svg)(?:\?.*)?$/i.test(storagePath);
+  const qualifiedStoragePath = bareProfileObject ? `profile-photos/${storagePath}` : storagePath;
+  if (/^(profile-photos|profile_photos|profile-images|profile_images|avatars|candidates|employers|logos|uploads)\//i.test(qualifiedStoragePath)) {
     const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/+$/, "");
-    return baseUrl ? `${baseUrl}/storage/v1/object/public/${storagePath}` : cleanValue;
+    return baseUrl ? `${baseUrl}/storage/v1/object/public/${qualifiedStoragePath}` : cleanValue;
   }
 
   return cleanValue;
