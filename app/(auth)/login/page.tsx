@@ -165,6 +165,29 @@ export default function LoginPage() {
     router.push(roleHomeRoutes[resolvedRole] || "/");
   };
 
+  const continueWithGoogle = async () => {
+    setMessage("");
+
+    if (!isSupabaseConfigured) {
+      setMessage("Google login requires Supabase configuration.");
+      return;
+    }
+
+    setLoading(true);
+    const redirectTo = `${window.location.origin}/auth/callback?role=${encodeURIComponent(role)}`;
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo
+      }
+    });
+
+    if (error) {
+      setLoading(false);
+      setMessage(error.message);
+    }
+  };
+
   return (
     <main className="relative isolate min-h-[calc(100vh-4rem)] overflow-hidden bg-[#f4f7fc] dark:bg-[#090b14]">
       <div className="absolute inset-0 -z-10 bg-[linear-gradient(135deg,rgba(37,99,235,0.10),transparent_38%,rgba(124,58,237,0.08)_68%,rgba(16,185,129,0.05))] dark:bg-[linear-gradient(135deg,rgba(37,99,235,0.14),transparent_42%,rgba(124,58,237,0.12)_72%,rgba(16,185,129,0.05))]" />
@@ -330,7 +353,7 @@ export default function LoginPage() {
 
             <div className="my-5 flex items-center gap-3 text-xs font-bold text-slate-400"><span className="h-px flex-1 bg-slate-200 dark:bg-white/10" /> OR <span className="h-px flex-1 bg-slate-200 dark:bg-white/10" /></div>
 
-            <button type="button" disabled title="Google sign-in will be available soon" className="flex h-12 w-full cursor-not-allowed items-center justify-center gap-3 rounded-md border border-slate-200 bg-white text-sm font-bold text-slate-500 opacity-75 dark:border-white/10 dark:bg-slate-950/50 dark:text-slate-300">
+            <button type="button" onClick={continueWithGoogle} disabled={loading} className="flex h-12 w-full items-center justify-center gap-3 rounded-md border border-slate-200 bg-white text-sm font-bold text-slate-700 transition hover:border-blue-200 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-70 dark:border-white/10 dark:bg-slate-950/50 dark:text-slate-200 dark:hover:border-blue-400/30 dark:hover:bg-blue-400/10">
               <span className="grid h-6 w-6 place-items-center rounded-full border border-slate-200 bg-white font-black text-blue-600">G</span>
               Continue with Google
             </button>

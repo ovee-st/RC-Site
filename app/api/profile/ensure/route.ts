@@ -13,6 +13,7 @@ export async function POST(request: Request) {
     if (!token) {
       return NextResponse.json({ error: "Missing session token." }, { status: 401 });
     }
+    const body = await request.json().catch(() => ({}));
 
     const adminClient = createServerSupabaseClient();
     const { data: authData, error: authError } = await adminClient.auth.getUser(token);
@@ -32,6 +33,7 @@ export async function POST(request: Request) {
     const role =
       normalizePlatformRole(existingProfile?.role) ||
       normalizePlatformRole(metadata.role) ||
+      normalizePlatformRole(body.selected_role || body.selectedRole || body.role) ||
       "candidate";
     const fullName = existingProfile?.full_name || existingProfile?.name || getAuthDisplayName(authUser);
     const username = existingProfile?.username || metadata.username || createProfileUsername(role, authUser.email, fullName, authUser.id);
