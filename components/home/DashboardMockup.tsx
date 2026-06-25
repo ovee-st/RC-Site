@@ -34,10 +34,10 @@ function HubPanel({ title, subtitle, metrics, tone }: { title: string; subtitle:
       </div>
       <div className="mt-4 grid flex-1 grid-cols-2 auto-rows-fr gap-3">
         {metrics.map(({ value, label, Icon }) => (
-          <div key={label} className="flex min-h-[7rem] min-w-0 flex-col justify-between rounded-xl border border-white/80 bg-white/90 p-3 text-center shadow-sm dark:border-white/10 dark:bg-slate-900/70">
+          <div key={label} className="flex min-h-[7.5rem] min-w-0 flex-col justify-between rounded-xl border border-white/80 bg-white/90 px-3 py-3.5 text-center shadow-sm dark:border-white/10 dark:bg-slate-900/70">
             <Icon className={`mx-auto h-4 w-4 shrink-0 ${isCandidate ? "text-blue-600" : "text-emerald-600"}`} />
             <p className="mt-2 text-xl font-black leading-none text-slate-950 dark:text-white">{value}</p>
-            <p className="mt-2 whitespace-normal text-[10px] font-black uppercase leading-tight tracking-normal text-slate-500 dark:text-slate-400">{label}</p>
+            <p className="mt-2 whitespace-normal text-[11px] font-black uppercase leading-tight tracking-normal text-slate-500 dark:text-slate-400">{label}</p>
           </div>
         ))}
       </div>
@@ -57,12 +57,12 @@ export default function DashboardMockup() {
     >
       <Card className="overflow-hidden rounded-3xl border-white/70 bg-white/95 p-4 shadow-[0_30px_100px_rgba(37,99,235,0.18)] dark:border-white/10 dark:bg-slate-900/95 sm:p-5">
         <div className="flex min-w-0 flex-col items-stretch justify-center gap-6 lg:flex-row">
-          <div className="flex min-w-0 flex-1 lg:min-w-[240px]">
+          <div className="flex min-w-0 flex-1 lg:min-w-[260px]">
             <HubPanel title="Candidate Hub" subtitle="Your career in motion" metrics={candidateMetrics} tone="candidate" />
           </div>
 
           <motion.div
-            className="flex h-full min-h-56 w-full min-w-0 flex-none flex-col items-center justify-center rounded-2xl border border-violet-300 bg-slate-950 px-4 py-8 text-center text-white shadow-[0_24px_70px_rgba(37,99,235,0.22)] ring-2 ring-violet-400/80 lg:w-[clamp(180px,18vw,220px)]"
+            className="flex h-full min-h-56 w-full min-w-0 flex-none flex-col items-center justify-center rounded-2xl border border-violet-300 bg-slate-950 px-4 py-8 text-center text-white shadow-[0_24px_70px_rgba(37,99,235,0.22)] ring-2 ring-violet-400/80 lg:w-[clamp(180px,15vw,200px)]"
             animate={reduceMotion ? undefined : { scale: [1, 1.02, 1] }}
             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
           >
@@ -71,7 +71,7 @@ export default function DashboardMockup() {
             <p className="mt-2 text-xs font-black leading-5 sm:text-sm">Talent meets opportunity</p>
           </motion.div>
 
-          <div className="flex min-w-0 flex-1 lg:min-w-[240px]">
+          <div className="flex min-w-0 flex-1 lg:min-w-[260px]">
             <HubPanel title="Employer Hub" subtitle="Your hiring pipeline" metrics={employerMetrics} tone="employer" />
           </div>
         </div>

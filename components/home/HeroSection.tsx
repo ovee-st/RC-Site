@@ -11,7 +11,7 @@ export default function HeroSection() {
   return (
     <section className="relative overflow-hidden py-20 md:py-28 lg:py-32">
       <GradientOrbBackground />
-      <Container className="grid items-center gap-12 lg:grid-cols-[0.94fr_1.06fr]">
+      <Container className="grid items-center gap-12 xl:grid-cols-[0.66fr_1.34fr]">
         <div>
           <Badge variant="primary" className="uppercase tracking-[0.16em]">AI Powered Recruitment Platform</Badge>
           <h1 className="mt-6 max-w-4xl text-5xl font-black leading-[0.98] tracking-normal text-slate-950 dark:text-white sm:text-6xl lg:text-7xl">
