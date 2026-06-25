@@ -326,7 +326,7 @@ export default function LoginPage() {
                 Password
                 <div className="relative">
                   <LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <Input value={password} onChange={(event) => setPassword(event.target.value)} type={showPassword ? "text" : "password"} placeholder="Enter your password" autoComplete={mode === "login" ? "current-password" : "new-password"} className="h-12 rounded-md bg-white px-11 shadow-none dark:bg-slate-950/60" />
+                  <Input value={password} onChange={(event) => setPassword(event.target.value)} type={showPassword ? "text" : "password"} placeholder="Enter your password" autoComplete={mode === "login" ? "current-password" : "new-password"} className="h-12 rounded-md bg-white pl-12 pr-14 shadow-none dark:bg-slate-950/60" />
                   <button type="button" onClick={() => setShowPassword((current) => !current)} className="focus-ring absolute right-3 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-white" aria-label={showPassword ? "Hide password" : "Show password"}>
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
