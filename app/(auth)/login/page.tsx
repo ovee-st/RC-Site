@@ -297,20 +297,10 @@ export default function LoginPage() {
               })}
             </div>
 
-            <div className="mt-5 grid grid-cols-2 gap-1 border-b border-slate-200 dark:border-white/10">
-              {(["login", "signup"] as const).map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  onClick={() => setMode(item)}
-                  className={cn(
-                    "relative h-11 text-sm font-black text-slate-500 transition hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-300",
-                    mode === item && "text-blue-700 after:absolute after:inset-x-4 after:bottom-0 after:h-0.5 after:bg-blue-600 dark:text-blue-200"
-                  )}
-                >
-                  {item === "login" ? "Sign in" : "Create account"}
-                </button>
-              ))}
+            <div className="mt-5 border-b border-slate-200 text-center dark:border-white/10">
+              <span className="relative inline-flex h-11 items-center px-10 text-sm font-black text-blue-700 after:absolute after:inset-x-4 after:bottom-0 after:h-0.5 after:bg-blue-600 dark:text-blue-200">
+                {mode === "login" ? "Sign in" : "Create account"}
+              </span>
             </div>
 
             <form className="mt-6 grid gap-4" onSubmit={submit}>
@@ -344,7 +334,7 @@ export default function LoginPage() {
               </label>
 
               <Button type="submit" disabled={loading} className="mt-1 h-12 w-full gap-2 rounded-md text-sm font-black">
-                {loading ? "Please wait..." : mode === "login" ? "Login to MXVL" : "Create Account"}
+                {loading ? "Please wait..." : mode === "login" ? "Login to MXVL" : `Register as ${role === "candidate" ? "Candidate" : "Employer"}`}
                 {!loading ? <ArrowRight className="h-4 w-4" /> : null}
               </Button>
 
@@ -359,11 +349,20 @@ export default function LoginPage() {
             </button>
 
             <div className="mt-6 border-t border-slate-200 pt-5 text-center dark:border-white/10">
-              <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">New to MXVL?</p>
-              <div className="mt-2 flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
-                <button type="button" onClick={() => { setRole("candidate"); setMode("signup"); }} className="focus-ring inline-flex items-center gap-1 text-sm font-black text-blue-700 hover:text-blue-500 dark:text-blue-300">Register as Candidate <ArrowRight className="h-3.5 w-3.5" /></button>
-                <button type="button" onClick={() => { setRole("employer"); setMode("signup"); }} className="focus-ring inline-flex items-center gap-1 text-sm font-black text-violet-700 hover:text-violet-500 dark:text-violet-300">Register as Employer <ArrowRight className="h-3.5 w-3.5" /></button>
-              </div>
+              {mode === "login" ? (
+                <>
+                  <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">New to MXVL?</p>
+                  <div className="mt-2 flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+                    <button type="button" onClick={() => { setRole("candidate"); setMode("signup"); setMessage(""); }} className="focus-ring inline-flex items-center gap-1 text-sm font-black text-blue-700 hover:text-blue-500 dark:text-blue-300">Register as Candidate <ArrowRight className="h-3.5 w-3.5" /></button>
+                    <button type="button" onClick={() => { setRole("employer"); setMode("signup"); setMessage(""); }} className="focus-ring inline-flex items-center gap-1 text-sm font-black text-violet-700 hover:text-violet-500 dark:text-violet-300">Register as Employer <ArrowRight className="h-3.5 w-3.5" /></button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Already have an account?</p>
+                  <button type="button" onClick={() => { setMode("login"); setMessage(""); }} className="focus-ring mt-2 inline-flex items-center gap-1 text-sm font-black text-blue-700 hover:text-blue-500 dark:text-blue-300">Sign in instead <ArrowRight className="h-3.5 w-3.5" /></button>
+                </>
+              )}
             </div>
 
             <div className="mt-6 flex items-center justify-center gap-2 text-xs font-bold text-slate-400"><Check className="h-4 w-4 text-emerald-500" /> Secure authentication powered by MXVL</div>
