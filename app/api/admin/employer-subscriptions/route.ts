@@ -25,35 +25,65 @@ function usageLimitValue(value: number | "unlimited") {
   return value === "unlimited" ? null : value;
 }
 
-async function getOrCreateActivePlan(adminClient: ReturnType<typeof createServerSupabaseClient>, planIdOrSlug: string) {
-  try {
-    return await getActivePlan(adminClient, planIdOrSlug);
-  } catch (error) {
-    const configuredPlan = EMPLOYER_PLANS.find((plan) => plan.id === planIdOrSlug);
-    if (!configuredPlan) throw error;
+function buildConfiguredPlanPayload(configuredPlan: (typeof EMPLOYER_PLANS)[number]) {
+  const billingType = configuredPlan.id === "one_time" || configuredPlan.billingType === "one-time"
+    ? "one_time"
+    : configuredPlan.id === "enterprise"
+      ? "custom"
+      : "recurring";
 
-    const billingType = configuredPlan.id === "one_time" || configuredPlan.billingType === "one-time"
-      ? "one_time"
-      : configuredPlan.id === "enterprise"
-        ? "custom"
-        : "recurring";
+  return {
+    slug: configuredPlan.id,
+    name: configuredPlan.name,
+    description: configuredPlan.tagline,
+    billing_type: billingType,
+    job_limit: usageLimitValue(configuredPlan.limits.activeJobs),
+    candidate_view_limit: usageLimitValue(configuredPlan.limits.candidateViews),
+    ai_credit_limit: configuredPlan.aiCredits === "unlimited" ? null : configuredPlan.aiCredits,
+    recruiter_limit: usageLimitValue(configuredPlan.recruiterSeats),
+    monthly_price: billingType === "one_time" ? null : configuredPlan.monthlyPrice,
+    one_time_price: billingType === "one_time" ? configuredPlan.monthlyPrice : null,
+    access_days: billingType === "one_time" ? 15 : null,
+    is_active: true
+  };
+}
+
+function findConfiguredPlan(planIdOrSlug: string, resolvedPlan?: { slug?: string | null; name?: string | null } | null) {
+  const lookupValues = new Set(
+    [planIdOrSlug, resolvedPlan?.slug, resolvedPlan?.name]
+      .filter(Boolean)
+      .map((value) => String(value).trim().toLowerCase().replace(/[_\s]+/g, "-"))
+  );
+
+  return EMPLOYER_PLANS.find((plan) => {
+    const planValues = [plan.id, plan.name].map((value) => String(value).trim().toLowerCase().replace(/[_\s]+/g, "-"));
+    return planValues.some((value) => lookupValues.has(value));
+  }) ?? null;
+}
+
+async function getOrCreateActivePlan(adminClient: ReturnType<typeof createServerSupabaseClient>, planIdOrSlug: string) {
+  const requestedConfiguredPlan = findConfiguredPlan(planIdOrSlug);
+
+  try {
+    const activePlan = await getActivePlan(adminClient, planIdOrSlug);
+    const configuredPlan = requestedConfiguredPlan ?? findConfiguredPlan(planIdOrSlug, activePlan);
+    if (!configuredPlan) return activePlan;
+
+    const { data, error } = await adminClient
+      .from("subscription_plans")
+      .upsert(buildConfiguredPlanPayload(configuredPlan), { onConflict: "slug" })
+      .select("*")
+      .maybeSingle();
+
+    if (error || !data) throw error || new Error("Could not sync configured subscription plan.");
+    return data;
+  } catch (error) {
+    const configuredPlan = requestedConfiguredPlan;
+    if (!configuredPlan) throw error;
 
     const { data, error: upsertError } = await adminClient
       .from("subscription_plans")
-      .upsert({
-        slug: configuredPlan.id,
-        name: configuredPlan.name,
-        description: configuredPlan.tagline,
-        billing_type: billingType,
-        job_limit: usageLimitValue(configuredPlan.limits.activeJobs),
-        candidate_view_limit: usageLimitValue(configuredPlan.limits.candidateViews),
-        ai_credit_limit: configuredPlan.aiCredits === "unlimited" ? null : configuredPlan.aiCredits,
-        recruiter_limit: usageLimitValue(configuredPlan.recruiterSeats),
-        monthly_price: billingType === "one_time" ? null : configuredPlan.monthlyPrice,
-        one_time_price: billingType === "one_time" ? configuredPlan.monthlyPrice : null,
-        access_days: billingType === "one_time" ? 15 : null,
-        is_active: true
-      }, { onConflict: "slug" })
+      .upsert(buildConfiguredPlanPayload(configuredPlan), { onConflict: "slug" })
       .select("*")
       .maybeSingle();
 

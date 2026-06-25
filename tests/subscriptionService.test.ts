@@ -292,6 +292,60 @@ describe("SubscriptionService feature gates", () => {
     expect(whatsapp.unlimited).toBe(true);
   });
 
+  it("treats Enterprise as unlimited even when a stale plan row contains finite limits", async () => {
+    const { client, db } = createFakeSupabase({
+      subscription_plans: [
+        {
+          id: "plan-growth",
+          slug: "enterprise",
+          name: "MXVL Enterprise",
+          description: "Custom recruitment operating system for large teams.",
+          billing_type: "custom",
+          job_limit: 0,
+          candidate_view_limit: 0,
+          ai_credit_limit: 0,
+          recruiter_limit: 0,
+          monthly_price: null,
+          one_time_price: null,
+          access_days: null,
+          is_active: true,
+          display_order: 50,
+          created_at: "2026-06-11T00:00:00.000Z",
+          updated_at: "2026-06-11T00:00:00.000Z"
+        }
+      ],
+      employer_usage: [
+        {
+          id: "usage-1",
+          employer_id: "employer-1",
+          subscription_id: "sub-1",
+          period_start: "2026-06-01T00:00:00.000Z",
+          period_end: "2026-07-01T00:00:00.000Z",
+          jobs_used: 50,
+          candidate_views_used: 200,
+          ai_credits_used: 500,
+          recruiters_used: 25,
+          created_at: "2026-06-11T00:00:00.000Z",
+          updated_at: "2026-06-11T00:00:00.000Z"
+        }
+      ]
+    });
+    const service = new SubscriptionService(client as any);
+
+    const current = await service.getCurrentPlan("employer-1");
+    const access = await service.canPostJob("employer-1");
+    const tracking = await service.recordJobPost("employer-1");
+
+    expect(current.plan?.jobLimit).toBeNull();
+    expect(current.plan?.candidateViewLimit).toBeNull();
+    expect(current.plan?.aiCreditLimit).toBeNull();
+    expect(current.plan?.recruiterLimit).toBeNull();
+    expect(access.allowed).toBe(true);
+    expect(access.unlimited).toBe(true);
+    expect(tracking.recorded).toBe(true);
+    expect(db.employer_usage[0].jobs_used).toBe(51);
+  });
+
   it("bypasses every subscription and usage limit for the MXVL employer admin account", async () => {
     const { client } = createFakeSupabase({
       employers: [{ id: "employer-admin", email: "employer.admin@mxventurelab.com" }],

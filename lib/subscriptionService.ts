@@ -163,6 +163,18 @@ const RESUME_SEARCH_PLAN_SLUGS = new Set(["one_time", "growth", "elite", "enterp
 const WHATSAPP_NOTIFICATION_PLAN_SLUGS = new Set(["elite", "enterprise"]);
 const UNLIMITED_EMPLOYER_EMAILS = new Set(["employer.admin@mxventurelab.com"]);
 const ONE_DAY_IN_MS = 24 * 60 * 60 * 1000;
+const PLAN_LIMIT_OVERRIDES: Record<string, Partial<Pick<SubscriptionPlanDto, "jobLimit" | "candidateViewLimit" | "aiCreditLimit" | "recruiterLimit">>> = {
+  elite: {
+    jobLimit: null,
+    candidateViewLimit: null
+  },
+  enterprise: {
+    jobLimit: null,
+    candidateViewLimit: null,
+    aiCreditLimit: null,
+    recruiterLimit: null
+  }
+};
 
 export class SubscriptionService {
   private readonly unlimitedEmployerCache = new Map<string, boolean>();
@@ -196,7 +208,7 @@ export class SubscriptionService {
       };
     }
 
-    const planDto = toPlanDto(plan);
+    const planDto = normalizeKnownPlanLimits(toPlanDto(plan));
 
     return {
       hasSubscription: true,
@@ -300,7 +312,10 @@ export class SubscriptionService {
     }
 
     const current = await this.getCurrentPlan(employerId);
-    return buildAccessDto(current, feature, current.plan?.[planLimitKey] ?? 0, current.usage?.[usageKey] ?? 0);
+    const limit = current.plan ? current.plan[planLimitKey] : 0;
+    const access = buildAccessDto(current, feature, limit, current.usage?.[usageKey] ?? 0);
+    logSubscriptionAccessDebug("metered feature checked", employerId, current, access);
+    return access;
   }
 
   private async checkPlanFeature(
@@ -368,7 +383,7 @@ export class SubscriptionService {
     }
 
     const usage = currentUsage ?? await this.createUsageRow(subscription);
-    const planDto = toPlanDto(plan);
+    const planDto = normalizeKnownPlanLimits(toPlanDto(plan));
     const usageDto = toUsageDto(usage);
     const access = buildAccessDto(
       {
@@ -383,6 +398,17 @@ export class SubscriptionService {
     );
 
     if (!access.allowed || (!access.unlimited && access.remaining !== null && access.remaining < amount)) {
+      logSubscriptionAccessDebug(
+        "usage recording blocked",
+        employerId,
+        {
+          hasSubscription: true,
+          plan: planDto,
+          subscription: toSubscriptionDto(subscription),
+          usage: usageDto
+        },
+        access
+      );
       return {
         recorded: false,
         metric,
@@ -536,6 +562,43 @@ function buildAccessDto(current: CurrentPlanDto, feature: SubscriptionFeatureKey
     unlimited: usage.unlimited,
     reason: getAccessReason(hasUsableSubscription, usage)
   };
+}
+
+function normalizeKnownPlanLimits(plan: SubscriptionPlanDto): SubscriptionPlanDto {
+  const override = PLAN_LIMIT_OVERRIDES[plan.slug];
+  return override ? { ...plan, ...override } : plan;
+}
+
+function logSubscriptionAccessDebug(
+  step: string,
+  employerId: string,
+  current: CurrentPlanDto,
+  access: FeatureAccessDto
+) {
+  if (access.feature !== "post_job" && access.allowed) return;
+
+  console.info("[subscription-quota]", step, {
+    employerId,
+    feature: access.feature,
+    allowed: access.allowed,
+    reason: access.reason,
+    planId: current.plan?.id ?? current.subscription?.planId ?? null,
+    planSlug: current.plan?.slug ?? access.planSlug ?? null,
+    subscriptionId: current.subscription?.id ?? null,
+    subscriptionStatus: current.subscription?.status ?? null,
+    periodStart: current.usage?.periodStart ?? current.subscription?.startsAt ?? null,
+    periodEnd: current.usage?.periodEnd ?? current.subscription?.endsAt ?? current.subscription?.renewsAt ?? null,
+    jobsPosted: current.usage?.jobsUsed ?? 0,
+    jobsLimit: current.plan ? current.plan.jobLimit : access.limit,
+    usageCounters: {
+      jobsUsed: current.usage?.jobsUsed ?? 0,
+      candidateViewsUsed: current.usage?.candidateViewsUsed ?? 0,
+      aiCreditsUsed: current.usage?.aiCreditsUsed ?? 0,
+      recruitersUsed: current.usage?.recruitersUsed ?? 0
+    },
+    remaining: access.remaining,
+    unlimited: access.unlimited
+  });
 }
 
 function buildUnlimitedFeatureAccess(feature: SubscriptionFeatureKey): FeatureAccessDto {
