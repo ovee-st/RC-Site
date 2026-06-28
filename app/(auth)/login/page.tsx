@@ -196,8 +196,8 @@ export default function LoginPage() {
         <section className="relative flex min-w-0 flex-col justify-center px-6 py-12 sm:px-10 lg:px-16 xl:px-20 xl:py-16">
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-3 rounded-full border border-blue-200/80 bg-white/75 px-3 py-2 text-xs font-black text-blue-700 shadow-sm backdrop-blur-xl dark:border-blue-400/20 dark:bg-white/8 dark:text-blue-200">
-              <Image src="/mxvl-logo.png" alt="MX Venture Lab" width={24} height={24} className="h-6 w-6 object-contain dark:hidden" />
-              <Image src="/mxvl-logo-dark.png" alt="" width={24} height={24} className="hidden h-6 w-6 object-contain dark:block" />
+              <Image src="/mxvl-logo.webp" alt="MX Venture Lab" width={24} height={24} className="h-6 w-6 object-contain dark:hidden" />
+              <Image src="/mxvl-logo-dark.webp" alt="" width={24} height={24} className="hidden h-6 w-6 object-contain dark:block" />
               AI-powered recruitment platform
             </div>
 

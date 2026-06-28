@@ -34,6 +34,225 @@ const SECTION_TABLES: Record<string, string[]> = {
   transactions: ["transactions"]
 };
 
+const ADMIN_PAGE_SIZE = 25;
+
+const ADMIN_SELECT_COLUMNS: Record<string, string> = {
+  profiles: [
+    "id",
+    "created_at",
+    "updated_at",
+    "email",
+    "full_name",
+    "name",
+    "role",
+    "plan",
+    "verified",
+    "username",
+    "avatar",
+    "avatar_url",
+    "photo_url",
+    "profile_photo_url"
+  ].join(", "),
+  candidates: [
+    "id",
+    "created_at",
+    "user_id",
+    "name",
+    "full_name",
+    "phone_number",
+    "email",
+    "location",
+    "photo_url",
+    "avatar_url",
+    "banner_url",
+    "category",
+    "categories",
+    "education",
+    "skills",
+    "skills_array",
+    "experience",
+    "about",
+    "career_level",
+    "target_role",
+    "resume_path",
+    "resume_url"
+  ].join(", "),
+  employers: [
+    "id",
+    "created_at",
+    "user_id",
+    "company_name",
+    "contact_person",
+    "email",
+    "phone",
+    "location",
+    "industry",
+    "company_size",
+    "about",
+    "contact_number",
+    "official_email",
+    "monthly_needed_hiring",
+    "plan_interest",
+    "category",
+    "role_needed",
+    "required_skills",
+    "number_of_positions",
+    "salary_range",
+    "talent_categories_role_requirements",
+    "verified",
+    "status",
+    "plan",
+    "photo_url",
+    "logo_url",
+    "banner_url"
+  ].join(", "),
+  employees: [
+    "id",
+    "user_id",
+    "full_name",
+    "email",
+    "username",
+    "avatar_url",
+    "status",
+    "department",
+    "role",
+    "permissions",
+    "active"
+  ].join(", "),
+  jobs: [
+    "id",
+    "created_at",
+    "employer_id",
+    "company_name",
+    "job_title",
+    "job_location",
+    "job_type",
+    "job_level",
+    "employment_type",
+    "category",
+    "role",
+    "description",
+    "requirements",
+    "required_skills",
+    "required_skills_array",
+    "experience_level",
+    "salary_range",
+    "salary_min",
+    "salary_max",
+    "salary_hidden",
+    "benefits",
+    "last_date",
+    "status",
+    "photo_url",
+    "banner_url"
+  ].join(", "),
+  applications: [
+    "id",
+    "created_at",
+    "candidate_user_id",
+    "candidate_id",
+    "employer_id",
+    "employer_user_id",
+    "job_post_id",
+    "job_id",
+    "job_role",
+    "cv_url",
+    "status"
+  ].join(", "),
+  contact_requests: [
+    "id",
+    "created_at",
+    "name",
+    "email",
+    "company",
+    "subject",
+    "message",
+    "status"
+  ].join(", "),
+  hiring_requests: [
+    "id",
+    "created_at",
+    "updated_at",
+    "employer_user_id",
+    "company_name",
+    "contact_person",
+    "email",
+    "phone",
+    "hiring_type",
+    "positions_required",
+    "hiring_volume",
+    "job_location",
+    "requirement_details",
+    "status"
+  ].join(", "),
+  coupons: [
+    "id",
+    "created_at",
+    "coupon_name",
+    "code",
+    "discount_type",
+    "discount_percentage",
+    "discount_amount",
+    "active",
+    "expires_at",
+    "usage_limit",
+    "used_count"
+  ].join(", "),
+  transactions: [
+    "id",
+    "created_at",
+    "user_id",
+    "user_email",
+    "amount",
+    "payment_method",
+    "coupon_used",
+    "transaction_id",
+    "status"
+  ].join(", "),
+  subscription_payment_requests: [
+    "id",
+    "employer_id",
+    "plan_id",
+    "coupon_id",
+    "coupon_code",
+    "original_amount",
+    "discount_amount",
+    "final_amount",
+    "payment_method",
+    "transaction_id",
+    "sender_last_3_digits",
+    "payment_screenshot",
+    "status",
+    "submitted_at",
+    "approved_at",
+    "approved_by",
+    "remarks",
+    "created_at",
+    "updated_at",
+    "employers(id, user_id, company_name, email, official_email)",
+    "subscription_plans(id, slug, name, billing_type, monthly_price, one_time_price, access_days)",
+    "coupons(id, coupon_name, code, discount_type, discount_percentage, discount_amount, active, expires_at, usage_limit, used_count)"
+  ].join(", "),
+  employer_subscriptions: [
+    "id",
+    "employer_id",
+    "employer_user_id",
+    "plan_id",
+    "status",
+    "billing_cycle",
+    "starts_at",
+    "ends_at",
+    "renews_at",
+    "cancelled_at",
+    "start_date",
+    "expiry_date",
+    "created_at",
+    "updated_at",
+    "employers(id, user_id, company_name, email, official_email)",
+    "subscription_plans(id, slug, name, description, billing_type, job_limit, candidate_view_limit, ai_credit_limit, recruiter_limit, monthly_price, one_time_price, access_days, is_active, display_order)"
+  ].join(", ")
+};
+
 function missingColumnFromError(message?: string) {
   if (!message) return null;
   return (
@@ -41,6 +260,14 @@ function missingColumnFromError(message?: string) {
     message.match(/column "?([a-zA-Z0-9_]+)"? .*does not exist/i)?.[1] ||
     null
   );
+}
+
+function removeColumn(selectText: string, missingColumn: string) {
+  return selectText
+    .split(",")
+    .map((column) => column.trim())
+    .filter((column) => column && column !== missingColumn)
+    .join(", ");
 }
 
 function sanitizePatch(patch: Record<string, unknown>) {
@@ -167,30 +394,49 @@ async function loadRecords(token: string, refreshToken: string, section: string,
 }
 
 async function safeSelect(adminClient: ReturnType<typeof createServerSupabaseClient>, table: string) {
-  if (table === "employer_subscriptions") {
-    const { data, error } = await adminClient
+  let columns = ADMIN_SELECT_COLUMNS[table] || "id";
+  const orderColumn = table === "employer_subscriptions" ? "updated_at" : table === "subscription_payment_requests" ? "submitted_at" : "created_at";
+  let useOrdering = true;
+
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    let query = adminClient
       .from(table)
-      .select("*, employers(id, user_id, company_name, email, official_email), subscription_plans(*)")
-      .order("updated_at", { ascending: false })
-      .limit(1000);
-    if (error) throw error;
-    return data || [];
+      .select(columns)
+      .range(0, ADMIN_PAGE_SIZE - 1);
+    if (useOrdering) query = query.order(orderColumn, { ascending: false });
+    const { data, error } = await query;
+
+    if (!error) {
+      if (table === "subscription_payment_requests") {
+        return await attachSignedProofUrls(adminClient, data || []);
+      }
+      return data || [];
+    }
+
+    const missingColumn = missingColumnFromError(error.message);
+    if (missingColumn === orderColumn) {
+      useOrdering = false;
+      continue;
+    }
+    if (!missingColumn || !columns.includes(missingColumn)) throw error;
+    columns = removeColumn(columns, missingColumn);
+    if (!columns) return [];
   }
 
-  const { data, error } = await adminClient
-    .from(table)
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(1000);
+  return [];
+}
 
-  if (!error) return data || [];
-
-  if (/created_at|column|does not exist|schema cache/i.test(error.message || "")) {
-    const fallback = await adminClient.from(table).select("*").limit(1000);
-    if (!fallback.error) return fallback.data || [];
-  }
-
-  throw error;
+async function attachSignedProofUrls(adminClient: ReturnType<typeof createServerSupabaseClient>, rows: any[]) {
+  return Promise.all((rows || []).map(async (row) => {
+    if (!row.payment_screenshot || /^https?:\/\//i.test(row.payment_screenshot)) return row;
+    const { data } = await adminClient.storage
+      .from("subscription-payment-proofs")
+      .createSignedUrl(row.payment_screenshot, 60 * 10);
+    return {
+      ...row,
+      payment_screenshot_url: data?.signedUrl || null
+    };
+  }));
 }
 
 async function safeUpdate(adminClient: ReturnType<typeof createServerSupabaseClient>, table: string, id: string, patch: Record<string, unknown>) {
@@ -201,10 +447,10 @@ async function safeUpdate(adminClient: ReturnType<typeof createServerSupabaseCli
       .from(table)
       .update(currentPatch)
       .eq("id", id)
-      .select("*")
+      .select("id")
       .maybeSingle();
 
-    if (!error && data) return data;
+    if (!error && data) return { ...currentPatch, ...data };
     if (!error) throw new Error(`The ${table} record was not found.`);
 
     const missingColumn = missingColumnFromError(error.message);
@@ -223,10 +469,10 @@ async function safeInsert(adminClient: ReturnType<typeof createServerSupabaseCli
     const { data, error } = await adminClient
       .from(table)
       .insert(currentPatch)
-      .select("*")
+      .select("id")
       .maybeSingle();
 
-    if (!error) return data || currentPatch;
+    if (!error) return { ...currentPatch, ...(data || {}) };
 
     const missingColumn = missingColumnFromError(error.message);
     if (!missingColumn || !(missingColumn in currentPatch)) throw error;

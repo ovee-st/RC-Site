@@ -14,8 +14,8 @@ import { cn } from "@/lib/cn";
 import { clearStoredAuthIdentity, MOCK_USER_KEY } from "@/lib/accountIdentity";
 import { getBestAvatarUrl } from "@/lib/authUserSync";
 
-const SITE_LOGO_LIGHT = "/mxvl-logo.png";
-const SITE_LOGO_DARK = "/mxvl-logo-dark.png";
+const SITE_LOGO_LIGHT = "/mxvl-logo.webp";
+const SITE_LOGO_DARK = "/mxvl-logo-dark.webp";
 
 const navItemsByRole = {
   guest: [

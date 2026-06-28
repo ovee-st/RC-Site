@@ -2,6 +2,56 @@ import { NextResponse } from "next/server";
 import { calculateExpiryDate, calculatePaymentBreakdown, normalizeManualBillingCycle, recordCouponUsage } from "@/lib/manualSubscriptionPayments";
 import { createServerSupabaseClient } from "@/lib/supabaseServer";
 
+const ADMIN_PAGE_SIZE = 25;
+const PAYMENT_REQUEST_SELECT = [
+  "id",
+  "employer_id",
+  "plan_id",
+  "coupon_id",
+  "coupon_code",
+  "original_amount",
+  "discount_amount",
+  "final_amount",
+  "payment_method",
+  "transaction_id",
+  "sender_last_3_digits",
+  "payment_screenshot",
+  "status",
+  "submitted_at",
+  "approved_at",
+  "approved_by",
+  "remarks",
+  "created_at",
+  "updated_at",
+  "employers(id, user_id, company_name, email, official_email)",
+  "subscription_plans(id, slug, name, billing_type, monthly_price, one_time_price, access_days)",
+  "coupons(id, coupon_name, code, discount_type, discount_percentage, discount_amount, active, expires_at, usage_limit, used_count)"
+].join(", ");
+
+const PAYMENT_REQUEST_WITH_PLAN_SELECT = [
+  "id",
+  "employer_id",
+  "plan_id",
+  "coupon_id",
+  "coupon_code",
+  "original_amount",
+  "discount_amount",
+  "final_amount",
+  "payment_method",
+  "transaction_id",
+  "sender_last_3_digits",
+  "payment_screenshot",
+  "status",
+  "submitted_at",
+  "approved_at",
+  "approved_by",
+  "remarks",
+  "created_at",
+  "updated_at",
+  "employers(id, user_id, company_name, email, official_email)",
+  "subscription_plans(id, slug, name, billing_type, monthly_price, one_time_price, access_days)"
+].join(", ");
+
 async function requireAdmin(adminClient: ReturnType<typeof createServerSupabaseClient>, token: string) {
   const { data: authData, error: authError } = await adminClient.auth.getUser(token);
   if (authError || !authData.user) throw new Error("Invalid session.");
@@ -35,8 +85,9 @@ export async function GET(request: Request) {
     const status = searchParams.get("status");
     let query = adminClient
       .from("subscription_payment_requests")
-      .select("*, employers(*), subscription_plans(*), coupons(*)")
-      .order("submitted_at", { ascending: false });
+      .select(PAYMENT_REQUEST_SELECT)
+      .order("submitted_at", { ascending: false })
+      .range(0, ADMIN_PAGE_SIZE - 1);
     if (status && status !== "all") query = query.eq("status", status);
     const { data, error } = await query;
     if (error) throw error;
@@ -62,12 +113,13 @@ export async function PATCH(request: Request) {
   try {
     const adminClient = createServerSupabaseClient();
     const adminUser = await requireAdmin(adminClient, token);
-    const { data: paymentRequest, error: requestError } = await adminClient
+    const { data: paymentRequestRow, error: requestError } = await adminClient
       .from("subscription_payment_requests")
-      .select("*, employers(*), subscription_plans(*)")
+      .select(PAYMENT_REQUEST_WITH_PLAN_SELECT)
       .eq("id", requestId)
       .maybeSingle();
-    if (requestError || !paymentRequest) throw new Error("Payment request not found.");
+    if (requestError || !paymentRequestRow) throw new Error("Payment request not found.");
+    const paymentRequest = paymentRequestRow as any;
 
     if (action === "validate_coupon") {
       const couponCode = String(body.coupon_code || paymentRequest.coupon_code || "").trim();
@@ -90,7 +142,7 @@ export async function PATCH(request: Request) {
           updated_at: new Date().toISOString()
         })
         .eq("id", requestId)
-        .select("*, employers(*), subscription_plans(*), coupons(*)")
+        .select(PAYMENT_REQUEST_SELECT)
         .single();
       if (error) throw error;
 
@@ -109,7 +161,7 @@ export async function PATCH(request: Request) {
         .from("subscription_payment_requests")
         .update({ status: action, remarks, updated_at: new Date().toISOString() })
         .eq("id", requestId)
-        .select("*")
+        .select(PAYMENT_REQUEST_SELECT)
         .single();
       if (error) throw error;
 
@@ -165,7 +217,7 @@ export async function PATCH(request: Request) {
         start_date: start.toISOString().slice(0, 10),
         expiry_date: expiry.toISOString().slice(0, 10)
       })
-      .select("*")
+      .select("id")
       .single();
     if (subscriptionError) throw subscriptionError;
 
@@ -213,7 +265,7 @@ export async function PATCH(request: Request) {
         updated_at: start.toISOString()
       })
       .eq("id", requestId)
-      .select("*")
+      .select(PAYMENT_REQUEST_SELECT)
       .single();
     if (updateError) throw updateError;
 

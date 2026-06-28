@@ -112,15 +112,16 @@ const emptyState: AdminState = {
 
 const ADMIN_NOTIFICATION_STORAGE_KEY = "MXVL-admin-cleared-notifications";
 const MAX_SAFE_AUTH_TOKEN_LENGTH = 6000;
+const ADMIN_PAGE_SIZE = 25;
 const ADMIN_RECORD_CACHE_TTL_MS = 30_000;
 const adminRecordCache = new Map<AdminSection, { expiresAt: number; records: AnyRecord }>();
 const adminRecordRequests = new Map<AdminSection, Promise<AnyRecord | null>>();
 const ADMIN_SELECT_COLUMNS: Record<string, string> = {
-  profiles: "*",
-  candidates: "*",
-  employers: "*",
-  employees: "*",
-  jobs: "*"
+  profiles: "id, created_at, updated_at, email, full_name, name, role, plan, verified, username, avatar, avatar_url, photo_url, profile_photo_url",
+  candidates: "id, created_at, user_id, name, full_name, phone_number, email, location, photo_url, avatar_url, banner_url, category, categories, education, skills, skills_array, experience, about, career_level, target_role, resume_path, resume_url",
+  employers: "id, created_at, user_id, company_name, contact_person, email, phone, location, industry, company_size, about, contact_number, official_email, monthly_needed_hiring, plan_interest, category, role_needed, required_skills, number_of_positions, salary_range, talent_categories_role_requirements, verified, status, plan, photo_url, logo_url, banner_url",
+  employees: "id, user_id, full_name, email, username, avatar_url, status, department, role, permissions, active",
+  jobs: "id, created_at, employer_id, company_name, job_title, job_location, job_type, job_level, employment_type, category, role, description, requirements, required_skills, required_skills_array, experience_level, salary_range, salary_min, salary_max, salary_hidden, benefits, last_date, status, photo_url, banner_url"
 };
 
 const sectionMeta: Record<AdminSection, { title: string; description: string }> = {
@@ -289,7 +290,7 @@ async function safeSelect(table: string) {
 
   const configuredColumns = ADMIN_SELECT_COLUMNS[table];
   if (!configuredColumns) {
-    const result = await withTimeout(supabase.from(table).select("*").limit(200));
+    const result = await withTimeout(supabase.from(table).select("id").range(0, ADMIN_PAGE_SIZE - 1));
     if (Array.isArray(result)) return result;
     const { data } = result as { data?: AnyRecord[] | null };
     return data || [];
@@ -298,7 +299,7 @@ async function safeSelect(table: string) {
   let columns = configuredColumns.split(",").map((column) => column.trim()).filter(Boolean);
 
   for (let attempt = 0; attempt < 12; attempt += 1) {
-    const result = await withTimeout(supabase.from(table).select(columns.join(",")).limit(200));
+    const result = await withTimeout(supabase.from(table).select(columns.join(",")).range(0, ADMIN_PAGE_SIZE - 1));
     if (Array.isArray(result)) return result;
     const { data, error } = result as { data?: AnyRecord[] | null; error?: { message?: string; details?: string; hint?: string } | null };
     if (!error) return data || [];
@@ -553,6 +554,10 @@ function normalizeAdminCollections(collections: {
 
 function normalizeIdentityValue(value: unknown) {
   return value ? String(value).trim().toLowerCase() : "";
+}
+
+function getEmployerJobLookupKeys(employer: AnyRecord) {
+  return [employer.user_id, employer.id].map(normalizeIdentityValue).filter(Boolean);
 }
 
 function subscriptionMatchesEmployer(subscription: AnyRecord, employer: AnyRecord) {
@@ -855,21 +860,6 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
         }));
       }
 
-      if (isSupabaseConfigured && section === "subscription-payments") {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const token = sessionData?.session?.access_token;
-        if (!token) return;
-
-        const response = await fetch("/api/admin/subscription-payments", {
-          headers: { Authorization: `Bearer ${token}` }
-        }).catch(() => null);
-
-        if (!active || !response?.ok) return;
-        const payload = await response.json().catch(() => ({}));
-        if (Array.isArray(payload.requests)) {
-          setAdminData((current) => ({ ...current, subscriptionPayments: payload.requests }));
-        }
-      }
     }
 
     if (!loading && canAccessAdmin) loadAdminData();
@@ -880,21 +870,37 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
   }, [canAccessAdmin, loading, section]);
 
   const analytics = useMemo(() => {
-    const activeJobs = adminData.jobs.filter((job) => (job.status || "active") === "active").length;
-    const proSubscriptions = adminData.profiles.filter((profile) => String(profile.plan || "").toLowerCase().includes("pro") || String(profile.plan || "").toLowerCase().includes("growth")).length;
-    const monthlyRevenue = adminData.transactions
-      .filter((tx) => String(tx.status || "paid").toLowerCase() === "paid")
-      .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+    let activeJobs = 0;
+    for (const job of adminData.jobs) {
+      if ((job.status || "active") === "active") activeJobs += 1;
+    }
+
+    let profileCandidateCount = 0;
+    let profileEmployerCount = 0;
+    let proSubscriptions = 0;
+    for (const profile of adminData.profiles) {
+      if (profile.role === "candidate") profileCandidateCount += 1;
+      if (profile.role === "employer") profileEmployerCount += 1;
+      const plan = String(profile.plan || "").toLowerCase();
+      if (plan.includes("pro") || plan.includes("growth")) proSubscriptions += 1;
+    }
+
+    let monthlyRevenue = 0;
+    for (const tx of adminData.transactions) {
+      if (String(tx.status || "paid").toLowerCase() === "paid") {
+        monthlyRevenue += Number(tx.amount || 0);
+      }
+    }
 
     return {
-      totalCandidates: Math.max(adminData.candidates.length, adminData.profiles.filter((profile) => profile.role === "candidate").length),
-      totalEmployers: Math.max(adminData.employers.length, adminData.profiles.filter((profile) => profile.role === "employer").length),
+      totalCandidates: Math.max(adminData.candidates.length, profileCandidateCount),
+      totalEmployers: Math.max(adminData.employers.length, profileEmployerCount),
       activeJobs,
       applications: adminData.applications.length,
       proSubscriptions,
       monthlyRevenue
     };
-  }, [adminData]);
+  }, [adminData.applications, adminData.candidates, adminData.employers, adminData.jobs, adminData.profiles, adminData.transactions]);
 
   const chartData = useMemo(() => [
     { name: "Candidates", value: analytics.totalCandidates },
@@ -1977,6 +1983,26 @@ function EmployersSection({
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<AnyRecord>({});
+  const jobsByEmployerId = useMemo(() => {
+    const map = new Map<string, { jobs: AnyRecord[]; activeCount: number }>();
+    for (const job of jobs) {
+      const key = normalizeIdentityValue(job.employer_id);
+      if (!key) continue;
+      const entry = map.get(key) || { jobs: [], activeCount: 0 };
+      entry.jobs.push(job);
+      if ((job.status || "active") === "active") entry.activeCount += 1;
+      map.set(key, entry);
+    }
+    return map;
+  }, [jobs]);
+  const subscriptionByEmployerId = useMemo(() => {
+    const map = new Map<string, AnyRecord | undefined>();
+    for (const employer of rows) {
+      const recordKey = employer.id || employer.user_id || employer.email;
+      map.set(String(recordKey), getCurrentEmployerSubscription(subscriptions, employer));
+    }
+    return map;
+  }, [rows, subscriptions]);
 
   function startEdit(employer: AnyRecord) {
     setEditingId(employer.id || employer.user_id || employer.email);
@@ -2000,8 +2026,16 @@ function EmployersSection({
     <div className="grid gap-5">
       {rows.length ? rows.map((employer) => {
         const recordKey = employer.id || employer.user_id || employer.email;
-        const employerJobs = jobs.filter((job) => job.employer_id === employer.user_id || job.employer_id === employer.id);
-        const subscription = getCurrentEmployerSubscription(subscriptions, employer);
+        const employerJobEntries = getEmployerJobLookupKeys(employer)
+          .map((key) => jobsByEmployerId.get(key))
+          .filter(Boolean) as { jobs: AnyRecord[]; activeCount: number }[];
+        const employerJobs = employerJobEntries.length <= 1
+          ? employerJobEntries[0]?.jobs || []
+          : Array.from(new Map(employerJobEntries.flatMap((entry) => entry.jobs).map((job) => [job.id || `${job.employer_id}-${job.job_title}-${job.created_at}`, job])).values());
+        const activeEmployerJobs = employerJobEntries.length <= 1
+          ? employerJobEntries[0]?.activeCount || 0
+          : employerJobs.filter((job) => (job.status || "active") === "active").length;
+        const subscription = subscriptionByEmployerId.get(String(recordKey));
         const subscriptionPlan = subscription?.subscription_plans;
         const visiblePlanName = getSubscriptionPlanName(subscription);
         const editing = editingId === recordKey;
@@ -2021,7 +2055,7 @@ function EmployersSection({
             </div>
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
               <AdminStatCard label="Jobs" value={employerJobs.length} detail="Posted roles" icon={FileText} accent="bg-primary/10" />
-              <AdminStatCard label="Active" value={employerJobs.filter((job) => (job.status || "active") === "active").length} detail="Visible roles" icon={CheckCircle2} accent="bg-success/10" />
+              <AdminStatCard label="Active" value={activeEmployerJobs} detail="Visible roles" icon={CheckCircle2} accent="bg-success/10" />
               <AdminStatCard label="Plan" value={visiblePlanName || "No subscription"} detail={subscription?.status || "No subscription"} icon={Sparkles} accent="bg-purple-400/10" />
             </div>
             <div className="mt-4 grid gap-3 rounded-2xl border border-border bg-bg p-4 dark:border-white/10 dark:bg-white/5 md:grid-cols-[1fr_220px_220px] md:items-center">

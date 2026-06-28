@@ -114,7 +114,7 @@ export default function ManagedHiringPage() {
   return (
     <main className="bg-bg text-text-main dark:bg-slate-950 dark:text-white">
       <section className="relative min-h-[calc(100svh-7rem)] max-h-[760px] overflow-hidden">
-        <Image src="/managed-hiring-consultation.png" alt="Employer leaders working with recruitment specialists on a managed hiring shortlist" fill priority className="object-cover object-[68%_center]" sizes="100vw" />
+        <Image src="/managed-hiring-consultation.webp" alt="Employer leaders working with recruitment specialists on a managed hiring shortlist" fill priority className="object-cover object-[68%_center]" sizes="100vw" />
         <div className="absolute inset-0 bg-slate-950/70" />
         <Container className="relative flex min-h-[calc(100svh-7rem)] max-h-[760px] items-center py-14">
           <div className="max-w-3xl !text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.55)]">
