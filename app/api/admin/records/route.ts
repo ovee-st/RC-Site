@@ -257,6 +257,7 @@ function missingColumnFromError(message?: string) {
   if (!message) return null;
   return (
     message.match(/Could not find the '([^']+)' column/i)?.[1] ||
+    message.match(/column "?[a-zA-Z0-9_]+\.([a-zA-Z0-9_]+)"? .*does not exist/i)?.[1] ||
     message.match(/column "?([a-zA-Z0-9_]+)"? .*does not exist/i)?.[1] ||
     null
   );
@@ -301,7 +302,7 @@ function createAdminRecordsErrorResponse(error: unknown) {
   const message = error instanceof Error ? error.message : "Could not load admin records.";
 
   if (process.env.NODE_ENV === "production") {
-    return NextResponse.json({ error: message }, { status: 403 });
+    return NextResponse.json({ error: "Could not load admin records." }, { status: 403 });
   }
 
   if (error instanceof AdminRecordsQueryError) {
