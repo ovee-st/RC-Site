@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/cn";
 import { clearStoredAuthIdentity, MOCK_USER_KEY } from "@/lib/accountIdentity";
 import { getBestAvatarUrl } from "@/lib/authUserSync";
+import { getProfileThumbnailUrl } from "@/lib/profileImageSync";
 
 const SITE_LOGO_LIGHT = "/mxvl-logo.webp";
 const SITE_LOGO_DARK = "/mxvl-logo-dark.webp";
@@ -282,6 +283,7 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [profileAvatar, setProfileAvatar] = useState<string | null>(null);
   const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
+  const [avatarUseFullImage, setAvatarUseFullImage] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [remoteNotifications, setRemoteNotifications] = useState<NavbarNotification[]>([]);
   const [clearedNotificationIds, setClearedNotificationIds] = useState<string[]>([]);
@@ -295,7 +297,7 @@ export default function Navbar() {
   const displayName = user?.user_metadata?.name || user?.user_metadata?.full_name || user?.name || "MX User";
   const userRecord = user as any;
   const metadata = userRecord?.user_metadata || {};
-  const avatarSrc =
+  const fullAvatarSrc =
     profileAvatar ||
     user?.avatar ||
     userRecord?.photo_url ||
@@ -307,6 +309,7 @@ export default function Navbar() {
     metadata.company_logo_url ||
     metadata.picture ||
     null;
+  const avatarSrc = avatarUseFullImage ? fullAvatarSrc : getProfileThumbnailUrl(fullAvatarSrc);
   const effectiveAvatarSrc = avatarLoadFailed ? null : avatarSrc;
   const verified = Boolean(user?.user_metadata?.verified) || String(user?.user_metadata?.plan || "").toLowerCase() === "pro";
   const isLogoAvatar = Boolean(effectiveAvatarSrc && /mx-logo|mx[\\/_-]?venture|MX\.png/i.test(effectiveAvatarSrc));
@@ -332,7 +335,13 @@ export default function Navbar() {
     <img
       src={effectiveAvatarSrc}
       alt={displayName}
-      onError={() => setAvatarLoadFailed(true)}
+      onError={() => {
+        if (fullAvatarSrc && avatarSrc !== fullAvatarSrc) {
+          setAvatarUseFullImage(true);
+          return;
+        }
+        setAvatarLoadFailed(true);
+      }}
       className={cn(
         "h-8 w-8 rounded-full ring-2 ring-gray-200 transition hover:ring-blue-500 dark:ring-white/20 dark:hover:ring-blue-400",
         isLogoAvatar ? "bg-white p-1 object-contain" : "object-cover"
@@ -509,7 +518,8 @@ export default function Navbar() {
 
   useEffect(() => {
     setAvatarLoadFailed(false);
-  }, [avatarSrc]);
+    setAvatarUseFullImage(false);
+  }, [fullAvatarSrc]);
 
   const handleLogout = async () => {
     if (typeof window !== "undefined") {

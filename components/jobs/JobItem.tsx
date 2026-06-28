@@ -16,7 +16,7 @@ import { normalizeDateValue, normalizeJobStatus } from "@/lib/jobUpdate";
 import { bdjobsDepartments } from "@/lib/bdjobsDepartments";
 import { employmentTypeOptions, workLocationOptions } from "@/lib/jobOptions";
 import SkillPicker from "@/components/skills/SkillPicker";
-import { normalizeProfileImageUrl } from "@/lib/profileImageSync";
+import { getProfileThumbnailUrl, normalizeProfileImageUrl } from "@/lib/profileImageSync";
 
 type JobEditDraft = {
   company: string;
@@ -134,7 +134,13 @@ export default function JobItem({ job, matchScore }: { job: Job; matchScore: num
   const isCandidate = role === "candidate";
   const archived = normalizeJobStatus(job.status) === "archived" || isExpired(job.deadline);
   const hired = job.status === "hired";
-  const employerPhotoUrl = job.employerPhotoUrl || localEmployerPhoto;
+  const fullEmployerPhotoUrl = job.employerPhotoUrl || localEmployerPhoto;
+  const thumbnailEmployerPhotoUrl = getProfileThumbnailUrl(fullEmployerPhotoUrl);
+  const [employerPhotoUrl, setEmployerPhotoUrl] = useState(thumbnailEmployerPhotoUrl);
+
+  useEffect(() => {
+    setEmployerPhotoUrl(thumbnailEmployerPhotoUrl);
+  }, [thumbnailEmployerPhotoUrl]);
   const handleApply = () => {
     if (!user || role !== "candidate") {
       window.location.href = `/login?next=${encodeURIComponent(`/jobs?job=${job.id}`)}`;
@@ -237,7 +243,14 @@ export default function JobItem({ job, matchScore }: { job: Job; matchScore: num
             )}>
               {employerPhotoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={employerPhotoUrl} alt={`${job.company} profile`} className="h-full w-full object-cover" />
+                <img
+                  src={employerPhotoUrl}
+                  alt={`${job.company} profile`}
+                  onError={() => {
+                    if (fullEmployerPhotoUrl && employerPhotoUrl !== fullEmployerPhotoUrl) setEmployerPhotoUrl(fullEmployerPhotoUrl);
+                  }}
+                  className="h-full w-full object-cover"
+                />
               ) : (
                 job.company.slice(0, 2).toUpperCase()
               )}

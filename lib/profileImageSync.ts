@@ -19,7 +19,7 @@ export function normalizeProfileImageUrl(value?: string | null) {
   const storagePath = cleanValue
     .replace(/^\.?\//, "")
     .replace(/^storage\/v1\/object\/(?:public|sign)\//, "");
-  const bareProfileObject = /^[0-9a-f]{8}-[0-9a-f-]{27,}\/(?:avatar-|banner-)?[^/]+\.(?:png|jpe?g|webp|gif|avif|svg)(?:\?.*)?$/i.test(storagePath);
+const bareProfileObject = /^[0-9a-f]{8}-[0-9a-f-]{27,}\/(?:avatar-|banner-)?[^/]+\.(?:png|jpe?g|webp|gif|avif|svg)(?:\?.*)?$/i.test(storagePath);
   const qualifiedStoragePath = bareProfileObject ? `profile-photos/${storagePath}` : storagePath;
   if (/^(profile-photos|profile_photos|profile-images|profile_images|avatars|candidates|employers|logos|uploads)\//i.test(qualifiedStoragePath)) {
     const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/+$/, "");
@@ -29,19 +29,102 @@ export function normalizeProfileImageUrl(value?: string | null) {
   return cleanValue;
 }
 
+function loadImageElement(file: File) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(image);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Could not read the selected image."));
+    };
+    image.src = objectUrl;
+  });
+}
+
+function canvasToWebp(canvas: HTMLCanvasElement, quality = 0.8) {
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) {
+        resolve(blob);
+        return;
+      }
+      reject(new Error("Could not optimize the selected image."));
+    }, "image/webp", quality);
+  });
+}
+
+async function optimizeProfileImage(file: File) {
+  const image = await loadImageElement(file);
+  const fullScale = image.naturalWidth > 1200 ? 1200 / image.naturalWidth : 1;
+  const fullWidth = Math.max(1, Math.round(image.naturalWidth * fullScale));
+  const fullHeight = Math.max(1, Math.round(image.naturalHeight * fullScale));
+  const fullCanvas = document.createElement("canvas");
+  fullCanvas.width = fullWidth;
+  fullCanvas.height = fullHeight;
+  const fullContext = fullCanvas.getContext("2d");
+  if (!fullContext) throw new Error("Could not optimize the selected image.");
+  fullContext.drawImage(image, 0, 0, fullWidth, fullHeight);
+
+  const thumbnailCanvas = document.createElement("canvas");
+  thumbnailCanvas.width = 150;
+  thumbnailCanvas.height = 150;
+  const thumbnailContext = thumbnailCanvas.getContext("2d");
+  if (!thumbnailContext) throw new Error("Could not create the image thumbnail.");
+  const sourceSize = Math.min(image.naturalWidth, image.naturalHeight);
+  const sourceX = Math.max(0, Math.round((image.naturalWidth - sourceSize) / 2));
+  const sourceY = Math.max(0, Math.round((image.naturalHeight - sourceSize) / 2));
+  thumbnailContext.drawImage(image, sourceX, sourceY, sourceSize, sourceSize, 0, 0, 150, 150);
+
+  return {
+    full: await canvasToWebp(fullCanvas, 0.8),
+    thumbnail: await canvasToWebp(thumbnailCanvas, 0.8)
+  };
+}
+
+export function getProfileThumbnailUrl(value?: string | null) {
+  const imageUrl = normalizeProfileImageUrl(value);
+  if (!imageUrl || !/\/profile-photos\//i.test(imageUrl) || /\/thumb-[^/]+$/i.test(imageUrl)) return imageUrl;
+
+  try {
+    const url = new URL(imageUrl);
+    const parts = url.pathname.split("/");
+    const fileName = parts.pop();
+    if (!fileName || fileName.startsWith("thumb-")) return imageUrl;
+    parts.push(`thumb-${fileName}`);
+    url.pathname = parts.join("/");
+    return url.toString();
+  } catch {
+    return imageUrl.replace(/\/([^/?#]+)([?#].*)?$/, (_match, fileName, suffix = "") => (
+      fileName.startsWith("thumb-") ? `/${fileName}${suffix}` : `/thumb-${fileName}${suffix}`
+    ));
+  }
+}
+
 export async function uploadProfileMedia(file: File, userId: string, kind: "avatar" | "banner" = "avatar") {
   if (!file.type.startsWith("image/")) throw new Error("Please select an image file.");
   if (file.size > 8 * 1024 * 1024) throw new Error("Profile images must be 8 MB or smaller.");
   if (!userId) throw new Error("Please sign in before uploading an image.");
 
-  const extension = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
-  const path = `${userId}/${kind}-${Date.now()}.${extension}`;
-  const { error } = await supabase.storage.from("profile-photos").upload(path, file, {
+  const optimized = await optimizeProfileImage(file);
+  const uploadedAt = Date.now();
+  const path = `${userId}/${kind}-${uploadedAt}.webp`;
+  const thumbnailPath = `${userId}/thumb-${kind}-${uploadedAt}.webp`;
+  const { error } = await supabase.storage.from("profile-photos").upload(path, optimized.full, {
     cacheControl: "3600",
-    contentType: file.type,
+    contentType: "image/webp",
     upsert: false
   });
   if (error) throw new Error(error.message);
+  const { error: thumbnailError } = await supabase.storage.from("profile-photos").upload(thumbnailPath, optimized.thumbnail, {
+    cacheControl: "3600",
+    contentType: "image/webp",
+    upsert: false
+  });
+  if (thumbnailError) throw new Error(thumbnailError.message);
   const { data } = supabase.storage.from("profile-photos").getPublicUrl(path);
   if (!data.publicUrl) throw new Error("Could not create a public image URL.");
   return data.publicUrl;

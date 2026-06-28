@@ -15,6 +15,7 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
 import { mapSupabaseJob } from "@/lib/mapSupabaseJob";
 import { getBestAvatarUrl } from "@/lib/authUserSync";
+import { getProfileThumbnailUrl } from "@/lib/profileImageSync";
 
 const CANDIDATE_PROFILE_KEY = "mx_candidate_profile";
 
@@ -82,9 +83,26 @@ function getInitials(name?: string | null) {
 }
 
 function CandidateAvatar({ src, name }: { src?: string | null; name: string }) {
-  if (src) {
+  const fullSrc = src || null;
+  const thumbnailSrc = getProfileThumbnailUrl(src);
+  const [image, setImage] = useState(thumbnailSrc);
+
+  useEffect(() => {
+    setImage(thumbnailSrc);
+  }, [thumbnailSrc]);
+
+  if (image) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={src} alt={name} className="h-11 w-11 rounded-full object-cover ring-2 ring-gray-200" />;
+    return (
+      <img
+        src={image}
+        alt={name}
+        onError={() => {
+          if (fullSrc && image !== fullSrc) setImage(fullSrc);
+        }}
+        className="h-11 w-11 rounded-full object-cover ring-2 ring-gray-200"
+      />
+    );
   }
 
   return (

@@ -38,7 +38,7 @@ import { Button, LinkButton } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import { getBestAvatarUrl, mergeRowsWithProfiles } from "@/lib/authUserSync";
 import { normalizeDateValue, normalizeJobPatch, normalizeJobStatus } from "@/lib/jobUpdate";
-import { stripInlineAuthAvatarMetadata } from "@/lib/profileImageSync";
+import { getProfileThumbnailUrl, stripInlineAuthAvatarMetadata } from "@/lib/profileImageSync";
 import { EMPLOYER_PLANS } from "@/lib/subscriptions";
 import {
   buildAtsResumeHtml,
@@ -665,13 +665,26 @@ function applySubscriptionPlansToEmployers(employers: AnyRecord[], subscriptions
 
 function AdminAvatar({ row, className }: { row: AnyRecord; className?: string }) {
   const name = getDisplayName(row);
-  const image = resolveAvatarImage(row);
+  const fullImage = resolveAvatarImage(row);
+  const thumbnailImage = getProfileThumbnailUrl(fullImage);
+  const [image, setImage] = useState(thumbnailImage);
+
+  useEffect(() => {
+    setImage(thumbnailImage);
+  }, [thumbnailImage]);
 
   return (
     <div className={cn("grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-primary to-success text-xs font-black text-white ring-2 ring-white shadow-soft", className)}>
       {image ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={image} alt={name} className="h-full w-full object-cover" />
+        <img
+          src={image}
+          alt={name}
+          onError={() => {
+            if (fullImage && image !== fullImage) setImage(fullImage);
+          }}
+          className="h-full w-full object-cover"
+        />
       ) : (
         getInitials(name)
       )}
