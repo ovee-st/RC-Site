@@ -406,12 +406,7 @@ async function safeSelect(adminClient: ReturnType<typeof createServerSupabaseCli
     if (useOrdering) query = query.order(orderColumn, { ascending: false });
     const { data, error } = await query;
 
-    if (!error) {
-      if (table === "subscription_payment_requests") {
-        return await attachSignedProofUrls(adminClient, data || []);
-      }
-      return data || [];
-    }
+    if (!error) return data || [];
 
     const missingColumn = missingColumnFromError(error.message);
     if (missingColumn === orderColumn) {
@@ -424,19 +419,6 @@ async function safeSelect(adminClient: ReturnType<typeof createServerSupabaseCli
   }
 
   return [];
-}
-
-async function attachSignedProofUrls(adminClient: ReturnType<typeof createServerSupabaseClient>, rows: any[]) {
-  return Promise.all((rows || []).map(async (row) => {
-    if (!row.payment_screenshot || /^https?:\/\//i.test(row.payment_screenshot)) return row;
-    const { data } = await adminClient.storage
-      .from("subscription-payment-proofs")
-      .createSignedUrl(row.payment_screenshot, 60 * 10);
-    return {
-      ...row,
-      payment_screenshot_url: data?.signedUrl || null
-    };
-  }));
 }
 
 async function safeUpdate(adminClient: ReturnType<typeof createServerSupabaseClient>, table: string, id: string, patch: Record<string, unknown>) {

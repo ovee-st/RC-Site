@@ -61,17 +61,21 @@ async function requireAdmin(adminClient: ReturnType<typeof createServerSupabaseC
   return authData.user;
 }
 
-async function attachSignedProofUrls(adminClient: ReturnType<typeof createServerSupabaseClient>, rows: any[]) {
-  return Promise.all((rows || []).map(async (row) => {
-    if (!row.payment_screenshot || /^https?:\/\//i.test(row.payment_screenshot)) return row;
-    const { data } = await adminClient.storage
-      .from("subscription-payment-proofs")
-      .createSignedUrl(row.payment_screenshot, 60 * 10);
-    return {
-      ...row,
-      payment_screenshot_url: data?.signedUrl || null
-    };
-  }));
+async function createPaymentScreenshotUrl(adminClient: ReturnType<typeof createServerSupabaseClient>, requestId: string) {
+  const { data: row, error } = await adminClient
+    .from("subscription_payment_requests")
+    .select("payment_screenshot")
+    .eq("id", requestId)
+    .maybeSingle();
+  if (error) throw error;
+  const screenshotPath = String(row?.payment_screenshot || "").trim();
+  if (!screenshotPath) throw new Error("Payment screenshot was not found.");
+  if (/^https?:\/\//i.test(screenshotPath)) return screenshotPath;
+  const { data, error: signedUrlError } = await adminClient.storage
+    .from("subscription-payment-proofs")
+    .createSignedUrl(screenshotPath, 60 * 10);
+  if (signedUrlError || !data?.signedUrl) throw signedUrlError || new Error("Could not open payment screenshot.");
+  return data.signedUrl;
 }
 
 export async function GET(request: Request) {
@@ -82,6 +86,11 @@ export async function GET(request: Request) {
     const adminClient = createServerSupabaseClient();
     await requireAdmin(adminClient, token);
     const { searchParams } = new URL(request.url);
+    const screenshotId = searchParams.get("screenshot_id");
+    if (screenshotId) {
+      const signedUrl = await createPaymentScreenshotUrl(adminClient, screenshotId);
+      return NextResponse.json({ ok: true, signedUrl });
+    }
     const status = searchParams.get("status");
     let query = adminClient
       .from("subscription_payment_requests")
@@ -91,7 +100,7 @@ export async function GET(request: Request) {
     if (status && status !== "all") query = query.eq("status", status);
     const { data, error } = await query;
     if (error) throw error;
-    return NextResponse.json({ ok: true, requests: await attachSignedProofUrls(adminClient, data || []) });
+    return NextResponse.json({ ok: true, requests: data || [] });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Could not load subscription payments." }, { status: 403 });
   }

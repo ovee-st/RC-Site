@@ -2674,7 +2674,43 @@ function SubscriptionPaymentsSection({
   const [statusFilter, setStatusFilter] = useState("pending");
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [finalAmounts, setFinalAmounts] = useState<Record<string, string>>({});
+  const [screenshotLoadingId, setScreenshotLoadingId] = useState<string | null>(null);
+  const [screenshotError, setScreenshotError] = useState<string | null>(null);
   const visibleRows = rows.filter((row) => statusFilter === "all" || String(row.status || "pending") === statusFilter);
+
+  async function openPaymentScreenshot(row: AnyRecord) {
+    const screenshotValue = String(row.payment_screenshot || row.payment_screenshot_url || "").trim();
+    if (!screenshotValue) return;
+    if (/^https?:\/\//i.test(screenshotValue)) {
+      window.open(screenshotValue, "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    const requestId = String(row.id || "").trim();
+    if (!requestId) return;
+    const previewWindow = window.open("about:blank", "_blank");
+    setScreenshotLoadingId(requestId);
+    setScreenshotError(null);
+    try {
+      const token = await getCompactAccessToken();
+      if (!token) throw new Error("Missing admin session token.");
+      const response = await fetch(`/api/admin/subscription-payments?screenshot_id=${encodeURIComponent(requestId)}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload.signedUrl) throw new Error(payload.error || "Could not open payment screenshot.");
+      if (previewWindow) {
+        previewWindow.location.href = payload.signedUrl;
+      } else {
+        window.open(payload.signedUrl, "_blank", "noopener,noreferrer");
+      }
+    } catch (error) {
+      previewWindow?.close();
+      setScreenshotError(error instanceof Error ? error.message : "Could not open payment screenshot.");
+    } finally {
+      setScreenshotLoadingId(null);
+    }
+  }
 
   return (
     <div className="grid gap-5">
@@ -2684,6 +2720,7 @@ function SubscriptionPaymentsSection({
             <p className="type-label text-primary">Manual bKash verification</p>
             <h2 className="mt-2 text-xl font-black text-text-main dark:text-white">Subscription Payments</h2>
             <p className="type-body mt-1">Review pending, approved, rejected, and more-info payment requests.</p>
+            {screenshotError ? <p className="mt-2 text-sm font-bold text-danger">{screenshotError}</p> : null}
           </div>
           <div className="flex flex-wrap gap-2">
             {["pending", "approved", "rejected", "more_info", "all"].map((status) => (
@@ -2745,8 +2782,15 @@ function SubscriptionPaymentsSection({
                     <td className="px-5 py-4 text-sm font-bold text-text-muted">{row.transaction_id}</td>
                     <td className="px-5 py-4 text-sm font-bold text-text-muted">{row.sender_last_3_digits}</td>
                     <td className="px-5 py-4 text-sm font-bold">
-                      {row.payment_screenshot_url || row.payment_screenshot ? (
-                        <a className="text-primary underline" href={row.payment_screenshot_url || row.payment_screenshot} target="_blank" rel="noreferrer">Open</a>
+                      {row.payment_screenshot || row.payment_screenshot_url ? (
+                        <button
+                          type="button"
+                          className="text-primary underline disabled:cursor-wait disabled:opacity-60"
+                          disabled={screenshotLoadingId === row.id}
+                          onClick={() => openPaymentScreenshot(row)}
+                        >
+                          {screenshotLoadingId === row.id ? "Opening..." : "Open"}
+                        </button>
                       ) : "None"}
                     </td>
                     <td className="px-5 py-4 text-sm font-bold text-text-muted">{formatDate(row.submitted_at || row.created_at)}</td>
