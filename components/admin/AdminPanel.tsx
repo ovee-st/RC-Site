@@ -1807,7 +1807,7 @@ function UsersSection({
         </select>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[860px] text-left">
+        <table className="w-max min-w-full text-left">
           <thead className="bg-bg text-xs uppercase tracking-wider text-text-muted dark:bg-white/5">
             <tr>
               {["User", "Role", "Plan", "Applications", "Created", "Actions"].map((head) => <th key={head} className="px-5 py-4 font-black">{head}</th>)}
@@ -2582,7 +2582,7 @@ function SubscriptionPaymentsSection({
 
       <Card className="overflow-hidden rounded-3xl p-0">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1440px] text-left">
+          <table className="w-max min-w-full text-left">
             <thead className="bg-bg text-xs uppercase tracking-wider text-text-muted dark:bg-white/5">
               <tr>
                 {["Employer", "Company", "Selected Plan", "Plan Price", "Coupon Code", "Discount", "Final", "Transaction ID", "Sender", "Screenshot", "Submitted", "Status", "Actions"].map((head) => (
@@ -2698,7 +2698,7 @@ function TransactionsSection({ rows }: { rows: AnyRecord[] }) {
         <Button variant="secondary" className="gap-2" onClick={() => exportCsv("MXVL-transactions.csv", rows)}><Download className="h-4 w-4" />Export CSV</Button>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[840px] text-left">
+        <table className="w-max min-w-full text-left">
           <thead className="bg-bg text-xs uppercase tracking-wider text-text-muted dark:bg-white/5">
             <tr>
               {["User", "Amount", "Method", "Coupon", "Transaction ID", "Status", "Date"].map((head) => <th key={head} className="px-5 py-4 font-black">{head}</th>)}
