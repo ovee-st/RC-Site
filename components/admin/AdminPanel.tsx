@@ -8,6 +8,7 @@ import {
   Bell,
   BriefcaseBusiness,
   CheckCircle2,
+  ChevronDown,
   ClipboardList,
   CircleDollarSign,
   Copy,
@@ -20,7 +21,9 @@ import {
   LayoutDashboard,
   Loader2,
   Mail,
-  MoreHorizontal,
+  Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
   Search,
   ShieldCheck,
   Sparkles,
@@ -177,7 +180,10 @@ const navItems = [
   { label: "Candidates", href: "/admin/candidates", key: "candidates", icon: Users },
   { label: "Employers", href: "/admin/employers", key: "employers", icon: BriefcaseBusiness },
   { label: "Jobs", href: "/admin/jobs", key: "jobs", icon: FileText },
-  { label: "Employees", href: "/admin/employees", key: "employees", icon: UserCog },
+  { label: "Employees", href: "/admin/employees", key: "employees", icon: UserCog }
+] as const;
+
+const operationNavItems = [
   { label: "Support Tickets", href: "/admin/support", key: "support", icon: Bell },
   { label: "Contact Requests", href: "/admin/contact-requests", key: "contact-requests", icon: Mail },
   { label: "Hiring Consultations", href: "/admin/hiring-consultations", key: "hiring-consultations", icon: ClipboardList },
@@ -185,6 +191,9 @@ const navItems = [
   { label: "Subscription Payments", href: "/admin/subscription-payments", key: "subscription-payments", icon: CircleDollarSign },
   { label: "Transactions", href: "/admin/transactions", key: "transactions", icon: CreditCard }
 ] as const;
+
+const ADMIN_SIDEBAR_EXPANDED_STORAGE_KEY = "MXVL-admin-sidebar-expanded";
+const ADMIN_OPERATIONS_OPEN_STORAGE_KEY = "MXVL-admin-operations-open";
 
 const fallbackProfiles = [
   { id: "admin-demo", full_name: "MXVL Admin", email: "admin@mxventurelab.com", role: "admin", plan: "Internal", applications_used: 0, created_at: "2026-05-01" },
@@ -772,9 +781,27 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
     }
   });
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarExpanded, setSidebarExpanded] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return window.localStorage.getItem(ADMIN_SIDEBAR_EXPANDED_STORAGE_KEY) === "true";
+    } catch {
+      return false;
+    }
+  });
+  const [operationsOpen, setOperationsOpen] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return window.localStorage.getItem(ADMIN_OPERATIONS_OPEN_STORAGE_KEY) === "true";
+    } catch {
+      return false;
+    }
+  });
   const notificationMenuRef = useRef<HTMLDivElement | null>(null);
   const readOnly = role === "viewer";
   const canAccessAdmin = role === "admin" || role === "viewer";
+  const operationsActive = operationNavItems.some((item) => pathname === item.href || pathname.startsWith(`${item.href}/`));
+  const sidebarLabelsVisible = sidebarExpanded || sidebarOpen;
 
   useEffect(() => {
     if (loading) return;
@@ -790,6 +817,42 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
       // Ignore storage failures so notification rendering never blocks the admin panel.
     }
   }, [clearedNotificationIds]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      window.localStorage.setItem(ADMIN_SIDEBAR_EXPANDED_STORAGE_KEY, String(sidebarExpanded));
+    } catch {
+      // Preference persistence should never block navigation rendering.
+    }
+  }, [sidebarExpanded]);
+
+  useEffect(() => {
+    if (operationsActive && !operationsOpen) {
+      setOperationsOpen(true);
+      return;
+    }
+
+    if (typeof window === "undefined") return;
+
+    try {
+      window.localStorage.setItem(ADMIN_OPERATIONS_OPEN_STORAGE_KEY, String(operationsOpen));
+    } catch {
+      // Preference persistence should never block navigation rendering.
+    }
+  }, [operationsActive, operationsOpen]);
+
+  useEffect(() => {
+    if (!sidebarOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSidebarOpen(false);
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [sidebarOpen]);
 
   useEffect(() => {
     if (!notificationsOpen) return;
@@ -1503,53 +1566,173 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
   if (!user || !canAccessAdmin) return null;
 
   const meta = sectionMeta[section];
+  const operationBadgeCounts: Record<string, number> = {
+    "contact-requests": adminData.contactRequests.filter((item) => String(item.status || "new").toLowerCase() !== "resolved").length,
+    "hiring-consultations": adminData.hiringRequests.filter((item) => String(item.status || "new").toLowerCase() !== "resolved").length,
+    "subscription-payments": adminData.subscriptionPayments.filter((item) => ["pending", "more_info"].includes(String(item.status || "pending").toLowerCase())).length,
+    transactions: adminData.transactions.filter((item) => String(item.status || "paid").toLowerCase() !== "paid").length
+  };
+  const operationsBadgeTotal = operationNavItems.reduce((total, item) => total + (operationBadgeCounts[item.key] || 0), 0);
+  const renderNavLink = (item: (typeof navItems)[number] | (typeof operationNavItems)[number], nested = false) => {
+    const Icon = item.icon;
+    const active = item.key === "dashboard" ? pathname === "/admin" : pathname === item.href || pathname.startsWith(`${item.href}/`);
+    const badgeCount = operationBadgeCounts[item.key] || 0;
+
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        title={sidebarLabelsVisible ? undefined : item.label}
+        aria-label={item.label}
+        onClick={() => setSidebarOpen(false)}
+        className={cn(
+          "group relative flex min-h-11 items-center rounded-2xl text-sm font-black text-text-muted outline-none transition duration-200 hover:bg-primary/5 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary/40 dark:text-slate-300 dark:hover:bg-white/5",
+          sidebarLabelsVisible ? "gap-3 px-3 py-2.5" : "justify-center px-0 py-2.5",
+          nested && sidebarLabelsVisible && "ml-2",
+          active && "bg-primary text-white shadow-primary hover:bg-primary hover:text-white dark:text-white"
+        )}
+      >
+        <span className={cn(
+          "grid h-9 w-9 shrink-0 place-items-center rounded-full bg-slate-100 text-text-muted transition dark:bg-white/10 dark:text-slate-300",
+          active && "bg-white/20 text-white"
+        )}>
+          <Icon className="h-4 w-4" />
+        </span>
+        <span className={cn(
+          "min-w-0 flex-1 truncate transition duration-200",
+          sidebarLabelsVisible ? "opacity-100" : "sr-only opacity-0"
+        )}>
+          {item.label}
+        </span>
+        {badgeCount > 0 ? (
+          <span className={cn(
+            "grid h-5 min-w-5 place-items-center rounded-full px-1 text-[10px] font-black",
+            active ? "bg-white/20 text-white" : "bg-primary/10 text-primary",
+            !sidebarLabelsVisible && "absolute right-1 top-1"
+          )}>
+            {badgeCount > 99 ? "99+" : badgeCount}
+          </span>
+        ) : null}
+        {!sidebarLabelsVisible ? (
+          <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 hidden -translate-y-1/2 whitespace-nowrap rounded-xl bg-slate-950 px-3 py-2 text-xs font-black text-white opacity-0 shadow-elevated transition group-hover:block group-hover:opacity-100 group-focus-visible:block group-focus-visible:opacity-100">
+            {item.label}
+          </span>
+        ) : null}
+      </Link>
+    );
+  };
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.16),transparent_32%),linear-gradient(180deg,#f8fafc,#eef2ff)] px-4 py-6 dark:bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.20),transparent_32%),linear-gradient(180deg,#020617,#0f172a)] sm:px-6">
-      <div className="mx-auto flex max-w-[1440px] gap-6">
+    <main className="min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.16),transparent_32%),linear-gradient(180deg,#f8fafc,#eef2ff)] px-4 py-6 dark:bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.20),transparent_32%),linear-gradient(180deg,#020617,#0f172a)] sm:px-6">
+      {sidebarOpen ? (
+        <button
+          type="button"
+          aria-label="Close admin navigation"
+          className="fixed inset-0 z-30 bg-slate-950/45 backdrop-blur-sm lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      ) : null}
+      <div className="mx-auto flex w-full max-w-[1920px] gap-4 lg:gap-5">
         <aside className={cn(
-          "fixed inset-y-4 left-4 z-40 flex w-72 flex-col rounded-3xl border border-white/60 bg-white/88 p-4 shadow-elevated backdrop-blur-2xl transition lg:sticky lg:top-20 lg:flex lg:h-[calc(100vh-7rem)] dark:border-white/10 dark:bg-slate-950/80",
+          "fixed inset-y-4 left-4 z-40 flex w-[280px] flex-col rounded-3xl border border-white/60 bg-white/92 p-3 shadow-elevated backdrop-blur-2xl transition-all duration-300 ease-out lg:sticky lg:top-20 lg:flex lg:h-[calc(100vh-7rem)] lg:shrink-0 dark:border-white/10 dark:bg-slate-950/88",
+          sidebarExpanded ? "lg:w-[280px]" : "lg:w-[72px]",
           sidebarOpen ? "translate-x-0" : "-translate-x-[115%] lg:translate-x-0"
         )}>
-          <div className="flex items-center gap-3 rounded-2xl bg-gradient-to-br from-slate-950 to-primary p-3 text-white">
-            <div className="grid h-10 w-10 place-items-center rounded-full bg-white/15">
+          <div className={cn(
+            "flex min-h-12 items-center rounded-2xl bg-gradient-to-br from-slate-950 to-primary p-2 text-white transition-all duration-300",
+            sidebarLabelsVisible ? "gap-3" : "justify-center"
+          )}>
+            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/15">
               <ShieldCheck className="h-5 w-5" />
             </div>
-            <div>
+            <div className={cn("min-w-0 transition duration-200", sidebarLabelsVisible ? "opacity-100" : "sr-only opacity-0")}>
               <p className="text-sm font-black">Admin</p>
+              <p className="text-[11px] font-bold text-white/70">Command center</p>
             </div>
+            <button
+              type="button"
+              aria-label={sidebarExpanded ? "Collapse admin sidebar" : "Expand admin sidebar"}
+              onClick={() => setSidebarExpanded((value) => !value)}
+              className={cn(
+                "ml-auto hidden h-8 w-8 place-items-center rounded-xl bg-white/10 text-white outline-none transition hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-white/50 lg:grid",
+                !sidebarLabelsVisible && "sr-only"
+              )}
+            >
+              {sidebarExpanded ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+            </button>
           </div>
 
-          <nav className="mt-4 grid gap-1.5">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const active = item.key === "dashboard" ? pathname === "/admin" : pathname === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setSidebarOpen(false)}
-                  className={cn(
-                    "flex items-center gap-3 rounded-2xl px-4 py-2.5 text-sm font-black text-text-muted transition hover:bg-primary/5 hover:text-primary dark:text-slate-300 dark:hover:bg-white/5",
-                    active && "bg-primary text-white shadow-primary hover:bg-primary hover:text-white"
-                  )}
-                >
-                  <span className={cn("grid h-7 w-7 place-items-center rounded-full bg-slate-100 text-text-muted dark:bg-white/10 dark:text-slate-300", active && "bg-white/20 text-white")}>
-                    <Icon className="h-4 w-4" />
-                  </span>
-                  {item.label}
-                </Link>
-              );
-            })}
+          {!sidebarLabelsVisible ? (
+            <button
+              type="button"
+              aria-label="Expand admin sidebar"
+              onClick={() => setSidebarExpanded(true)}
+              className="mt-3 hidden h-11 w-full place-items-center rounded-2xl bg-primary/10 text-primary outline-none transition hover:bg-primary hover:text-white focus-visible:ring-2 focus-visible:ring-primary/40 lg:grid"
+              title="Expand navigation"
+            >
+              <PanelLeftOpen className="h-4 w-4" />
+            </button>
+          ) : null}
+
+          <nav className="mt-4 grid gap-1.5 overflow-y-auto overflow-x-visible pr-0.5" aria-label="Admin navigation">
+            {navItems.map((item) => renderNavLink(item))}
+            <div className="my-2 h-px bg-border/70 dark:bg-white/10" />
+            <button
+              type="button"
+              aria-expanded={operationsOpen}
+              aria-controls="admin-operations-nav"
+              title={sidebarLabelsVisible ? undefined : "Operations"}
+              onClick={() => setOperationsOpen((value) => !value)}
+              className={cn(
+                "group relative flex min-h-11 items-center rounded-2xl text-sm font-black text-text-muted outline-none transition duration-200 hover:bg-primary/5 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary/40 dark:text-slate-300 dark:hover:bg-white/5",
+                sidebarLabelsVisible ? "gap-3 px-3 py-2.5" : "justify-center px-0 py-2.5",
+                operationsActive && "bg-primary/10 text-primary"
+              )}
+            >
+              <span className={cn(
+                "grid h-9 w-9 shrink-0 place-items-center rounded-full bg-slate-100 text-text-muted transition dark:bg-white/10 dark:text-slate-300",
+                operationsActive && "bg-primary text-white"
+              )}>
+                <ClipboardList className="h-4 w-4" />
+              </span>
+              <span className={cn("min-w-0 flex-1 truncate text-left transition duration-200", sidebarLabelsVisible ? "opacity-100" : "sr-only opacity-0")}>
+                Operations
+              </span>
+              {operationsBadgeTotal > 0 ? (
+                <span className={cn(
+                  "grid h-5 min-w-5 place-items-center rounded-full bg-primary/10 px-1 text-[10px] font-black text-primary",
+                  !sidebarLabelsVisible && "absolute right-1 top-1"
+                )}>
+                  {operationsBadgeTotal > 99 ? "99+" : operationsBadgeTotal}
+                </span>
+              ) : null}
+              <ChevronDown className={cn("h-4 w-4 transition duration-200", operationsOpen && "rotate-180", !sidebarLabelsVisible && "sr-only")} />
+              {!sidebarLabelsVisible ? (
+                <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 hidden -translate-y-1/2 whitespace-nowrap rounded-xl bg-slate-950 px-3 py-2 text-xs font-black text-white opacity-0 shadow-elevated transition group-hover:block group-hover:opacity-100 group-focus-visible:block group-focus-visible:opacity-100">
+                  Operations
+                </span>
+              ) : null}
+            </button>
+            <div
+              id="admin-operations-nav"
+              className={cn(
+                "grid overflow-hidden transition-all duration-300 ease-out",
+                operationsOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+              )}
+            >
+              <div className="min-h-0 space-y-1.5">
+                {operationNavItems.map((item) => renderNavLink(item, true))}
+              </div>
+            </div>
           </nav>
         </aside>
 
-        <section className="min-w-0 flex-1">
+        <section className="min-w-0 flex-1 transition-all duration-300">
           <header className="sticky top-20 z-30 mb-6 rounded-3xl border border-white/70 bg-white/82 p-4 shadow-soft backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/75">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div className="flex items-start gap-3">
-                <button type="button" onClick={() => setSidebarOpen(true)} className="grid h-11 w-11 place-items-center rounded-2xl bg-primary/10 text-primary lg:hidden">
-                  <MoreHorizontal className="h-5 w-5" />
+                <button type="button" aria-label="Open admin navigation" onClick={() => setSidebarOpen(true)} className="grid h-11 w-11 place-items-center rounded-2xl bg-primary/10 text-primary outline-none transition hover:bg-primary hover:text-white focus-visible:ring-2 focus-visible:ring-primary/40 lg:hidden">
+                  <Menu className="h-5 w-5" />
                 </button>
                 <div>
                   <Badge variant="primary" className="type-label text-primary">Admin Access</Badge>
