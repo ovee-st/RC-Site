@@ -114,8 +114,8 @@ const ADMIN_NOTIFICATION_STORAGE_KEY = "MXVL-admin-cleared-notifications";
 const MAX_SAFE_AUTH_TOKEN_LENGTH = 6000;
 const ADMIN_PAGE_SIZE = 25;
 const ADMIN_RECORD_CACHE_TTL_MS = 30_000;
-const adminRecordCache = new Map<AdminSection, { expiresAt: number; records: AnyRecord }>();
-const adminRecordRequests = new Map<AdminSection, Promise<AnyRecord | null>>();
+const adminRecordCache = new Map<string, { expiresAt: number; records: AnyRecord }>();
+const adminRecordRequests = new Map<string, Promise<AnyRecord | null>>();
 const ADMIN_SELECT_COLUMNS: Record<string, string> = {
   profiles: "id, created_at, updated_at, email, full_name, name, role, plan, verified, username, avatar, avatar_url, photo_url, profile_photo_url",
   candidates: "id, created_at, user_id, name, full_name, phone_number, email, location, photo_url, avatar_url, banner_url, category, categories, education, skills, skills_array, experience, about, career_level, target_role, resume_path, resume_url",
@@ -321,25 +321,30 @@ async function safeSelect(table: string) {
   return [];
 }
 
-async function fetchAdminRecords(section: AdminSection) {
+function getAdminRecordCacheKey(section: AdminSection, tables?: string[]) {
+  return tables?.length ? `${section}:${tables.join(",")}` : section;
+}
+
+async function fetchAdminRecords(section: AdminSection, tables?: string[]) {
   if (!isSupabaseConfigured) return null;
-  const cached = adminRecordCache.get(section);
+  const cacheKey = getAdminRecordCacheKey(section, tables);
+  const cached = adminRecordCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) return cached.records;
-  const pending = adminRecordRequests.get(section);
+  const pending = adminRecordRequests.get(cacheKey);
   if (pending) return pending;
 
-  const request = loadAdminRecords(section);
-  adminRecordRequests.set(section, request);
+  const request = loadAdminRecords(section, tables);
+  adminRecordRequests.set(cacheKey, request);
   try {
     const records = await request;
-    if (records) adminRecordCache.set(section, { expiresAt: Date.now() + ADMIN_RECORD_CACHE_TTL_MS, records });
+    if (records) adminRecordCache.set(cacheKey, { expiresAt: Date.now() + ADMIN_RECORD_CACHE_TTL_MS, records });
     return records;
   } finally {
-    adminRecordRequests.delete(section);
+    adminRecordRequests.delete(cacheKey);
   }
 }
 
-async function loadAdminRecords(section: AdminSection) {
+async function loadAdminRecords(section: AdminSection, tables?: string[]) {
   const { token, refreshToken } = await getAdminSessionPayload();
   if (!token && !refreshToken) throw new Error("Missing admin session token.");
 
@@ -350,6 +355,7 @@ async function loadAdminRecords(section: AdminSection) {
     body: JSON.stringify({
       action: "list",
       section,
+      tables: tables?.join(",") || "",
       admin_token: token,
       admin_refresh_token: refreshToken
     })
@@ -773,6 +779,11 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
     let active = true;
 
     async function loadAdminData() {
+      if (section === "dashboard") {
+        setDataLoading(false);
+        return;
+      }
+
       setDataLoading(true);
       const requestedTables = adminSectionTables(section);
       let adminRecords: AnyRecord | null = null;
@@ -881,51 +892,6 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
       active = false;
     };
   }, [canAccessAdmin, loading, section]);
-
-  const analytics = useMemo(() => {
-    let activeJobs = 0;
-    for (const job of adminData.jobs) {
-      if ((job.status || "active") === "active") activeJobs += 1;
-    }
-
-    let profileCandidateCount = 0;
-    let profileEmployerCount = 0;
-    let proSubscriptions = 0;
-    for (const profile of adminData.profiles) {
-      if (profile.role === "candidate") profileCandidateCount += 1;
-      if (profile.role === "employer") profileEmployerCount += 1;
-      const plan = String(profile.plan || "").toLowerCase();
-      if (plan.includes("pro") || plan.includes("growth")) proSubscriptions += 1;
-    }
-
-    let monthlyRevenue = 0;
-    for (const tx of adminData.transactions) {
-      if (String(tx.status || "paid").toLowerCase() === "paid") {
-        monthlyRevenue += Number(tx.amount || 0);
-      }
-    }
-
-    return {
-      totalCandidates: Math.max(adminData.candidates.length, profileCandidateCount),
-      totalEmployers: Math.max(adminData.employers.length, profileEmployerCount),
-      activeJobs,
-      applications: adminData.applications.length,
-      proSubscriptions,
-      monthlyRevenue
-    };
-  }, [adminData.applications, adminData.candidates, adminData.employers, adminData.jobs, adminData.profiles, adminData.transactions]);
-
-  const chartData = useMemo(() => [
-    { name: "Candidates", value: analytics.totalCandidates },
-    { name: "Employers", value: analytics.totalEmployers },
-    { name: "Jobs", value: analytics.activeJobs },
-    { name: "Applications", value: analytics.applications }
-  ], [analytics]);
-
-  const revenueData = useMemo(() => ["Jan", "Feb", "Mar", "Apr", "May"].map((month, index) => ({
-    month,
-    revenue: Math.max(1200 + index * 900, Math.round(analytics.monthlyRevenue / 5) + index * 300)
-  })), [analytics.monthlyRevenue]);
 
   const filteredProfiles = useMemo(() => adminData.profiles.filter((profile) => {
     const haystack = `${getDisplayName(profile)} ${getEmail(profile)} ${profile.role || ""}`.toLowerCase();
@@ -1637,7 +1603,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
             </div>
           ) : (
             <>
-              {section === "dashboard" ? <DashboardSection analytics={analytics} chartData={chartData} revenueData={revenueData} data={adminData} /> : null}
+              {section === "dashboard" ? <DashboardSection /> : null}
               {section === "users" ? <UsersSection rows={filteredProfiles} query={query} roleFilter={roleFilter} setRoleFilter={setRoleFilter} onUpdate={updateRecord} onRoleChange={updateUserRole} onDelete={deleteRecord} readOnly={readOnly} onNotice={setNotice} /> : null}
               {section === "candidates" ? <CandidatesSection rows={adminData.candidates} profiles={adminData.profiles} applications={adminData.applications} onUpdate={updateRecord} onPlanChange={updateCandidatePlan} onDelete={deleteRecord} readOnly={readOnly} /> : null}
               {section === "employers" ? (
@@ -1668,24 +1634,173 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
   );
 }
 
-function DashboardSection({ analytics, chartData, revenueData, data }: { analytics: any; chartData: any[]; revenueData: any[]; data: AdminState }) {
+const DASHBOARD_STATS_TABLES = ["profiles", "candidates", "employers", "jobs", "applications", "transactions"];
+const DASHBOARD_RECENT_SIGNUPS_TABLES = ["profiles"];
+const DASHBOARD_RECENT_TRANSACTIONS_TABLES = ["transactions"];
+const DASHBOARD_RECENT_CONTACTS_TABLES = ["contact_requests"];
+
+function useDashboardRecords(tables: string[]) {
+  const [records, setRecords] = useState<AnyRecord | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const tableKey = tables.join(",");
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setError(null);
+
+    fetchAdminRecords("dashboard", tables)
+      .then((payload) => {
+        if (!active) return;
+        setRecords(payload || {});
+      })
+      .catch((reason) => {
+        if (!active) return;
+        setError(reason instanceof Error ? reason.message : "Could not load this dashboard widget.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [tableKey]);
+
+  return { records, loading, error };
+}
+
+function getDashboardRows(records: AnyRecord | null, table: string) {
+  const rows = records?.[table];
+  return Array.isArray(rows) ? rows : [];
+}
+
+function getDashboardAnalytics(records: AnyRecord | null) {
+  const profiles = getDashboardRows(records, "profiles");
+  const candidates = getDashboardRows(records, "candidates");
+  const employers = getDashboardRows(records, "employers");
+  const jobs = getDashboardRows(records, "jobs");
+  const applications = getDashboardRows(records, "applications");
+  const transactions = getDashboardRows(records, "transactions");
+
+  let activeJobs = 0;
+  for (const job of jobs) {
+    if ((job.status || "active") === "active") activeJobs += 1;
+  }
+
+  let profileCandidateCount = 0;
+  let profileEmployerCount = 0;
+  let proSubscriptions = 0;
+  for (const profile of profiles) {
+    if (profile.role === "candidate") profileCandidateCount += 1;
+    if (profile.role === "employer") profileEmployerCount += 1;
+    const plan = String(profile.plan || "").toLowerCase();
+    if (plan.includes("pro") || plan.includes("growth")) proSubscriptions += 1;
+  }
+
+  let monthlyRevenue = 0;
+  for (const tx of transactions) {
+    if (String(tx.status || "paid").toLowerCase() === "paid") {
+      monthlyRevenue += Number(tx.amount || 0);
+    }
+  }
+
+  return {
+    totalCandidates: Math.max(candidates.length, profileCandidateCount),
+    totalEmployers: Math.max(employers.length, profileEmployerCount),
+    activeJobs,
+    applications: applications.length,
+    proSubscriptions,
+    monthlyRevenue
+  };
+}
+
+function DashboardStatSkeleton() {
+  return <Card className="h-36 animate-pulse rounded-3xl bg-white/60 dark:bg-white/5" />;
+}
+
+function DashboardChartsSkeleton() {
+  return (
+    <div className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
+      <Card className="h-[376px] animate-pulse rounded-3xl bg-white/60 dark:bg-white/5" />
+      <Card className="h-[376px] animate-pulse rounded-3xl bg-white/60 dark:bg-white/5" />
+    </div>
+  );
+}
+
+function DashboardWidgetError({ message }: { message: string }) {
+  return (
+    <Card className="rounded-3xl border-danger/20 bg-danger/5 p-5 text-sm font-bold text-danger">
+      {message}
+    </Card>
+  );
+}
+
+function RecentListSkeleton({ title }: { title: string }) {
+  return (
+    <Card className="min-w-0 overflow-hidden rounded-3xl p-5">
+      <h3 className="text-lg font-black text-text-main dark:text-white">{title}</h3>
+      <div className="mt-4 grid gap-3">
+        {[1, 2, 3].map((item) => <div key={item} className="h-16 animate-pulse rounded-2xl bg-bg dark:bg-white/5" />)}
+      </div>
+    </Card>
+  );
+}
+
+function DashboardSection() {
+  const statsWidget = useDashboardRecords(DASHBOARD_STATS_TABLES);
+  const signupsWidget = useDashboardRecords(DASHBOARD_RECENT_SIGNUPS_TABLES);
+  const transactionsWidget = useDashboardRecords(DASHBOARD_RECENT_TRANSACTIONS_TABLES);
+  const contactsWidget = useDashboardRecords(DASHBOARD_RECENT_CONTACTS_TABLES);
+
+  const analytics = useMemo(() => getDashboardAnalytics(statsWidget.records), [statsWidget.records]);
+  const chartData = useMemo(() => [
+    { name: "Candidates", value: analytics.totalCandidates },
+    { name: "Employers", value: analytics.totalEmployers },
+    { name: "Jobs", value: analytics.activeJobs },
+    { name: "Applications", value: analytics.applications }
+  ], [analytics]);
+  const revenueData = useMemo(() => ["Jan", "Feb", "Mar", "Apr", "May"].map((month, index) => ({
+    month,
+    revenue: Math.max(1200 + index * 900, Math.round(analytics.monthlyRevenue / 5) + index * 300)
+  })), [analytics.monthlyRevenue]);
+
+  const recentSignups = getDashboardRows(signupsWidget.records, "profiles");
+  const latestTransactions = getDashboardRows(transactionsWidget.records, "transactions");
+  const latestContactRequests = getDashboardRows(contactsWidget.records, "contact_requests");
+
   return (
     <div className="grid gap-6">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
-        <AdminStatCard label="Total Candidates" value={analytics.totalCandidates} detail="Registered talent" icon={Users} accent="bg-primary/20" />
-        <AdminStatCard label="Total Employers" value={analytics.totalEmployers} detail="Hiring accounts" icon={BriefcaseBusiness} accent="bg-success/20" />
-        <AdminStatCard label="Active Jobs" value={analytics.activeJobs} detail="Visible openings" icon={FileText} accent="bg-blue-400/20" />
-        <AdminStatCard label="Applications" value={analytics.applications} detail="Submitted in ATS" icon={CheckCircle2} accent="bg-amber-400/20" />
-        <AdminStatCard label="Pro Subs" value={analytics.proSubscriptions} detail="Paid or growth plans" icon={Sparkles} accent="bg-purple-400/20" />
-        <AdminStatCard label="Revenue" value={`BDT ${analytics.monthlyRevenue.toLocaleString()}`} detail="Tracked paid tx" icon={CreditCard} accent="bg-emerald-400/20" />
+        {statsWidget.loading ? (
+          [1, 2, 3, 4, 5, 6].map((item) => <DashboardStatSkeleton key={item} />)
+        ) : statsWidget.error ? (
+          <div className="md:col-span-2 xl:col-span-6"><DashboardWidgetError message={statsWidget.error} /></div>
+        ) : (
+          <>
+            <AdminStatCard label="Total Candidates" value={analytics.totalCandidates} detail="Registered talent" icon={Users} accent="bg-primary/20" />
+            <AdminStatCard label="Total Employers" value={analytics.totalEmployers} detail="Hiring accounts" icon={BriefcaseBusiness} accent="bg-success/20" />
+            <AdminStatCard label="Active Jobs" value={analytics.activeJobs} detail="Visible openings" icon={FileText} accent="bg-blue-400/20" />
+            <AdminStatCard label="Applications" value={analytics.applications} detail="Submitted in ATS" icon={CheckCircle2} accent="bg-amber-400/20" />
+            <AdminStatCard label="Pro Subs" value={analytics.proSubscriptions} detail="Paid or growth plans" icon={Sparkles} accent="bg-purple-400/20" />
+            <AdminStatCard label="Revenue" value={`BDT ${analytics.monthlyRevenue.toLocaleString()}`} detail="Tracked paid tx" icon={CreditCard} accent="bg-emerald-400/20" />
+          </>
+        )}
       </div>
 
-      <LazyAdminDashboardCharts chartData={chartData} revenueData={revenueData} />
+      {statsWidget.loading ? (
+        <DashboardChartsSkeleton />
+      ) : statsWidget.error ? (
+        <DashboardWidgetError message="Charts are unavailable because dashboard metrics could not load." />
+      ) : (
+        <LazyAdminDashboardCharts chartData={chartData} revenueData={revenueData} />
+      )}
 
       <div className="grid min-w-0 gap-6 xl:grid-cols-3">
-        <RecentList title="Recent Signups" rows={data.profiles.slice(0, 5)} />
-        <RecentList title="Latest Transactions" rows={data.transactions.slice(0, 5)} />
-        <RecentList title="Latest Contact Requests" rows={data.contactRequests.slice(0, 5)} />
+        {signupsWidget.loading ? <RecentListSkeleton title="Recent Signups" /> : signupsWidget.error ? <DashboardWidgetError message={signupsWidget.error} /> : <RecentList title="Recent Signups" rows={(recentSignups.length ? recentSignups : fallbackProfiles).slice(0, 5)} />}
+        {transactionsWidget.loading ? <RecentListSkeleton title="Latest Transactions" /> : transactionsWidget.error ? <DashboardWidgetError message={transactionsWidget.error} /> : <RecentList title="Latest Transactions" rows={(latestTransactions.length ? latestTransactions : fallbackTransactions).slice(0, 5)} />}
+        {contactsWidget.loading ? <RecentListSkeleton title="Latest Contact Requests" /> : contactsWidget.error ? <DashboardWidgetError message={contactsWidget.error} /> : <RecentList title="Latest Contact Requests" rows={(latestContactRequests.length ? latestContactRequests : fallbackContacts).slice(0, 5)} />}
       </div>
     </div>
   );
