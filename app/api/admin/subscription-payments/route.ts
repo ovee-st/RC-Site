@@ -79,6 +79,7 @@ async function createPaymentScreenshotUrl(adminClient: ReturnType<typeof createS
 }
 
 export async function GET(request: Request) {
+  const startedAt = performance.now();
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   if (!token) return NextResponse.json({ error: "Missing session token." }, { status: 401 });
 
@@ -98,9 +99,17 @@ export async function GET(request: Request) {
       .order("submitted_at", { ascending: false })
       .range(0, ADMIN_PAGE_SIZE - 1);
     if (status && status !== "all") query = query.eq("status", status);
+    const queryStartedAt = performance.now();
     const { data, error } = await query;
+    const queryDuration = performance.now() - queryStartedAt;
     if (error) throw error;
-    return NextResponse.json({ ok: true, requests: data || [] });
+    console.info(`[admin-subscription-payments] payment_requests query completed in ${queryDuration.toFixed(1)}ms (${(data || []).length} rows)`);
+    const response = NextResponse.json({ ok: true, requests: data || [] });
+    response.headers.set("Server-Timing", [
+      `admin-subscription-payments;dur=${(performance.now() - startedAt).toFixed(1)}`,
+      `payment_requests;dur=${queryDuration.toFixed(1)};desc="subscription_payment_requests"`
+    ].join(", "));
+    return response;
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Could not load subscription payments." }, { status: 403 });
   }

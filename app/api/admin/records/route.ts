@@ -375,6 +375,21 @@ function getRequestedTables(section: string, requestedTableText = "") {
     .filter((table) => TABLES.has(table));
 }
 
+function getTimingMetricName(table: string) {
+  const names: Record<string, string> = {
+    employer_subscriptions: "subscriptions",
+    subscription_payment_requests: "payment_requests"
+  };
+  return names[table] || table;
+}
+
+function formatServerTiming(timings: Array<{ table: string; duration: number }>, totalDuration: number) {
+  const tableTimings = timings.map(({ table, duration }) => (
+    `${getTimingMetricName(table)};dur=${duration.toFixed(1)};desc="${table}"`
+  ));
+  return [`admin-db;dur=${totalDuration.toFixed(1)}`, ...tableTimings].join(", ");
+}
+
 async function loadRecords(token: string, refreshToken: string, section: string, requestedTableText = "") {
   const startedAt = performance.now();
   const tables = getRequestedTables(section, requestedTableText);
@@ -384,12 +399,21 @@ async function loadRecords(token: string, refreshToken: string, section: string,
   }
 
   const adminClient = await requireAdminRole(token, refreshToken);
+  const timings: Array<{ table: string; duration: number }> = [];
   const entries = await Promise.all(
-    tables.map(async (table) => [table, await safeSelect(adminClient, table)] as const)
+    tables.map(async (table) => {
+      const queryStartedAt = performance.now();
+      const rows = await safeSelect(adminClient, table);
+      const duration = performance.now() - queryStartedAt;
+      timings.push({ table, duration });
+      console.info(`[admin-records] ${table} query completed in ${duration.toFixed(1)}ms (${rows.length} rows)`);
+      return [table, rows] as const;
+    })
   );
 
+  const totalDuration = performance.now() - startedAt;
   const response = NextResponse.json({ ok: true, records: Object.fromEntries(entries) });
-  response.headers.set("Server-Timing", `admin-db;dur=${(performance.now() - startedAt).toFixed(1)}`);
+  response.headers.set("Server-Timing", formatServerTiming(timings, totalDuration));
   return response;
 }
 
