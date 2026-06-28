@@ -566,6 +566,19 @@ function getEmployerJobLookupKeys(employer: AnyRecord) {
   return [employer.user_id, employer.id].map(normalizeIdentityValue).filter(Boolean);
 }
 
+function getCandidateApplicationLookupKeys(candidate: AnyRecord) {
+  return [candidate.user_id, candidate.id].map(normalizeIdentityValue).filter(Boolean);
+}
+
+function getApplicationCandidateLookupKeys(application: AnyRecord) {
+  return [
+    application.candidate_id,
+    application.candidate_user_id,
+    application.user_id,
+    application.profile_id
+  ].map(normalizeIdentityValue).filter(Boolean);
+}
+
 function subscriptionMatchesEmployer(subscription: AnyRecord, employer: AnyRecord) {
   return getSubscriptionEmployerMatchScore(subscription, employer) > 0;
 }
@@ -652,6 +665,31 @@ function getCurrentEmployerSubscription(subscriptions: AnyRecord[], employer: An
       if (matchDelta) return matchDelta;
       return 0;
     })[0];
+}
+
+function createApplicationsByCandidateId(applications: AnyRecord[]) {
+  const map = new Map<string, AnyRecord[]>();
+  for (const application of applications) {
+    for (const key of getApplicationCandidateLookupKeys(application)) {
+      const entries = map.get(key) || [];
+      entries.push(application);
+      map.set(key, entries);
+    }
+  }
+  return map;
+}
+
+function createSubscriptionsByEmployerId(employers: AnyRecord[], subscriptions: AnyRecord[]) {
+  const map = new Map<string, AnyRecord | undefined>();
+  for (const employer of employers) {
+    const subscription = getCurrentEmployerSubscription(subscriptions, employer);
+    for (const key of getEmployerJobLookupKeys(employer)) {
+      map.set(key, subscription);
+    }
+    const recordKey = normalizeIdentityValue(employer.id || employer.user_id || employer.email);
+    if (recordKey) map.set(recordKey, subscription);
+  }
+  return map;
 }
 
 function getSubscriptionPlanName(subscription?: AnyRecord | null) {
@@ -1990,6 +2028,7 @@ function CandidatesSection({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<AnyRecord>({});
   const candidates = rows.length ? rows : profiles.filter((profile) => profile.role === "candidate");
+  const applicationsByCandidateId = useMemo(() => createApplicationsByCandidateId(applications), [applications]);
 
   function startEdit(candidate: AnyRecord) {
     setEditingId(candidate.id || candidate.user_id || candidate.email);
@@ -2012,7 +2051,11 @@ function CandidatesSection({
     <div className="grid gap-4">
       {candidates.map((candidate) => {
         const recordKey = candidate.id || candidate.user_id || candidate.email;
-        const history = applications.filter((app) => app.candidate_id === candidate.user_id || app.candidate_id === candidate.id);
+        const history = Array.from(new Map(
+          getCandidateApplicationLookupKeys(candidate)
+            .flatMap((key) => applicationsByCandidateId.get(key) || [])
+            .map((app) => [app.id || `${app.candidate_id}-${app.job_id || app.job_post_id}-${app.created_at}`, app])
+        ).values());
         const skills = Array.isArray(candidate.skills) ? candidate.skills : String(candidate.skills || "Admin, Excel").split(",").map((skill) => skill.trim()).filter(Boolean);
         const editing = editingId === recordKey;
         return (
@@ -2123,14 +2166,7 @@ function EmployersSection({
     }
     return map;
   }, [jobs]);
-  const subscriptionByEmployerId = useMemo(() => {
-    const map = new Map<string, AnyRecord | undefined>();
-    for (const employer of rows) {
-      const recordKey = employer.id || employer.user_id || employer.email;
-      map.set(String(recordKey), getCurrentEmployerSubscription(subscriptions, employer));
-    }
-    return map;
-  }, [rows, subscriptions]);
+  const subscriptionsByEmployerId = useMemo(() => createSubscriptionsByEmployerId(rows, subscriptions), [rows, subscriptions]);
 
   function startEdit(employer: AnyRecord) {
     setEditingId(employer.id || employer.user_id || employer.email);
@@ -2163,7 +2199,7 @@ function EmployersSection({
         const activeEmployerJobs = employerJobEntries.length <= 1
           ? employerJobEntries[0]?.activeCount || 0
           : employerJobs.filter((job) => (job.status || "active") === "active").length;
-        const subscription = subscriptionByEmployerId.get(String(recordKey));
+        const subscription = subscriptionsByEmployerId.get(normalizeIdentityValue(recordKey));
         const subscriptionPlan = subscription?.subscription_plans;
         const visiblePlanName = getSubscriptionPlanName(subscription);
         const editing = editingId === recordKey;
