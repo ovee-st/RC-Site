@@ -107,7 +107,7 @@ export async function GET(request: Request) {
     const response = NextResponse.json({ ok: true, requests: data || [] });
     response.headers.set("Server-Timing", [
       `admin-subscription-payments;dur=${(performance.now() - startedAt).toFixed(1)}`,
-      `payment_requests;dur=${queryDuration.toFixed(1)};desc="subscription_payment_requests"`
+      `payment-requests;dur=${queryDuration.toFixed(1)}`
     ].join(", "));
     return response;
   } catch (error) {

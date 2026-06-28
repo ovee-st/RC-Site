@@ -378,14 +378,14 @@ function getRequestedTables(section: string, requestedTableText = "") {
 function getTimingMetricName(table: string) {
   const names: Record<string, string> = {
     employer_subscriptions: "subscriptions",
-    subscription_payment_requests: "payment_requests"
+    subscription_payment_requests: "payment-requests"
   };
-  return names[table] || table;
+  return (names[table] || table).replace(/_/g, "-");
 }
 
 function formatServerTiming(timings: Array<{ table: string; duration: number }>, totalDuration: number) {
   const tableTimings = timings.map(({ table, duration }) => (
-    `${getTimingMetricName(table)};dur=${duration.toFixed(1)};desc="${table}"`
+    `${getTimingMetricName(table)};dur=${duration.toFixed(1)}`
   ));
   return [`admin-db;dur=${totalDuration.toFixed(1)}`, ...tableTimings].join(", ");
 }
