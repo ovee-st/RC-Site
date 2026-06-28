@@ -270,6 +270,60 @@ function removeColumn(selectText: string, missingColumn: string) {
     .join(", ");
 }
 
+type SupabaseQueryError = {
+  message?: string;
+  details?: string;
+  hint?: string;
+  code?: string;
+};
+
+class AdminRecordsQueryError extends Error {
+  table: string;
+  select: string;
+  details: string;
+  hint: string;
+  code: string;
+  rawError: unknown;
+
+  constructor(table: string, select: string, error: SupabaseQueryError) {
+    super(error.message || "Could not load admin records.");
+    this.name = "AdminRecordsQueryError";
+    this.table = table;
+    this.select = select;
+    this.details = error.details || "";
+    this.hint = error.hint || "";
+    this.code = error.code || "";
+    this.rawError = error;
+  }
+}
+
+function createAdminRecordsErrorResponse(error: unknown) {
+  const message = error instanceof Error ? error.message : "Could not load admin records.";
+
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: message }, { status: 403 });
+  }
+
+  if (error instanceof AdminRecordsQueryError) {
+    return NextResponse.json({
+      error: error.message,
+      table: error.table,
+      select: error.select,
+      details: error.details,
+      hint: error.hint,
+      code: error.code
+    }, { status: 403 });
+  }
+
+  const maybeError = error as SupabaseQueryError | null;
+  return NextResponse.json({
+    error: message,
+    details: maybeError?.details || "",
+    hint: maybeError?.hint || "",
+    code: maybeError?.code || ""
+  }, { status: 403 });
+}
+
 function sanitizePatch(patch: Record<string, unknown>) {
   return Object.fromEntries(
     Object.entries(patch).filter(([key]) => !["id", "created_at"].includes(key))
@@ -434,10 +488,29 @@ async function safeSelect(adminClient: ReturnType<typeof createServerSupabaseCli
 
     const missingColumn = missingColumnFromError(error.message);
     if (missingColumn === orderColumn) {
+      console.warn("[admin-records] retrying without missing order column", {
+        table,
+        select: columns,
+        orderColumn,
+        rawError: error
+      });
       useOrdering = false;
       continue;
     }
-    if (!missingColumn || !columns.includes(missingColumn)) throw error;
+    if (!missingColumn || !columns.includes(missingColumn)) {
+      console.error("[admin-records] Supabase select failed", {
+        table,
+        select: columns,
+        rawError: error
+      });
+      throw new AdminRecordsQueryError(table, columns, error);
+    }
+    console.warn("[admin-records] retrying without missing select column", {
+      table,
+      select: columns,
+      missingColumn,
+      rawError: error
+    });
     columns = removeColumn(columns, missingColumn);
     if (!columns) return [];
   }
@@ -498,7 +571,7 @@ export async function GET(request: Request) {
   try {
     return await loadRecords(token, "", section, tables);
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Could not load admin records." }, { status: 403 });
+    return createAdminRecordsErrorResponse(error);
   }
 }
 
@@ -511,7 +584,7 @@ export async function POST(request: Request) {
     try {
       return await loadRecords(token, refreshToken, String(body.section || ""), String(body.tables || ""));
     } catch (error) {
-      return NextResponse.json({ error: error instanceof Error ? error.message : "Could not load admin records." }, { status: 403 });
+      return createAdminRecordsErrorResponse(error);
     }
   }
 
