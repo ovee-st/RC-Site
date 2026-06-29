@@ -10,6 +10,7 @@ type LiveChatStore = {
   setSessions: (sessions: LiveChatSession[]) => void;
   upsertSession: (session: LiveChatSession) => void;
   setMessages: (sessionId: string, messages: LiveChatMessage[]) => void;
+  prependMessages: (sessionId: string, messages: LiveChatMessage[]) => void;
   addMessage: (message: LiveChatMessage) => void;
   selectSession: (sessionId: string | null) => void;
 };
@@ -32,6 +33,18 @@ export const useLiveChatStore = create<LiveChatStore>((set) => ({
   setMessages: (sessionId, messages) => set((state) => ({
     messagesBySession: { ...state.messagesBySession, [sessionId]: messages }
   })),
+  prependMessages: (sessionId, messages) => set((state) => {
+    const existing = state.messagesBySession[sessionId] || [];
+    const seen = new Set(existing.map((message) => message.id));
+    const older = messages.filter((message) => !seen.has(message.id));
+    if (!older.length) return state;
+    return {
+      messagesBySession: {
+        ...state.messagesBySession,
+        [sessionId]: [...older, ...existing]
+      }
+    };
+  }),
   addMessage: (message) => set((state) => {
     const existing = state.messagesBySession[message.session_id] || [];
     if (existing.some((item) => item.id === message.id)) return state;

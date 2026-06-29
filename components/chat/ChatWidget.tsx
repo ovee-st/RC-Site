@@ -31,6 +31,8 @@ export default function ChatWidget() {
 
   useLiveChatRealtime({
     channelKey: `widget-${user?.id || "guest"}`,
+    messageSessionId: activeSession?.id || null,
+    sessionFilter: user?.id ? `user_id=eq.${user.id}` : undefined,
     onSessionChange: upsertSession,
     onMessageCreate: addMessage
   });

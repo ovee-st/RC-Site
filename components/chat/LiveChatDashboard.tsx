@@ -29,6 +29,8 @@ export default function LiveChatDashboard({ mode = "employee", compact = false }
 
   useLiveChatRealtime({
     channelKey: `${mode}-${user?.id || "guest"}`,
+    messageSessionId: activeSessionId,
+    sessionFilter: "status=neq.ENDED",
     onSessionChange: upsertSession,
     onMessageCreate: addMessage
   });

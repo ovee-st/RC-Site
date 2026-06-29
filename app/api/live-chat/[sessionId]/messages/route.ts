@@ -3,6 +3,11 @@ import { createServerSupabaseClient } from "@/lib/supabaseServer";
 import { canViewLiveChat } from "@/lib/liveChat";
 import { isSupportStaffRole } from "@/lib/supportRoles";
 
+const LIVE_CHAT_SESSION_SELECT = "id,ticket_id,user_id,user_role,username,employee_id,status,started_at,ended_at,last_message_at";
+const LIVE_CHAT_MESSAGE_SELECT = "id,session_id,sender_id,sender_role,message,attachment_url,created_at";
+const DEFAULT_MESSAGE_LIMIT = 50;
+const MAX_MESSAGE_LIMIT = 100;
+
 async function getRequester(request: Request) {
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   if (!token) return { error: NextResponse.json({ error: "Missing session token." }, { status: 401 }) };
@@ -29,7 +34,7 @@ export async function GET(request: Request, { params }: RouteContext) {
 
   const { data: session } = await context.adminClient
     .from("live_chat_sessions")
-    .select("*")
+    .select(LIVE_CHAT_SESSION_SELECT)
     .eq("id", sessionId)
     .maybeSingle();
 
@@ -37,14 +42,24 @@ export async function GET(request: Request, { params }: RouteContext) {
     return NextResponse.json({ error: "You cannot access this live chat." }, { status: 403 });
   }
 
-  const { data, error } = await context.adminClient
+  const { searchParams } = new URL(request.url);
+  const requestedLimit = Number(searchParams.get("limit") || DEFAULT_MESSAGE_LIMIT);
+  const limit = Math.min(Math.max(Number.isFinite(requestedLimit) ? requestedLimit : DEFAULT_MESSAGE_LIMIT, 1), MAX_MESSAGE_LIMIT);
+  const before = searchParams.get("before");
+
+  let query = context.adminClient
     .from("live_chat_messages")
-    .select("*")
+    .select(LIVE_CHAT_MESSAGE_SELECT)
     .eq("session_id", sessionId)
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (before) query = query.lt("created_at", before);
+
+  const { data, error } = await query;
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  return NextResponse.json({ messages: data || [] });
+  return NextResponse.json({ messages: [...(data || [])].reverse(), hasMore: (data || []).length === limit });
 }
 
 export async function POST(request: Request, { params }: RouteContext) {
@@ -58,7 +73,7 @@ export async function POST(request: Request, { params }: RouteContext) {
 
   const { data: session } = await context.adminClient
     .from("live_chat_sessions")
-    .select("*")
+    .select(LIVE_CHAT_SESSION_SELECT)
     .eq("id", sessionId)
     .maybeSingle();
 
@@ -100,7 +115,7 @@ export async function POST(request: Request, { params }: RouteContext) {
       message,
       attachment_url: body.attachment_url || null
     })
-    .select("*")
+    .select(LIVE_CHAT_MESSAGE_SELECT)
     .maybeSingle();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });

@@ -1,16 +1,26 @@
 "use client";
 
 import { MessageCircle, UserCheck } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import type { LiveChatSession } from "@/types/liveChat";
 import Badge from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { formatLiveChatStatus } from "@/lib/liveChat";
 import { cn } from "@/lib/cn";
 
+const QUEUE_WINDOW_SIZE = 75;
+
 export default function ChatQueue({ sessions, selectedId, onSelect, onAccept }: { sessions: LiveChatSession[]; selectedId?: string | null; onSelect: (sessionId: string) => void; onAccept?: (sessionId: string) => void }) {
+  const [visibleCount, setVisibleCount] = useState(QUEUE_WINDOW_SIZE);
+  const visibleSessions = useMemo(() => sessions.slice(0, visibleCount), [sessions, visibleCount]);
+
+  useEffect(() => {
+    setVisibleCount(QUEUE_WINDOW_SIZE);
+  }, [sessions.length]);
+
   return (
     <div className="grid gap-3">
-      {sessions.length ? sessions.map((session) => (
+      {sessions.length ? visibleSessions.map((session) => (
         <button
           key={session.id}
           type="button"
@@ -41,6 +51,11 @@ export default function ChatQueue({ sessions, selectedId, onSelect, onAccept }: 
           <p className="mt-1 text-xs font-semibold text-text-muted">New waiting and active sessions will appear here instantly.</p>
         </div>
       )}
+      {visibleCount < sessions.length ? (
+        <Button type="button" variant="secondary" onClick={() => setVisibleCount((count) => count + QUEUE_WINDOW_SIZE)} className="w-full">
+          Show more chats
+        </Button>
+      ) : null}
     </div>
   );
 }

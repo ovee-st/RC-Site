@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import LiveChatDashboard from "@/components/chat/LiveChatDashboard";
-import TicketCenter from "@/components/support/TicketCenter";
+import AdminSupportCenter from "@/components/support/AdminSupportCenter";
 
 export const metadata: Metadata = {
   title: "Support Tickets | MXVL Admin",
@@ -8,11 +7,6 @@ export const metadata: Metadata = {
 };
 
 export default function AdminSupportTicketsPage() {
-  return (
-    <div className="grid gap-8">
-      <LiveChatDashboard mode="admin" compact />
-      <TicketCenter mode="admin" />
-    </div>
-  );
+  return <AdminSupportCenter />;
 }
 

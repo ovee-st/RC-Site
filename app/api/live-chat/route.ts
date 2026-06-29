@@ -4,6 +4,8 @@ import { makeTicketNumber, normalizeTicketUserRole } from "@/lib/support";
 import { canViewAllSupport, isSupportStaffRole } from "@/lib/supportRoles";
 
 const AGENT_ROLES = new Set(["employee", "support_agent", "support_senior", "support_manager", "admin", "viewer"]);
+const LIVE_CHAT_SESSION_SELECT = "id,ticket_id,user_id,user_role,username,employee_id,status,started_at,ended_at,last_message_at";
+const SUPPORT_TICKET_ID_SELECT = "id";
 
 async function getRequester(request: Request) {
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
@@ -44,7 +46,7 @@ export async function GET(request: Request) {
   if ("error" in context) return context.error;
 
   const role = String(context.profile?.role || "");
-  let query = context.adminClient.from("live_chat_sessions").select("*").order("last_message_at", { ascending: false });
+  let query = context.adminClient.from("live_chat_sessions").select(LIVE_CHAT_SESSION_SELECT).order("last_message_at", { ascending: false });
 
   if (role === "candidate" || role === "employer") {
     query = query.eq("user_id", context.user.id);
@@ -87,7 +89,7 @@ export async function POST(request: Request) {
 
   const { data: existing } = await context.adminClient
     .from("live_chat_sessions")
-    .select("*")
+    .select(LIVE_CHAT_SESSION_SELECT)
     .eq("user_id", context.user.id)
     .neq("status", "ENDED")
     .order("started_at", { ascending: false })
@@ -108,7 +110,7 @@ export async function POST(request: Request) {
       status: employeeId ? "ACTIVE" : "WAITING",
       last_message_at: new Date().toISOString()
     })
-    .select("*")
+    .select(LIVE_CHAT_SESSION_SELECT)
     .maybeSingle();
 
   if (sessionError) return NextResponse.json({ error: sessionError.message }, { status: 400 });
@@ -128,10 +130,10 @@ export async function POST(request: Request) {
         assigned_employee_id: employeeId
       };
 
-      let { data: ticket, error: ticketError } = await context.adminClient.from("support_tickets").insert(ticketInsert).select("*").maybeSingle();
+      let { data: ticket, error: ticketError } = await context.adminClient.from("support_tickets").insert(ticketInsert).select(SUPPORT_TICKET_ID_SELECT).maybeSingle();
       if (ticketError && /category/i.test(ticketError.message)) {
         const { category: _category, ...legacyTicket } = ticketInsert;
-        const retry = await context.adminClient.from("support_tickets").insert(legacyTicket).select("*").maybeSingle();
+        const retry = await context.adminClient.from("support_tickets").insert(legacyTicket).select(SUPPORT_TICKET_ID_SELECT).maybeSingle();
         ticket = retry.data;
         ticketError = retry.error;
       }

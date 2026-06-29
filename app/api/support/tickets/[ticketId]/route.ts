@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabaseServer";
 import { canEditTicket, canSeeTicket, ticketPriorities, ticketStatuses } from "@/lib/support";
 
+const SUPPORT_TICKET_SELECT = "id,ticket_number,user_id,user_role,username,subject,category,message,priority,status,assigned_employee_id,attachment_url,attachment_urls,created_at,updated_at";
+
 async function getRequester(request: Request) {
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   if (!token) return { error: NextResponse.json({ error: "Missing session token." }, { status: 401 }) };
@@ -50,7 +52,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     .from("support_tickets")
     .update(patch)
     .eq("id", ticketId)
-    .select("*")
+    .select(SUPPORT_TICKET_SELECT)
     .maybeSingle();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });

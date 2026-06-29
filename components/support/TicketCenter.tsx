@@ -61,6 +61,8 @@ const emptyDraft: TicketDraft = {
   files: []
 };
 
+const SUPPORT_TICKET_SELECT = "id,ticket_number,user_id,user_role,username,subject,category,message,priority,status,assigned_employee_id,attachment_url,attachment_urls,created_at,updated_at";
+
 function getInitials(name?: string | null) {
   return (name || "MXVL")
     .split(" ")
@@ -389,7 +391,7 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
         return;
       }
 
-      let query = supabase.from("support_tickets").select("*").order("created_at", { ascending: false });
+      let query = supabase.from("support_tickets").select(SUPPORT_TICKET_SELECT).order("created_at", { ascending: false });
 
       if (!isAgent) {
         query = query.eq("user_id", user.id);

@@ -13,6 +13,9 @@ import ChatBubble from "@/components/chat/ChatBubble";
 import MessageInput from "@/components/chat/MessageInput";
 import TypingIndicator from "@/components/chat/TypingIndicator";
 
+const MESSAGE_PAGE_SIZE = 50;
+const MESSAGE_RENDER_WINDOW = 250;
+
 async function authHeaders(): Promise<Record<string, string>> {
   if (!isSupabaseConfigured) return {};
   const { data } = await supabase.auth.getSession();
@@ -21,27 +24,69 @@ async function authHeaders(): Promise<Record<string, string>> {
 
 export default function ChatWindow({ sessionId, mode = "user", onSessionChange }: { sessionId?: string | null; mode?: "user" | "employee" | "admin"; onSessionChange?: (session: LiveChatSession) => void }) {
   const { user, role } = useAuth();
-  const { sessions, messagesBySession, setMessages, addMessage, upsertSession, selectSession } = useLiveChatStore();
+  const { sessions, messagesBySession, setMessages, prependMessages, addMessage, upsertSession, selectSession } = useLiveChatStore();
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [hasOlderMessages, setHasOlderMessages] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const preserveScrollOnNextRenderRef = useRef(false);
   const activeSession = useMemo(() => sessions.find((session) => session.id === sessionId) || null, [sessions, sessionId]);
   const messages = sessionId ? messagesBySession[sessionId] || [] : [];
+  const renderedMessages = messages.length > MESSAGE_RENDER_WINDOW ? messages.slice(-MESSAGE_RENDER_WINDOW) : messages;
 
 
   useEffect(() => {
     if (!sessionId || !isSupabaseConfigured) return;
     let active = true;
-    authHeaders().then((headers) => fetch(`/api/live-chat/${sessionId}/messages`, { headers })).then(async (response) => {
+    setHasOlderMessages(false);
+    authHeaders().then((headers) => fetch(`/api/live-chat/${sessionId}/messages?limit=${MESSAGE_PAGE_SIZE}`, { headers })).then(async (response) => {
       const payload = await response.json().catch(() => ({}));
-      if (active && response.ok) setMessages(sessionId, (payload.messages || []) as LiveChatMessage[]);
+      if (active && response.ok) {
+        setMessages(sessionId, (payload.messages || []) as LiveChatMessage[]);
+        setHasOlderMessages(Boolean(payload.hasMore));
+      }
     });
     return () => { active = false; };
   }, [sessionId, setMessages]);
 
   useEffect(() => {
+    if (preserveScrollOnNextRenderRef.current) {
+      preserveScrollOnNextRenderRef.current = false;
+      return;
+    }
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages.length]);
+
+  async function loadOlderMessages() {
+    if (!sessionId || !messages.length || loadingOlder || !hasOlderMessages) return;
+    const oldest = messages[0]?.created_at;
+    if (!oldest) return;
+    setLoadingOlder(true);
+    try {
+      const previousHeight = scrollRef.current?.scrollHeight || 0;
+      const headers = await authHeaders();
+      const response = await fetch(`/api/live-chat/${sessionId}/messages?limit=${MESSAGE_PAGE_SIZE}&before=${encodeURIComponent(oldest)}`, { headers });
+      const payload = await response.json().catch(() => ({}));
+      if (response.ok) {
+        preserveScrollOnNextRenderRef.current = true;
+        prependMessages(sessionId, (payload.messages || []) as LiveChatMessage[]);
+        setHasOlderMessages(Boolean(payload.hasMore));
+        window.requestAnimationFrame(() => {
+          if (!scrollRef.current) return;
+          scrollRef.current.scrollTop = scrollRef.current.scrollHeight - previousHeight;
+        });
+      }
+    } finally {
+      setLoadingOlder(false);
+    }
+  }
+
+  function handleMessagesScroll() {
+    if ((scrollRef.current?.scrollTop || 0) < 80) {
+      loadOlderMessages();
+    }
+  }
 
   async function startChat() {
     setStarting(true);
@@ -168,8 +213,23 @@ export default function ChatWindow({ sessionId, mode = "user", onSessionChange }
           </div>
         </div>
       ) : null}
-      <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto bg-[#f0f2f5] p-3 dark:bg-slate-900">
-        {messages.map((message) => <ChatBubble key={message.id} message={message} mine={mine(message)} />)}
+      <div ref={scrollRef} onScroll={handleMessagesScroll} className="flex-1 space-y-2 overflow-y-auto bg-[#f0f2f5] p-3 dark:bg-slate-900">
+        {hasOlderMessages ? (
+          <button
+            type="button"
+            onClick={loadOlderMessages}
+            disabled={loadingOlder}
+            className="mx-auto mb-2 block rounded-full bg-white px-3 py-1.5 text-xs font-black text-primary shadow-soft transition hover:bg-primary hover:text-white disabled:opacity-60 dark:bg-slate-800"
+          >
+            {loadingOlder ? "Loading older messages..." : "Load older messages"}
+          </button>
+        ) : null}
+        {messages.length > renderedMessages.length ? (
+          <div className="rounded-2xl bg-white/80 px-3 py-2 text-center text-[11px] font-bold text-slate-500 shadow-sm dark:bg-slate-800 dark:text-slate-300">
+            Showing latest {renderedMessages.length.toLocaleString()} loaded messages
+          </div>
+        ) : null}
+        {renderedMessages.map((message) => <ChatBubble key={message.id} message={message} mine={mine(message)} />)}
         {displayStatus === "WAITING" ? <TypingIndicator label="Waiting for an available support agent" /> : null}
       </div>
       <div className="border-t border-slate-200 bg-white p-2 dark:border-white/10 dark:bg-slate-950">

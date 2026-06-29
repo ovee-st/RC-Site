@@ -3,6 +3,8 @@ import { createServerSupabaseClient } from "@/lib/supabaseServer";
 import { canViewLiveChat } from "@/lib/liveChat";
 import { isSupportStaffRole } from "@/lib/supportRoles";
 
+const LIVE_CHAT_SESSION_SELECT = "id,ticket_id,user_id,user_role,username,employee_id,status,started_at,ended_at,last_message_at";
+
 async function getRequester(request: Request) {
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   if (!token) return { error: NextResponse.json({ error: "Missing session token." }, { status: 401 }) };
@@ -29,7 +31,7 @@ export async function GET(request: Request, { params }: RouteContext) {
 
   const { data: session, error } = await context.adminClient
     .from("live_chat_sessions")
-    .select("*")
+    .select(LIVE_CHAT_SESSION_SELECT)
     .eq("id", sessionId)
     .maybeSingle();
 
@@ -52,7 +54,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 
   const { data: session } = await context.adminClient
     .from("live_chat_sessions")
-    .select("*")
+    .select(LIVE_CHAT_SESSION_SELECT)
     .eq("id", sessionId)
     .maybeSingle();
 
@@ -82,7 +84,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     .from("live_chat_sessions")
     .update(patch)
     .eq("id", sessionId)
-    .select("*")
+    .select(LIVE_CHAT_SESSION_SELECT)
     .maybeSingle();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });

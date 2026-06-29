@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from "@/lib/supabaseServer";
 import { makeTicketNumber, normalizeTicketUserRole } from "@/lib/support";
 
 const AGENT_ROLES = new Set(["admin", "viewer", "employee", "support_agent", "support_senior", "support_manager"]);
+const SUPPORT_TICKET_SELECT = "id,ticket_number,user_id,user_role,username,subject,category,message,priority,status,assigned_employee_id,attachment_url,attachment_urls,created_at,updated_at";
 
 async function getRequester(request: Request) {
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
@@ -26,7 +27,7 @@ export async function GET(request: Request) {
   if ("error" in context) return context.error;
 
   const role = String(context.profile?.role || "");
-  let query = context.adminClient.from("support_tickets").select("*").order("created_at", { ascending: false });
+  let query = context.adminClient.from("support_tickets").select(SUPPORT_TICKET_SELECT).order("created_at", { ascending: false });
 
   if (!AGENT_ROLES.has(role)) {
     query = query.eq("user_id", context.user.id);
@@ -96,15 +97,15 @@ export async function POST(request: Request) {
   let { data, error } = await context.adminClient
     .from("support_tickets")
     .insert(baseTicket)
-    .select("*")
+    .select(SUPPORT_TICKET_SELECT)
     .maybeSingle();
 
   if (error && /category|attachment_url|attachment_urls/i.test(error.message)) {
     const { category: _category, attachment_url: _attachmentUrl, attachment_urls: _attachmentUrls, ...legacyTicket } = baseTicket;
-    const retry = await context.adminClient
-      .from("support_tickets")
-      .insert(legacyTicket)
-      .select("*")
+      const retry = await context.adminClient
+        .from("support_tickets")
+        .insert(legacyTicket)
+        .select(SUPPORT_TICKET_SELECT)
       .maybeSingle();
     data = retry.data;
     error = retry.error;
