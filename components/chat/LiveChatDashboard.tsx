@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, MessageCircle, Radio, ShieldCheck, Timer, UsersRound } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
+import { isSupabaseConfigured } from "@/lib/supabaseClient";
+import { compactAuthHeaders } from "@/lib/compactAuthToken";
 import { useLiveChatRealtime } from "@/hooks/useLiveChatRealtime";
 import { useLiveChatStore } from "@/store/useLiveChatStore";
 import Card from "@/components/ui/Card";
@@ -25,8 +26,7 @@ type LiveChatDiagnostic = {
 
 async function authHeaders(): Promise<Record<string, string>> {
   if (!isSupabaseConfigured) return {};
-  const { data } = await supabase.auth.getSession();
-  return data.session?.access_token ? { Authorization: `Bearer ${data.session.access_token}` } : {};
+  return compactAuthHeaders("LIVE_CHAT");
 }
 
 export default function LiveChatDashboard({ mode = "employee", compact = false }: { mode?: "employee" | "admin"; compact?: boolean }) {

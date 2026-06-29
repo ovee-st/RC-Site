@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, MessageCircle, PhoneOff, ShieldCheck, Sparkles } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
+import { compactAuthHeaders } from "@/lib/compactAuthToken";
 import { formatLiveChatStatus } from "@/lib/liveChat";
 import { useLiveChatStore } from "@/store/useLiveChatStore";
 import type { LiveChatMessage, LiveChatSession } from "@/types/liveChat";
@@ -18,8 +19,7 @@ const MESSAGE_RENDER_WINDOW = 250;
 
 async function authHeaders(): Promise<Record<string, string>> {
   if (!isSupabaseConfigured) return {};
-  const { data } = await supabase.auth.getSession();
-  return data.session?.access_token ? { Authorization: `Bearer ${data.session.access_token}` } : {};
+  return compactAuthHeaders("LIVE_CHAT_WINDOW");
 }
 
 export default function ChatWindow({ sessionId, mode = "user", onSessionChange }: { sessionId?: string | null; mode?: "user" | "employee" | "admin"; onSessionChange?: (session: LiveChatSession) => void }) {

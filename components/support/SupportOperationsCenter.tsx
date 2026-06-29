@@ -23,7 +23,8 @@ import {
   Zap
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
+import { isSupabaseConfigured } from "@/lib/supabaseClient";
+import { compactAuthHeaders } from "@/lib/compactAuthToken";
 import { isSupportStaffRole, canManageSupportAssignments, canEscalateSupport } from "@/lib/supportRoles";
 import { ticketStatuses, formatTicketStatus } from "@/lib/support";
 import Card from "@/components/ui/Card";
@@ -62,8 +63,7 @@ const slaTargets = [
 
 async function authHeaders(): Promise<Record<string, string>> {
   if (!isSupabaseConfigured) return {};
-  const { data } = await supabase.auth.getSession();
-  return data.session?.access_token ? { Authorization: `Bearer ${data.session.access_token}` } : {};
+  return compactAuthHeaders("SUPPORT_OPERATIONS_LIVE_CHAT");
 }
 
 function metricTone(value: number, warning = 5) {

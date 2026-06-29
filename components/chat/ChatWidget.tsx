@@ -4,7 +4,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { MessageCircle, Minus, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
+import { isSupabaseConfigured } from "@/lib/supabaseClient";
+import { compactAuthHeaders } from "@/lib/compactAuthToken";
 import { useLiveChatStore } from "@/store/useLiveChatStore";
 import { useLiveChatRealtime } from "@/hooks/useLiveChatRealtime";
 import type { LiveChatSession } from "@/types/liveChat";
@@ -14,8 +15,7 @@ const CHAT_WIDGET_STATE_EVENT = "mx-live-chat-state";
 
 async function authHeaders(): Promise<Record<string, string>> {
   if (!isSupabaseConfigured) return {};
-  const { data } = await supabase.auth.getSession();
-  return data.session?.access_token ? { Authorization: `Bearer ${data.session.access_token}` } : {};
+  return compactAuthHeaders("LIVE_CHAT_WIDGET");
 }
 
 export default function ChatWidget() {
