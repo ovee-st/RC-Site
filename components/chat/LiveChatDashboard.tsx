@@ -14,6 +14,15 @@ import ChatWindow from "@/components/chat/ChatWindow";
 import { isSupportStaffRole } from "@/lib/supportRoles";
 import type { LiveChatSession } from "@/types/liveChat";
 
+type LiveChatDiagnostic = {
+  status: number | string;
+  responseBody: string;
+  errorMessage: string;
+  userId: string;
+  role: string;
+  tokenState: "present" | "missing" | "unknown";
+};
+
 async function authHeaders(): Promise<Record<string, string>> {
   if (!isSupabaseConfigured) return {};
   const { data } = await supabase.auth.getSession();
@@ -25,7 +34,9 @@ export default function LiveChatDashboard({ mode = "employee", compact = false }
   const { sessions, setSessions, upsertSession, activeSessionId, selectSession, addMessage } = useLiveChatStore();
   const [dataLoading, setDataLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [diagnostic, setDiagnostic] = useState<LiveChatDiagnostic | null>(null);
   const [setupRequired, setSetupRequired] = useState(false);
+  const roleValue = String(role || "");
 
   useLiveChatRealtime({
     channelKey: `${mode}-${user?.id || "guest"}`,
@@ -46,12 +57,41 @@ export default function LiveChatDashboard({ mode = "employee", compact = false }
     const timeout = window.setTimeout(() => controller.abort(), 10000);
     setDataLoading(true);
     setError(null);
+    setDiagnostic(null);
     authHeaders()
-      .then((headers) => fetch("/api/live-chat", { headers, signal: controller.signal }))
+      .then((headers) => {
+        const tokenState = headers.Authorization ? "present" : "missing";
+        return fetch("/api/live-chat", { headers, signal: controller.signal }).then(async (response) => {
+          const responseBody = await response.text();
+          let payload: Record<string, unknown> = {};
+          if (responseBody) {
+            try {
+              payload = JSON.parse(responseBody) as Record<string, unknown>;
+            } catch {
+              payload = {};
+            }
+          }
+
+          if (!active) return null;
+          if (!response.ok) {
+            const message = typeof payload.error === "string" ? payload.error : "Could not load live chats.";
+            setDiagnostic({
+              status: response.status,
+              responseBody: responseBody || "(empty response body)",
+              errorMessage: message,
+              userId: user?.id || "missing",
+              role: roleValue || "missing",
+              tokenState
+            });
+            throw new Error(message);
+          }
+
+          return payload;
+        });
+      })
       .then(async (response) => {
-        const payload = await response.json().catch(() => ({}));
+        const payload = response || {};
         if (!active) return;
-        if (!response.ok) throw new Error(payload.error || "Could not load live chats.");
         setSetupRequired(Boolean(payload.setupRequired));
         const rows = (payload.sessions || []) as LiveChatSession[];
         setSessions(rows);
@@ -60,10 +100,27 @@ export default function LiveChatDashboard({ mode = "employee", compact = false }
       .catch((loadError) => {
         if (!active) return;
         if (loadError instanceof DOMException && loadError.name === "AbortError") {
+          setDiagnostic({
+            status: "timeout",
+            responseBody: "(request aborted after 10 seconds)",
+            errorMessage: "Live chat took too long to load. Please refresh or try again in a moment.",
+            userId: user?.id || "missing",
+            role: roleValue || "missing",
+            tokenState: "unknown"
+          });
           setError("Live chat took too long to load. Please refresh or try again in a moment.");
           return;
         }
-        setError(loadError instanceof Error ? loadError.message : "Could not load live chats.");
+        const message = loadError instanceof Error ? loadError.message : "Could not load live chats.";
+        setDiagnostic((current) => current || {
+          status: "network_error",
+          responseBody: "(no response body)",
+          errorMessage: message,
+          userId: user?.id || "missing",
+          role: roleValue || "missing",
+          tokenState: "unknown"
+        });
+        setError(message);
       })
       .finally(() => {
         window.clearTimeout(timeout);
@@ -75,9 +132,8 @@ export default function LiveChatDashboard({ mode = "employee", compact = false }
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [loading, selectSession, setSessions, user]);
+  }, [loading, roleValue, selectSession, setSessions, user]);
 
-  const roleValue = String(role || "");
   const authorized = isSupportStaffRole(roleValue);
   const stats = useMemo(() => ({
     waiting: sessions.filter((session) => session.status === "WAITING").length,
@@ -168,7 +224,28 @@ export default function LiveChatDashboard({ mode = "employee", compact = false }
         </div>
       ) : null}
 
-      {error ? <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-600">{error}</div> : null}
+      {error ? (
+        <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-600">
+          {diagnostic ? (
+            <div className="space-y-2">
+              <p className="text-base font-black">Live Chat Diagnostic</p>
+              <p>Status: {diagnostic.status}</p>
+              <p>User: {diagnostic.userId}</p>
+              <p>Role: {diagnostic.role}</p>
+              <p>Token: {diagnostic.tokenState}</p>
+              <p>Error: {diagnostic.errorMessage}</p>
+              <div>
+                <p>Response:</p>
+                <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap rounded-xl bg-white/70 p-3 text-xs font-semibold text-red-700">
+                  {diagnostic.responseBody}
+                </pre>
+              </div>
+            </div>
+          ) : (
+            error
+          )}
+        </div>
+      ) : null}
 
       <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
         <Card className="rounded-3xl p-5">
