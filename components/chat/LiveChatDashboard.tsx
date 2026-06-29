@@ -30,7 +30,6 @@ export default function LiveChatDashboard({ mode = "employee", compact = false }
   useLiveChatRealtime({
     channelKey: `${mode}-${user?.id || "guest"}`,
     messageSessionId: activeSessionId,
-    sessionFilter: "status=neq.ENDED",
     onSessionChange: upsertSession,
     onMessageCreate: addMessage
   });
@@ -43,9 +42,12 @@ export default function LiveChatDashboard({ mode = "employee", compact = false }
     }
 
     let active = true;
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 10000);
     setDataLoading(true);
+    setError(null);
     authHeaders()
-      .then((headers) => fetch("/api/live-chat", { headers }))
+      .then((headers) => fetch("/api/live-chat", { headers, signal: controller.signal }))
       .then(async (response) => {
         const payload = await response.json().catch(() => ({}));
         if (!active) return;
@@ -55,10 +57,24 @@ export default function LiveChatDashboard({ mode = "employee", compact = false }
         setSessions(rows);
         if (rows[0]) selectSession(rows[0].id);
       })
-      .catch((loadError) => setError(loadError instanceof Error ? loadError.message : "Could not load live chats."))
-      .finally(() => active && setDataLoading(false));
+      .catch((loadError) => {
+        if (!active) return;
+        if (loadError instanceof DOMException && loadError.name === "AbortError") {
+          setError("Live chat took too long to load. Please refresh or try again in a moment.");
+          return;
+        }
+        setError(loadError instanceof Error ? loadError.message : "Could not load live chats.");
+      })
+      .finally(() => {
+        window.clearTimeout(timeout);
+        if (active) setDataLoading(false);
+      });
 
-    return () => { active = false; };
+    return () => {
+      active = false;
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
   }, [loading, selectSession, setSessions, user]);
 
   const roleValue = String(role || "");
