@@ -1716,11 +1716,11 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
             <div
               id="admin-operations-nav"
               className={cn(
-                "grid overflow-hidden transition-all duration-300 ease-out",
-                operationsOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                "transition-[max-height,opacity] duration-300 ease-out",
+                operationsOpen ? "max-h-[520px] opacity-100" : "max-h-0 overflow-hidden opacity-0 pointer-events-none"
               )}
             >
-              <div className="min-h-0 space-y-1.5">
+              <div className="space-y-1.5 pt-1">
                 {operationNavItems.map((item) => renderNavLink(item, true))}
               </div>
             </div>
