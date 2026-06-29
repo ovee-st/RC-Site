@@ -688,9 +688,9 @@ export default function Navbar() {
       <div className={cn("mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6", isAdminNavigation ? "gap-3 xl:gap-4" : "gap-4 xl:gap-6 2xl:gap-10")}>
         <div className={cn("flex min-w-0 flex-1 items-center", isAdminNavigation ? "gap-4 xl:gap-5" : "gap-4 xl:gap-6 2xl:gap-8")}>
           <Link href={homeHref} className="flex shrink-0 items-center gap-3">
-            <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-full border border-gray-200 bg-white p-1 shadow-secondary ring-1 ring-black/5 dark:border-white/20 dark:bg-white dark:ring-white/20">
-              <Image src={SITE_LOGO_LIGHT} alt="MX Venture Lab logo" width={36} height={36} className="h-full w-full object-contain dark:hidden" priority />
-              <Image src={SITE_LOGO_DARK} alt="MX Venture Lab logo" width={36} height={36} className="hidden h-full w-full object-contain dark:block" priority />
+            <div className="grid h-12 w-12 place-items-center overflow-visible">
+              <Image src={SITE_LOGO_LIGHT} alt="MX Venture Lab logo" width={48} height={48} className="h-12 w-12 object-contain dark:hidden" priority />
+              <Image src={SITE_LOGO_DARK} alt="MX Venture Lab logo" width={48} height={48} className="hidden h-12 w-12 object-contain dark:block" priority />
             </div>
             <span className="whitespace-nowrap text-sm font-black tracking-tight text-text-main dark:text-white">MX Venture Lab</span>
           </Link>
