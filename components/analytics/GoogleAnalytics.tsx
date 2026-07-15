@@ -3,7 +3,7 @@
 import Script from "next/script";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
-import { GA_MEASUREMENT_ID } from "@/lib/analytics";
+import { GA_MEASUREMENT_ID, track } from "@/lib/analytics";
 
 export default function GoogleAnalytics() {
   const pathname = usePathname();
@@ -17,15 +17,16 @@ export default function GoogleAnalytics() {
   useEffect(() => {
     if (!GA_MEASUREMENT_ID || typeof window === "undefined") return;
     const nextPagePath = getPagePath();
+    const pageLocation = window.location.href;
+    const pageTitle = document.title;
+
     if (!lastPagePathRef.current) {
       lastPagePathRef.current = nextPagePath;
+      track({ event: "page_view", page_location: pageLocation, page_title: pageTitle }, {}, { sendToGtag: false });
       return;
     }
-    if (lastPagePathRef.current === nextPagePath || typeof window.gtag !== "function") return;
-    window.gtag?.("config", GA_MEASUREMENT_ID, {
-      page_path: nextPagePath,
-      page_location: window.location.href
-    });
+    if (lastPagePathRef.current === nextPagePath) return;
+    track({ event: "page_view", page_location: pageLocation, page_title: pageTitle });
     lastPagePathRef.current = nextPagePath;
     console.log("GA pageview sent", nextPagePath);
   }, [pathname]);

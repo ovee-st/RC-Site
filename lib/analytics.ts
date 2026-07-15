@@ -1,8 +1,19 @@
+import { trackServerEvent, type ServerAnalyticsEvent } from "@/lib/serverAnalytics";
+
 export const DEFAULT_GA_MEASUREMENT_ID = "G-GMHJFVM0MJ";
-export const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_ID || DEFAULT_GA_MEASUREMENT_ID;
+export const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || process.env.NEXT_PUBLIC_GA_ID || DEFAULT_GA_MEASUREMENT_ID;
 
 type AnalyticsValue = string | number | boolean | null | undefined;
 export type AnalyticsParameters = Record<string, AnalyticsValue>;
+type TrackInput = ServerAnalyticsEvent & {
+  event?: string;
+};
+type TrackOptions = {
+  sendToGtag?: boolean;
+  sendToServer?: boolean;
+};
+
+let lastPageViewKey: string | null = null;
 
 declare global {
   interface Window {
@@ -21,9 +32,63 @@ function sendToDataLayer(...args: unknown[]) {
   window.dataLayer.push(args);
 }
 
+function normalizeTrackInput(input: string | TrackInput, parameters: AnalyticsParameters = {}): ServerAnalyticsEvent | null {
+  if (typeof input === "string") {
+    if (!input) return null;
+    return { event: input, parameters };
+  }
+
+  const event = input.event || input.event_name;
+  if (!event) return null;
+  return {
+    ...input,
+    event,
+    event_name: event,
+    parameters: {
+      ...(input.parameters || {}),
+      ...parameters
+    }
+  };
+}
+
+function pageViewKey(event: ServerAnalyticsEvent) {
+  if ((event.event || event.event_name) !== "page_view") return null;
+  const pageLocation = event.page_location || (typeof window !== "undefined" ? window.location.href : "");
+  return pageLocation || null;
+}
+
+function sendToGtag(event: ServerAnalyticsEvent) {
+  const eventName = event.event || event.event_name;
+  if (!eventName) return;
+
+  if (eventName === "page_view") {
+    sendToDataLayer("config", GA_MEASUREMENT_ID, {
+      page_location: event.page_location,
+      page_title: event.page_title,
+      page_path: typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : undefined,
+      ...(event.parameters || {})
+    });
+    return;
+  }
+
+  sendToDataLayer("event", eventName, { ...(event.parameters || {}), send_to: GA_MEASUREMENT_ID });
+}
+
+export function track(input: string | TrackInput, parameters: AnalyticsParameters = {}, options: TrackOptions = {}) {
+  const event = normalizeTrackInput(input, parameters);
+  if (!event) return;
+
+  const nextPageViewKey = pageViewKey(event);
+  if (nextPageViewKey && lastPageViewKey === nextPageViewKey) return;
+  if (nextPageViewKey) lastPageViewKey = nextPageViewKey;
+
+  if (options.sendToGtag !== false) sendToGtag(event);
+  if (options.sendToServer !== false) void trackServerEvent(event);
+}
+
 export function trackEvent(eventName: string, parameters: AnalyticsParameters = {}) {
   if (!eventName) return;
-  sendToDataLayer("event", eventName, { ...parameters, send_to: GA_MEASUREMENT_ID });
+  track(eventName, parameters);
 }
 
 export const analyticsEvents = {
