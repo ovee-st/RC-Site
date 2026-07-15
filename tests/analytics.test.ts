@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { DEFAULT_GA_MEASUREMENT_ID, analyticsEvents } from "@/lib/analytics";
+import { GA_MEASUREMENT_ID, analyticsEvents } from "@/lib/analytics";
 
 const originalWindow = globalThis.window;
 const originalDocument = globalThis.document;
@@ -22,14 +22,16 @@ function installBrowserGlobals() {
 }
 
 describe("Google Analytics utilities", () => {
-  it("uses the MXVL measurement ID by default", () => {
-    expect(DEFAULT_GA_MEASUREMENT_ID).toBe("G-GMHJFVM0MJ");
+  it("does not fall back to a hard-coded measurement ID", () => {
+    expect(GA_MEASUREMENT_ID).toBe(process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || "");
   });
 
-  it("queues typed business events", () => {
+  it("does not queue business events when measurement ID is missing", () => {
     const browser = installBrowserGlobals();
     analyticsEvents.jobApplication("job-1", "Operations Manager");
-    expect(browser.dataLayer).toHaveLength(1);
-    expect(browser.dataLayer[0]).toEqual(expect.arrayContaining(["event", "job_application"]));
+    expect(browser.dataLayer).toHaveLength(GA_MEASUREMENT_ID ? 1 : 0);
+    if (GA_MEASUREMENT_ID) {
+      expect(browser.dataLayer[0]).toEqual(expect.arrayContaining(["event", "job_application"]));
+    }
   });
 });

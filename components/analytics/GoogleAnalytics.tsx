@@ -8,6 +8,7 @@ import { GA_MEASUREMENT_ID, track } from "@/lib/analytics";
 export default function GoogleAnalytics() {
   const pathname = usePathname();
   const lastPagePathRef = useRef<string | null>(null);
+  const warnedMissingIdRef = useRef(false);
 
   function getPagePath() {
     if (typeof window === "undefined") return pathname || "/";
@@ -15,7 +16,13 @@ export default function GoogleAnalytics() {
   }
 
   useEffect(() => {
-    if (!GA_MEASUREMENT_ID || typeof window === "undefined") return;
+    if (!GA_MEASUREMENT_ID || typeof window === "undefined") {
+      if (!GA_MEASUREMENT_ID && process.env.NODE_ENV === "development" && !warnedMissingIdRef.current) {
+        console.warn("Google Analytics is disabled because NEXT_PUBLIC_GA_MEASUREMENT_ID is missing.");
+        warnedMissingIdRef.current = true;
+      }
+      return;
+    }
     const nextPagePath = getPagePath();
     const pageLocation = window.location.href;
     const pageTitle = document.title;

@@ -1,7 +1,6 @@
 import { trackServerEvent, type ServerAnalyticsEvent } from "@/lib/serverAnalytics";
 
-export const DEFAULT_GA_MEASUREMENT_ID = "G-GMHJFVM0MJ";
-export const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || process.env.NEXT_PUBLIC_GA_ID || DEFAULT_GA_MEASUREMENT_ID;
+export const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || "";
 
 type AnalyticsValue = string | number | boolean | null | undefined;
 export type AnalyticsParameters = Record<string, AnalyticsValue>;
