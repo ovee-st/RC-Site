@@ -67,6 +67,7 @@ alter table public.platform_audit_logs enable row level security;
 
 create index if not exists applications_employer_created_idx on public.applications (employer_user_id, created_at desc);
 create index if not exists applications_candidate_created_idx on public.applications (candidate_user_id, created_at desc);
-create index if not exists jobs_employer_status_created_idx on public.jobs (employer_user_id, status, created_at desc);
+-- public.jobs uses employer_id as its auth.users ownership column.
+create index if not exists jobs_employer_status_created_idx on public.jobs (employer_id, status, created_at desc);
 create index if not exists recruitment_offers_owner_status_idx on public.recruitment_offers (employer_user_id, status, updated_at desc);
 create index if not exists recruitment_messages_application_created_idx on public.recruitment_communications (application_id, created_at desc);
