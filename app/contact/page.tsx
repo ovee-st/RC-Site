@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/Button";
 import Container from "@/components/layout/Container";
 
 export const metadata: Metadata = {
-  title: "Contact MX Venture Lab",
-  description: "Contact MX Venture Lab for business inquiries, recruitment support, employer support, candidate support, and payment support."
+  title: "Contact",
+  description: "Contact MX Venture Lab for business inquiries, recruitment support, employer support, candidate support, and payment support.",
+  alternates: { canonical: "/contact" }
 };
 
 const supportAreas = ["Business inquiries", "Recruitment support", "Employer support", "Candidate support", "Payment support"];

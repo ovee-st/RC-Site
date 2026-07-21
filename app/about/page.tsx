@@ -4,8 +4,9 @@ import Card from "@/components/ui/Card";
 import Container from "@/components/layout/Container";
 
 export const metadata: Metadata = {
-  title: "About MX Venture Lab",
-  description: "Learn about MX Venture Lab, an AI-powered recruitment and business solutions platform in Bangladesh."
+  title: "About",
+  description: "Learn about MX Venture Lab, an AI-powered recruitment and business solutions platform in Bangladesh.",
+  alternates: { canonical: "/about" }
 };
 
 const focusAreas = [

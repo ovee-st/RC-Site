@@ -4,8 +4,9 @@ import Card from "@/components/ui/Card";
 import Container from "@/components/layout/Container";
 
 export const metadata: Metadata = {
-  title: "Terms & Conditions | MX Venture Lab",
-  description: "Terms and Conditions for MX Venture Lab users, employers, candidates, and subscribers."
+  title: "Terms & Conditions",
+  description: "Terms and Conditions for MX Venture Lab users, employers, candidates, and subscribers.",
+  alternates: { canonical: "/terms" }
 };
 
 const terms = [

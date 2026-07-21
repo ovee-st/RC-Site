@@ -24,10 +24,13 @@ import Section from "@/components/layout/Section";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import { LinkButton } from "@/components/ui/Button";
+import { generateServiceSchema, serializeJsonLd } from "@/lib/schema";
+import { SITE_NAME, SITE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: "Services | MX Venture Lab",
-  description: "Explore MX Venture Lab technology, workspace, facility, project management, and business operations services."
+  title: "Services",
+  description: "Explore MX Venture Lab technology, workspace, facility, project management, and business operations services.",
+  alternates: { canonical: "/services" }
 };
 
 const services = [
@@ -122,8 +125,19 @@ const values = [
 ];
 
 export default function ServicesPage() {
+  const serviceSchema = generateServiceSchema({
+    name: "MX Venture Lab Business Support Services",
+    description: metadata.description as string,
+    url: new URL("/services", SITE_URL).toString(),
+    serviceType: services.map((service) => service.title),
+    provider: { name: SITE_NAME, url: SITE_URL.toString() },
+    audience: ["Businesses", "Employers", "Growing teams"],
+    areaServed: "Worldwide"
+  });
+
   return (
     <main className="overflow-hidden">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(serviceSchema) }} />
       <Section className="relative py-24 sm:py-28">
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.16),transparent_34%),radial-gradient(circle_at_80%_20%,rgba(16,185,129,0.12),transparent_32%)]" />
         <Container>

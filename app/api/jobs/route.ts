@@ -4,10 +4,11 @@ import { mapSupabaseJob } from "@/lib/mapSupabaseJob";
 import { createServerSupabaseClient } from "@/lib/supabaseServer";
 import { SubscriptionService } from "@/lib/subscriptionService";
 import { validateJobCreationPolicy } from "@/lib/jobSubscriptionPolicy";
+import { generateJobEnrichment } from "@/lib/seoGenerator";
 
 const JOB_CREATOR_ROLES = new Set(["employer", "admin"]);
 
-function buildJobInsert(body: Record<string, any>, employerUserId: string) {
+async function buildJobInsert(body: Record<string, any>, employerUserId: string) {
   const skills = Array.isArray(body.skills)
     ? body.skills.map((skill) => String(skill).trim()).filter(Boolean)
     : String(body.required_skills || body.skills || "")
@@ -15,7 +16,7 @@ function buildJobInsert(body: Record<string, any>, employerUserId: string) {
       .map((skill) => skill.trim())
       .filter(Boolean);
 
-  return {
+  const payload = {
     employer_id: employerUserId,
     company_name: String(body.company || body.company_name || "MX Partner Employer").trim(),
     job_title: String(body.title || body.job_title || "").trim(),
@@ -38,9 +39,56 @@ function buildJobInsert(body: Record<string, any>, employerUserId: string) {
     last_date: normalizeDateValue(body.deadline || body.last_date) || null,
     status: "active"
   };
+
+  const enrichment = await generateJobEnrichment({
+    title: payload.job_title,
+    company: payload.company_name,
+    location: payload.job_location,
+    category: payload.category,
+    employmentType: payload.employment_type,
+    experience: payload.experience_level,
+    description: payload.description,
+    requirements: payload.requirements,
+    skills
+  });
+
+  return {
+    ...payload,
+    ...enrichment
+  };
 }
 
-function validateJobPayload(payload: ReturnType<typeof buildJobInsert>) {
+function missingColumnFromError(message?: string) {
+  return (
+    message?.match(/Could not find the '([^']+)' column/i)?.[1] ||
+    message?.match(/column "?([a-zA-Z0-9_]+)"? .*does not exist/i)?.[1] ||
+    null
+  );
+}
+
+async function insertJobWithSeoFallback(
+  client: ReturnType<typeof createServerSupabaseClient>,
+  originalPayload: Awaited<ReturnType<typeof buildJobInsert>>
+) {
+  let payload: Record<string, unknown> = originalPayload;
+
+  for (let attempt = 0; attempt < 24; attempt += 1) {
+    const { data, error } = await client.from("jobs").insert(payload).select("*").single();
+    if (!error) return { data, error: null };
+
+    const missingColumn = missingColumnFromError(error.message);
+    if (!missingColumn || !(missingColumn in payload) || !missingColumn.startsWith("seo_") && !missingColumn.startsWith("ai_")) {
+      return { data: null, error };
+    }
+
+    const { [missingColumn]: _removed, ...compatiblePayload } = payload;
+    payload = compatiblePayload;
+  }
+
+  return { data: null, error: { message: "Could not store the generated job SEO fields." } };
+}
+
+function validateJobPayload(payload: Awaited<ReturnType<typeof buildJobInsert>>) {
   if (!payload.job_title || !payload.job_location || !payload.description || !payload.last_date) {
     return "Job title, location, description, and application deadline are required.";
   }
@@ -74,7 +122,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => ({}));
-  const payload = buildJobInsert(body, authData.user.id);
+  const payload = await buildJobInsert(body, authData.user.id);
   const payloadError = validateJobPayload(payload);
 
   if (payloadError) {
@@ -88,11 +136,7 @@ export async function POST(request: Request) {
     return NextResponse.json(policy.body, { status: policy.status });
   }
 
-  const { data: job, error: insertError } = await adminClient
-    .from("jobs")
-    .insert(payload)
-    .select("*")
-    .single();
+  const { data: job, error: insertError } = await insertJobWithSeoFallback(adminClient, payload);
 
   if (insertError) {
     return NextResponse.json({ error: insertError.message || "Could not publish job.", code: "JOB_CREATE_FAILED" }, { status: 400 });

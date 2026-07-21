@@ -4,8 +4,9 @@ import Card from "@/components/ui/Card";
 import Container from "@/components/layout/Container";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | MX Venture Lab",
-  description: "Privacy Policy for MX Venture Lab users, candidates, employers, and platform visitors."
+  title: "Privacy Policy",
+  description: "Privacy Policy for MX Venture Lab users, candidates, employers, and platform visitors.",
+  alternates: { canonical: "/privacy" }
 };
 
 const sections = [
