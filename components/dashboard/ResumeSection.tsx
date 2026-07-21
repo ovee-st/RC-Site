@@ -15,6 +15,8 @@ export default function ResumeSection({ profile, documents: initialDocuments }: 
   const [uploading, setUploading] = useState(false);
 
   async function uploadFile(file: File) {
+    const extension = file.name.toLowerCase().split(".").pop();
+    if (!extension || !["pdf", "docx", "txt"].includes(extension) || file.size > 10 * 1024 * 1024) return;
     setUploading(true);
     let url = URL.createObjectURL(file);
     if (isSupabaseConfigured && profile.userId) {
@@ -23,6 +25,7 @@ export default function ResumeSection({ profile, documents: initialDocuments }: 
       if (!error) {
         const { data } = supabase.storage.from("candidate-documents").getPublicUrl(path);
         url = data.publicUrl;
+        await supabase.from("candidates").update({ resume_path: path, resume_url: url }).eq("user_id", profile.userId);
       }
     }
     setDocuments((current) => [{ id: `doc-${Date.now()}`, name: file.name, type: "Resume", url, uploadedAt: new Date().toISOString(), score: 86 }, ...current]);
@@ -35,7 +38,7 @@ export default function ResumeSection({ profile, documents: initialDocuments }: 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div><Badge variant="primary">Resume & documents</Badge><h2 className="mt-1 text-lg font-black dark:text-white">Document vault</h2><p className="mt-1 text-xs text-text-muted dark:text-slate-300">Upload resumes, cover letters, certifications, and portfolio proof.</p></div>
         <Button onClick={() => inputRef.current?.click()} disabled={uploading} className="gap-2 px-3 py-2 text-xs"><FileUp className="h-3.5 w-3.5" /> {uploading ? "Uploading..." : "Upload file"}</Button>
-        <input ref={inputRef} type="file" className="hidden" onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0])} />
+        <input ref={inputRef} type="file" accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" className="hidden" onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0])} />
       </div>
       <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_280px]">
         <div className="max-h-48 space-y-2 overflow-y-auto pr-1">

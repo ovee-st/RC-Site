@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Check, Eye, Mail, Search, Sparkles } from "lucide-react";
+import { Brain, Check, Eye, Mail, Search, Sparkles, Users } from "lucide-react";
+import CandidateIntelligencePanel from "@/components/candidates/CandidateIntelligencePanel";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -16,6 +17,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { mapSupabaseJob } from "@/lib/mapSupabaseJob";
 import { getBestAvatarUrl } from "@/lib/authUserSync";
 import { getProfileThumbnailUrl } from "@/lib/profileImageSync";
+import { compactAuthHeaders } from "@/lib/compactAuthToken";
 
 const CANDIDATE_PROFILE_KEY = "mx_candidate_profile";
 
@@ -49,6 +51,7 @@ type RegisteredCandidate = Candidate & {
     noticeUnit?: "Days" | "Months";
     preferredJobLocation?: string;
   };
+  databaseRecord?: boolean;
 };
 
 type CandidateRow = {
@@ -176,7 +179,8 @@ function mapCandidateRow(row: CandidateRow): RegisteredCandidate {
       noticePeriod: row.notice_period_value ? String(row.notice_period_value) : "",
       noticeUnit: row.notice_period_unit === "Months" ? "Months" : "Days",
       preferredJobLocation: row.preferred_job_location || ""
-    }
+    },
+    databaseRecord: true
   };
 }
 
@@ -184,6 +188,10 @@ export default function EmployerCandidates() {
   const [query, setQuery] = useState("");
   const [candidates, setCandidates] = useState(() => loadRegisteredCandidates());
   const [actions, setActions] = useState<Record<string, CandidateAction>>({});
+  const [intelligenceCandidates, setIntelligenceCandidates] = useState<Array<{ id: string; name: string }>>([]);
+  const [comparisonIds, setComparisonIds] = useState<Set<string>>(new Set());
+  const [copilotResults, setCopilotResults] = useState<Array<{ candidateId: string; candidateName: string; why: string; confidence: number }>>([]);
+  const [copilotLoading, setCopilotLoading] = useState(false);
   const { jobs, setJobs } = useJobStore();
   const { user } = useAuth();
   const activeJobs = useMemo(() => jobs.filter((job) => {
@@ -313,7 +321,22 @@ export default function EmployerCandidates() {
         [action]: true
       }
     }));
+    if (selectedJob) void compactAuthHeaders("candidate_human_action").then((auth) => fetch("/api/candidates/audit", { method: "POST", headers: { "Content-Type": "application/json", ...auth }, body: JSON.stringify({ candidate_id: candidateId, job_id: selectedJob.id, human_action: action === "shortlisted" ? "shortlisted" : "invited" }) })).catch(() => null);
   };
+
+  const askCopilot = async () => {
+    if (!query.trim()) return;
+    setCopilotLoading(true);
+    try {
+      const auth = await compactAuthHeaders("candidate_copilot");
+      const response = await fetch("/api/candidates/copilot", { method: "POST", headers: { "Content-Type": "application/json", ...auth }, body: JSON.stringify({ query: query.trim() }) });
+      const payload = await response.json().catch(() => ({}));
+      setCopilotResults(response.ok && Array.isArray(payload.result) ? payload.result : []);
+    } finally { setCopilotLoading(false); }
+  };
+
+  const toggleComparison = (candidateId: string) => setComparisonIds((current) => { const next = new Set(current); if (next.has(candidateId)) next.delete(candidateId); else if (next.size < 5) next.add(candidateId); return next; });
+  const selectedJob = activeJobs[0] ? { id: activeJobs[0].id, title: activeJobs[0].title } : null;
 
   return (
     <Card className="depth-primary">
@@ -324,16 +347,15 @@ export default function EmployerCandidates() {
           <p className="type-body mt-2 max-w-2xl">Browse registered candidates and compare each profile against your active job posts.</p>
           <p className="mt-2 text-xs font-bold text-text-muted dark:text-slate-300">{activeJobs.length} active job post{activeJobs.length === 1 ? "" : "s"} used for match scoring.</p>
         </div>
-        <div className="relative w-full md:max-w-sm">
-          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
-          <Input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            className="pl-11"
-            placeholder="Search candidates, roles, skills..."
-          />
+        <div className="w-full md:max-w-md">
+          <div className="relative"><Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" /><Input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void askCopilot(); }} className="pl-11" placeholder="Ask: Find SQL developers..." /></div>
+          <div className="mt-2 flex justify-end"><Button type="button" variant="secondary" className="px-3 py-2 text-xs" onClick={askCopilot} disabled={copilotLoading || !query.trim()}><Brain className="h-3.5 w-3.5" />{copilotLoading ? "Searching" : "Ask Copilot"}</Button></div>
         </div>
       </div>
+
+      {copilotResults.length ? <div className="mt-5 rounded-lg border border-primary/20 bg-primary/5 p-4"><h3 className="text-sm font-black text-text-main dark:text-white">Why these candidates matched</h3><div className="mt-3 grid gap-2">{copilotResults.slice(0, 8).map((item) => <div key={item.candidateId} className="flex flex-wrap items-center justify-between gap-2 text-xs"><span><strong>{item.candidateName}</strong> - {item.why}</span><Badge variant="primary">{item.confidence}% confidence</Badge></div>)}</div></div> : null}
+
+      {comparisonIds.size >= 2 && selectedJob ? <div className="mt-5 flex items-center justify-between gap-3 rounded-lg border border-primary/20 bg-primary/5 p-4"><span className="text-sm font-bold text-text-main dark:text-white">{comparisonIds.size} candidates selected for evidence-based comparison</span><Button type="button" onClick={() => setIntelligenceCandidates(candidates.filter((candidate) => comparisonIds.has(candidate.id) && candidate.databaseRecord).map((candidate) => ({ id: candidate.id, name: candidate.name })))}><Users className="h-4 w-4" />Compare</Button></div> : null}
 
       <div className="mt-6 grid gap-4">
         {rankedCandidates.map(({ candidate, bestMatch, score }, index) => {
@@ -378,6 +400,8 @@ export default function EmployerCandidates() {
               </div>
 
               <div className="flex flex-wrap items-center gap-2 md:justify-end">
+                {candidate.databaseRecord && selectedJob ? <label className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-xs font-bold text-text-muted dark:border-white/10"><input type="checkbox" checked={comparisonIds.has(candidate.id)} onChange={() => toggleComparison(candidate.id)} className="accent-primary" />Compare</label> : null}
+                {candidate.databaseRecord && selectedJob ? <Button variant="secondary" className="gap-1.5 px-3 py-2 text-xs" onClick={() => setIntelligenceCandidates([{ id: candidate.id, name: candidate.name }])}><Brain className="h-3.5 w-3.5" />AI Intelligence</Button> : null}
                 <Button variant="secondary" className="gap-1.5 px-3 py-2 text-xs">
                   <Eye className="h-3.5 w-3.5" />
                   View Profile
@@ -411,6 +435,7 @@ export default function EmployerCandidates() {
           </Card>
         ) : null}
       </div>
+      {intelligenceCandidates.length && selectedJob ? <CandidateIntelligencePanel candidates={intelligenceCandidates} job={selectedJob} onClose={() => setIntelligenceCandidates([])} /> : null}
     </Card>
   );
 }
