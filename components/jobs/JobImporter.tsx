@@ -7,14 +7,13 @@ import Badge from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import PageContainer from "@/components/layout/PageContainer";
+import RecruitingAssistant from "@/components/jobs/RecruitingAssistant";
+import type { JobImporterDraft } from "@/components/jobs/jobImporterTypes";
 import { useAuth } from "@/hooks/useAuth";
+import { addHistoryVersion, type HistoryVersion } from "@/lib/ai/history";
+import type { JobImprovementResult, RecruitingJobInput } from "@/lib/ai/recruitingTypes";
 import { compactAuthHeaders } from "@/lib/compactAuthToken";
 import type { ExtractedJobFields, GeneratedJobFields, JobImportSourceType, StructuredJobImportDto } from "@/lib/import/types";
-
-type Draft = {
-  extracted: Record<keyof ExtractedJobFields, string>;
-  generated: Record<keyof GeneratedJobFields, string>;
-};
 
 type FieldOrigin = "extracted" | "generated" | "missing" | "edited";
 
@@ -24,10 +23,10 @@ function textValue(value: unknown) {
   return String(value);
 }
 
-function createDraft(dto: StructuredJobImportDto): Draft {
+function createDraft(dto: StructuredJobImportDto): JobImporterDraft {
   return {
-    extracted: Object.fromEntries(Object.entries(dto.extracted).map(([key, value]) => [key, textValue(value)])) as Draft["extracted"],
-    generated: Object.fromEntries(Object.entries(dto.generated).map(([key, value]) => [key, textValue(value)])) as Draft["generated"]
+    extracted: Object.fromEntries(Object.entries(dto.extracted).map(([key, value]) => [key, textValue(value)])) as JobImporterDraft["extracted"],
+    generated: Object.fromEntries(Object.entries(dto.generated).map(([key, value]) => [key, textValue(value)])) as JobImporterDraft["generated"]
   };
 }
 
@@ -39,7 +38,7 @@ function appendSection(parts: string[], title: string, value: string) {
   if (value.trim()) parts.push(`${title}:\n${value.trim()}`);
 }
 
-function buildPublishPayload(draft: Draft) {
+function buildPublishPayload(draft: JobImporterDraft) {
   const extracted = draft.extracted;
   const generated = draft.generated;
   const descriptionParts: string[] = [];
@@ -84,6 +83,36 @@ function buildPublishPayload(draft: Draft) {
   };
 }
 
+function slugify(value: string) { return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); }
+
+function buildRecruitingInput(draft: JobImporterDraft): RecruitingJobInput {
+  const { extracted, generated } = draft;
+  return {
+    title: extracted.title,
+    company: extracted.company,
+    location: extracted.location || generated.suggestedLocation,
+    salary: extracted.salaryText || [extracted.salaryMin, extracted.salaryMax].filter(Boolean).join(" - "),
+    employmentType: extracted.employmentType,
+    experience: extracted.experience || extracted.jobLevel,
+    education: extracted.education,
+    responsibilities: extracted.responsibilities,
+    requirements: extracted.requirements,
+    skills: Array.from(new Set([...splitList(extracted.skills), ...splitList(generated.requiredSkills), ...splitList(generated.preferredSkills)])),
+    benefits: extracted.benefits,
+    deadline: extracted.deadline,
+    seoTitle: generated.seoTitle,
+    metaDescription: generated.metaDescription,
+    keywords: Array.from(new Set([...splitList(extracted.keywords), ...splitList(generated.suggestedKeywords)])),
+    slug: slugify(extracted.title),
+    summary: generated.summary,
+    category: extracted.department || generated.suggestedCategory,
+    industry: extracted.industry || generated.suggestedIndustry,
+    workArrangement: extracted.workArrangement,
+    internalLinks: true,
+    structuredData: true
+  };
+}
+
 export default function JobImporter() {
   const router = useRouter();
   const { user, role, loading } = useAuth();
@@ -91,7 +120,8 @@ export default function JobImporter() {
   const [url, setUrl] = useState("");
   const [text, setText] = useState("");
   const [dto, setDto] = useState<StructuredJobImportDto | null>(null);
-  const [draft, setDraft] = useState<Draft | null>(null);
+  const [draft, setDraft] = useState<JobImporterDraft | null>(null);
+  const [history, setHistory] = useState<HistoryVersion<JobImporterDraft>[]>([]);
   const [edited, setEdited] = useState<Set<string>>(new Set());
   const [duplicateAction, setDuplicateAction] = useState<string>("new");
   const [importing, setImporting] = useState(false);
@@ -125,8 +155,10 @@ export default function JobImporter() {
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || "The job could not be imported.");
       const imported = payload.job as StructuredJobImportDto;
+      const importedDraft = createDraft(imported);
       setDto(imported);
-      setDraft(createDraft(imported));
+      setDraft(importedDraft);
+      setHistory(addHistoryVersion([], "Original Import", importedDraft));
       setEdited(new Set());
       setDuplicateAction("new");
     } catch (importError) {
@@ -136,12 +168,17 @@ export default function JobImporter() {
     }
   };
 
-  const updateField = (section: keyof Draft, key: string, value: string) => {
-    setDraft((current) => current ? { ...current, [section]: { ...current[section], [key]: value } } : current);
+  const updateField = (section: keyof JobImporterDraft, key: string, value: string) => {
+    setDraft((current) => {
+      if (!current) return current;
+      const next = { ...current, [section]: { ...current[section], [key]: value } };
+      setHistory((versions) => addHistoryVersion(versions, "Recruiter Edited", next, `Edited ${key}`));
+      return next;
+    });
     setEdited((current) => new Set(current).add(`${section}.${key}`));
   };
 
-  const fieldOrigin = (section: keyof Draft, key: string): FieldOrigin => {
+  const fieldOrigin = (section: keyof JobImporterDraft, key: string): FieldOrigin => {
     if (!dto || !draft) return "missing";
     if (edited.has(`${section}.${key}`)) return "edited";
     const original = section === "extracted"
@@ -149,6 +186,33 @@ export default function JobImporter() {
       : dto.generated[key as keyof GeneratedJobFields];
     if (Array.isArray(original) ? original.length : original !== null && original !== undefined && String(original).trim()) return section;
     return draft[section][key as never] ? section : "missing";
+  };
+
+  const applyImprovement = (result: JobImprovementResult) => {
+    if (!draft) return false;
+    const targets: Record<string, string[]> = {
+      title: ["extracted.title"], description: ["generated.summary"], requirements: ["extracted.requirements"], responsibilities: ["extracted.responsibilities"], benefits: ["extracted.benefits"], skills: ["extracted.skills"], seo: ["generated.seoTitle", "generated.metaDescription", "generated.suggestedKeywords"], readability: ["generated.summary"], ats: ["generated.summary"]
+    };
+    if ((targets[result.action] || []).some((field) => edited.has(field)) && !window.confirm("This section contains recruiter edits. Replace it with the AI-assisted version?")) return false;
+    const next: JobImporterDraft = { extracted: { ...draft.extracted }, generated: { ...draft.generated } };
+    if (result.updates.title !== undefined) next.extracted.title = result.updates.title;
+    if (result.updates.summary !== undefined) next.generated.summary = result.updates.summary;
+    if (result.updates.requirements !== undefined) next.extracted.requirements = result.updates.requirements;
+    if (result.updates.responsibilities !== undefined) next.extracted.responsibilities = result.updates.responsibilities;
+    if (result.updates.benefits !== undefined) next.extracted.benefits = result.updates.benefits;
+    if (result.updates.skills !== undefined) next.extracted.skills = result.updates.skills.join(", ");
+    if (result.updates.seoTitle !== undefined) next.generated.seoTitle = result.updates.seoTitle;
+    if (result.updates.metaDescription !== undefined) next.generated.metaDescription = result.updates.metaDescription;
+    if (result.updates.keywords !== undefined) next.generated.suggestedKeywords = result.updates.keywords.join(", ");
+    setDraft(next);
+    setHistory((versions) => addHistoryVersion(versions, "AI Improved", next, `AI improved ${result.action}`));
+    return true;
+  };
+
+  const restoreVersion = (version: HistoryVersion<JobImporterDraft>) => {
+    const restored = JSON.parse(JSON.stringify(version.snapshot)) as JobImporterDraft;
+    setDraft(restored);
+    setHistory((versions) => addHistoryVersion(versions, "Recruiter Edited", restored, `Restored ${version.label}`));
   };
 
   const publishJob = async () => {
@@ -256,6 +320,8 @@ export default function JobImporter() {
             </div>
           </EditorSection>
 
+          <RecruitingAssistant job={buildRecruitingInput(draft)} draft={draft} history={history} onApplyImprovement={applyImprovement} onRestore={restoreVersion} />
+
           {dto.duplicates.length ? (
             <section className="border-y border-border py-7 dark:border-white/10">
               <h2 className="text-xl font-black text-text-main dark:text-white">Possible duplicate found</h2>
@@ -312,4 +378,3 @@ function OriginBadge({ origin }: { origin: FieldOrigin }) {
   const styles: Record<FieldOrigin, string> = { extracted: "bg-blue-50 text-blue-700 dark:bg-blue-400/10 dark:text-blue-200", generated: "bg-violet-50 text-violet-700 dark:bg-violet-400/10 dark:text-violet-200", missing: "bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300", edited: "bg-emerald-50 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-200" };
   return <span className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${styles[origin]}`}>{labels[origin]}</span>;
 }
-
