@@ -17,6 +17,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useJobStore } from "@/store/useJobStore";
 import { demoCandidates } from "@/lib/demoData";
 import { matchCandidateToJob } from "@/lib/ai/matching";
+import { Sparkles } from "lucide-react";
 
 const EMPLOYER_PANEL_EVENT = "mx-employer-panel-change";
 
@@ -108,6 +109,10 @@ export default function EmployerCommandCenter() {
         <div className="flex flex-wrap items-center gap-3">
           <Link href="/subscriptions" className="inline-flex min-h-11 items-center justify-center rounded-full border border-slate-200 bg-white px-5 text-sm font-black text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:text-blue-600 hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:border-blue-400/60">
             View Plans
+          </Link>
+          <Link href="/dashboard/employer/jobs/import" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-5 text-sm font-black text-blue-700 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md dark:border-blue-400/20 dark:bg-blue-400/10 dark:text-blue-200">
+            <Sparkles className="h-4 w-4" />
+            Import Job
           </Link>
           <EmployerPostJob />
         </div>
