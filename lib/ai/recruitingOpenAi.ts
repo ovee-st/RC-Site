@@ -1,3 +1,6 @@
+import { recordAiMetric } from "@/lib/ai/observability";
+import { logger } from "@/lib/observability/logger";
+
 const AI_TIMEOUT_MS = 12_000;
 const MAX_JOB_PAYLOAD_CHARS = 30_000;
 
@@ -28,7 +31,9 @@ export function sanitizeAiOutput<T>(value: T): T {
 }
 
 export async function requestRecruitingJson<T>(task: string, payload: unknown): Promise<T | null> {
-  if (!process.env.OPENAI_API_KEY) return null;
+  const model = process.env.OPENAI_RECRUITING_MODEL || "gpt-4o-mini";
+  const started = Date.now();
+  if (!process.env.OPENAI_API_KEY) { void recordAiMetric({ task, model: "deterministic-fallback", latencyMs: 0, success: true, fallbackUsed: true, promptVersion: "recruiting-v1" }); return null; }
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
 
@@ -42,7 +47,7 @@ export async function requestRecruitingJson<T>(task: string, payload: unknown): 
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
       },
       body: JSON.stringify({
-        model: process.env.OPENAI_RECRUITING_MODEL || "gpt-4o-mini",
+        model,
         temperature: 0.2,
         max_tokens: 1_600,
         response_format: { type: "json_object" },
@@ -54,12 +59,15 @@ export async function requestRecruitingJson<T>(task: string, payload: unknown): 
     });
 
     if (!response.ok) throw new Error(`OpenAI returned HTTP ${response.status}`);
-    const result = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
+    const result = await response.json() as { choices?: Array<{ message?: { content?: string } }>; usage?: { prompt_tokens?: number; completion_tokens?: number } };
     const content = result.choices?.[0]?.message?.content;
     if (!content) throw new Error("OpenAI returned an empty response");
-    return sanitizeAiOutput(JSON.parse(content) as T);
+    const sanitized = sanitizeAiOutput(JSON.parse(content) as T);
+    void recordAiMetric({ task, model, latencyMs: Date.now() - started, success: true, fallbackUsed: false, promptVersion: "recruiting-v1", inputTokens: result.usage?.prompt_tokens, outputTokens: result.usage?.completion_tokens });
+    return sanitized;
   } catch (error) {
-    console.error(`[recruiting-ai] ${task} failed`, error instanceof Error ? error.message : error);
+    logger.error("recruiting_ai_failed", { task, model, error });
+    void recordAiMetric({ task, model, latencyMs: Date.now() - started, success: false, fallbackUsed: true, promptVersion: "recruiting-v1", errorCode: error instanceof Error ? error.name : "unknown" });
     return null;
   } finally {
     clearTimeout(timeout);

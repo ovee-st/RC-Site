@@ -1,12 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 
-import RecruiterMatches from "@/components/dashboard/RecruiterMatches";
 import RecommendedActions from "@/components/dashboard/RecommendedActions";
 import EmployerProfile from "@/components/dashboard/EmployerProfile";
 import EmployerPostJob from "@/components/dashboard/EmployerPostJob";
-import PipelineBoard from "@/components/pipeline/PipelineBoard";
 import AccountSettings from "@/components/account/AccountSettings";
 import EmployerSubscriptionWidget from "@/components/subscriptions/EmployerSubscriptionWidget";
 import Card from "@/components/ui/Card";
@@ -18,6 +17,17 @@ import { useJobStore } from "@/store/useJobStore";
 import { demoCandidates } from "@/lib/demoData";
 import { matchCandidateToJob } from "@/lib/ai/matching";
 import { Sparkles, UsersRound } from "lucide-react";
+
+const RecruiterMatches = dynamic(() => import("@/components/dashboard/RecruiterMatches"), {
+  loading: () => <DashboardModuleSkeleton label="Loading candidate matches" />
+});
+const PipelineBoard = dynamic(() => import("@/components/pipeline/PipelineBoard"), {
+  loading: () => <DashboardModuleSkeleton label="Loading hiring pipeline" />
+});
+
+function DashboardModuleSkeleton({ label }: { label: string }) {
+  return <div role="status" aria-live="polite" className="min-h-56 animate-pulse rounded-md bg-slate-100 p-6 text-sm font-bold text-text-muted dark:bg-white/5">{label}...</div>;
+}
 
 const EMPLOYER_PANEL_EVENT = "mx-employer-panel-change";
 

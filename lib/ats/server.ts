@@ -3,6 +3,7 @@ import type { User } from "@supabase/supabase-js";
 import { createServerSupabaseClient } from "@/lib/supabaseServer";
 import { defaultAutomationRules, type AutomationTrigger } from "@/lib/ats/automation";
 import { canPerformAtsAction, createDefaultStageRows, legacyStatusToStage, type AtsPermission } from "@/lib/ats/workflowEngine";
+import { apiErrorResponse } from "@/lib/api/errors";
 
 const ATS_ROLES = new Set(["employer", "employee", "recruiter", "hiring_manager", "interviewer", "admin", "viewer"]);
 const WRITE_ROLES = new Set(["employer", "employee", "recruiter", "hiring_manager", "interviewer", "admin"]);
@@ -199,6 +200,6 @@ export async function runAutomationRules(context: AtsRequester, input: { pipelin
 export function atsErrorResponse(error: unknown, fallback = "Recruitment workflow request failed.") {
   const message = error instanceof Error ? error.message : fallback;
   const setupRequired = /recruitment_pipelines|pipeline_stages|candidate_stages|application_timeline_events|schema cache|does not exist|could not find/i.test(message);
-  console.error("[ats] request failed", { message: message.slice(0, 300) });
-  return NextResponse.json({ error: setupRequired ? "The enterprise recruitment workflow migration must be applied before using this feature." : message, code: setupRequired ? "ATS_SETUP_REQUIRED" : "ATS_REQUEST_FAILED" }, { status: setupRequired ? 503 : 500 });
+  if (setupRequired) return NextResponse.json({ error: "The enterprise recruitment workflow migration must be applied before using this feature.", code: "ATS_SETUP_REQUIRED" }, { status: 503 });
+  return apiErrorResponse(error, undefined, fallback);
 }
