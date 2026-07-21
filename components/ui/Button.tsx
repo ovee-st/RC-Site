@@ -6,7 +6,7 @@ import { motion, type HTMLMotionProps } from "framer-motion";
 import { cn } from "@/lib/cn";
 
 const base =
-  "focus-ring inline-flex items-center justify-center rounded-xl px-5 py-2.5 text-sm font-medium outline-none transition disabled:pointer-events-none disabled:opacity-50";
+  "focus-ring inline-flex min-h-11 min-w-0 items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-center text-sm font-medium leading-5 outline-none transition disabled:pointer-events-none disabled:opacity-50";
 
 const variants = {
   primary: "bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-sm hover:-translate-y-0.5 hover:shadow-md",

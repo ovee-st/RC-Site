@@ -1213,9 +1213,9 @@ export default function CandidateDashboard() {
           <p className="type-body mt-2 max-w-xl">Manage your profile, discover matched jobs, track applications, and generate professional CVs.</p>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-[200px_1fr]">
-          <Card className="h-fit p-3 shadow-soft lg:sticky lg:top-24">
-            <div className="flex items-center gap-3">
+        <div className="grid min-w-0 gap-4 lg:grid-cols-[200px_minmax(0,1fr)]">
+          <Card className="h-fit min-w-0 p-3 shadow-soft lg:sticky lg:top-24">
+            <div className="hidden items-center gap-3 lg:flex">
               <ProfileAvatar src={profile.avatar} name={profile.name} className="h-12 w-12 text-sm" />
               <div className="min-w-0">
                 <h2 className="truncate text-sm font-black text-text-main dark:text-white">{profile.name}</h2>
@@ -1223,7 +1223,7 @@ export default function CandidateDashboard() {
               </div>
             </div>
 
-            <div className="mt-4 grid gap-1">
+            <div className="mobile-tab-strip lg:mt-4 lg:grid lg:gap-1 lg:overflow-visible lg:pb-0">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const active = activeTab === item.id;
@@ -1234,7 +1234,7 @@ export default function CandidateDashboard() {
                     type="button"
                     onClick={() => setActiveTab(item.id)}
                     className={cn(
-                      "flex items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-bold text-text-muted transition hover:bg-primary/5 hover:text-primary",
+                      "flex min-h-11 shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-bold text-text-muted transition hover:bg-primary/5 hover:text-primary lg:w-full",
                       active && "border border-primary bg-primary/10 text-primary shadow-soft"
                     )}
                   >

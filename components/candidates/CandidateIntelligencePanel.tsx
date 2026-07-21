@@ -50,11 +50,11 @@ export default function CandidateIntelligencePanel({ candidates, job, onClose }:
   }, [candidates, job.id]);
 
   return (
-    <div className="fixed inset-0 z-[120] grid place-items-center bg-slate-950/60 p-3 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="candidate-intelligence-title">
-      <div className="max-h-[94vh] w-full max-w-6xl overflow-y-auto rounded-lg border border-border bg-surface shadow-2xl dark:border-white/10 dark:bg-slate-950">
+    <div className="dialog-shell z-[120]" role="dialog" aria-modal="true" aria-labelledby="candidate-intelligence-title">
+      <div className="dialog-panel max-w-6xl overflow-y-auto">
         <header className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-border bg-surface/95 p-5 backdrop-blur dark:border-white/10 dark:bg-slate-950/95">
           <div><div className="flex items-center gap-2 text-primary"><Brain className="h-5 w-5" /><span className="text-xs font-black uppercase">Human Review First</span></div><h2 id="candidate-intelligence-title" className="mt-2 text-2xl font-black text-text-main dark:text-white">{candidates.length > 1 ? "Candidate comparison" : candidates[0].name}</h2><p className="mt-1 text-sm text-text-muted">Evidence-based intelligence for {job.title}. Recruiters make every hiring decision.</p></div>
-          <button type="button" onClick={onClose} className="focus-ring rounded-md p-2 text-text-muted" aria-label="Close candidate intelligence"><X className="h-5 w-5" /></button>
+          <button type="button" onClick={onClose} className="focus-ring touch-target shrink-0 rounded-md p-2 text-text-muted" aria-label="Close candidate intelligence"><X className="h-5 w-5" /></button>
         </header>
 
         <div className="p-5">

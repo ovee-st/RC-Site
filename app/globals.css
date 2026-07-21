@@ -30,10 +30,12 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: clip;
 }
 
 body {
   min-height: 100vh;
+  overflow-x: clip;
   background:
     radial-gradient(circle at 82% 8%, rgba(34, 197, 94, 0.08), transparent 26rem),
     radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 34rem),
@@ -79,6 +81,22 @@ body {
 }
 
 @layer base {
+  img,
+  video,
+  canvas,
+  svg {
+    max-width: 100%;
+  }
+
+  button,
+  [role="button"],
+  a,
+  input,
+  select,
+  textarea {
+    -webkit-tap-highlight-color: transparent;
+  }
+
   h1 {
     @apply text-balance text-4xl font-bold tracking-tight text-text-main dark:text-white;
   }
@@ -122,7 +140,52 @@ body {
   }
 
   .section-shell {
-    @apply mx-auto max-w-container px-5 py-section;
+    @apply mx-auto max-w-container px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-section;
+  }
+
+  .responsive-page {
+    @apply mx-auto w-full min-w-0 max-w-[1600px] px-4 sm:px-6 lg:px-8;
+  }
+
+  .responsive-grid {
+    @apply grid min-w-0 grid-cols-1 gap-4 sm:gap-5 lg:gap-6;
+  }
+
+  .responsive-grid > *,
+  .responsive-flex > * {
+    min-width: 0;
+  }
+
+  .touch-target {
+    @apply min-h-11 min-w-11;
+  }
+
+  .scroll-table {
+    @apply max-w-full overflow-x-auto overscroll-x-contain rounded-xl [scrollbar-gutter:stable];
+  }
+
+  .scroll-table table {
+    @apply w-max min-w-full;
+  }
+
+  .dialog-shell {
+    @apply fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/45 p-0 backdrop-blur-sm sm:items-center sm:p-4;
+  }
+
+  .dialog-panel {
+    @apply flex max-h-[92svh] w-full min-w-0 flex-col overflow-hidden rounded-t-2xl border border-border bg-surface shadow-elevated dark:border-white/10 dark:bg-slate-950 sm:rounded-2xl;
+  }
+
+  .mobile-tab-strip {
+    @apply flex max-w-full snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-contain pb-2 [scrollbar-width:none];
+  }
+
+  .mobile-tab-strip::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mobile-tab-strip > * {
+    @apply min-h-11 shrink-0 snap-start;
   }
 
   .interactive-lift {
@@ -197,5 +260,29 @@ body {
 
   .depth-content {
     @apply relative z-10;
+  }
+}
+
+@media (pointer: coarse) {
+  button,
+  [role="button"],
+  input:not([type="checkbox"]):not([type="radio"]),
+  select {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
   }
 }

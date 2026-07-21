@@ -332,6 +332,24 @@ export default function Navbar() {
   );
   const visibleRoleNotifications = allRoleNotifications.filter((notification) => !clearedNotificationIds.includes(notification.id));
 
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
   const avatar = effectiveAvatarSrc ? (
     // eslint-disable-next-line @next/next/no-img-element
     <img
@@ -723,11 +741,11 @@ export default function Navbar() {
           </nav>
         </div>
 
-        <div className={cn("hidden shrink-0 justify-center md:flex", isAdminNavigation ? "md:w-[220px] lg:w-[240px] xl:w-[280px]" : "md:w-[200px] lg:w-[220px] xl:w-[260px] 2xl:w-[320px]")}>
+        <div className={cn("hidden shrink-0 justify-center lg:flex", isAdminNavigation ? "lg:w-[240px] xl:w-[280px]" : "lg:w-[220px] xl:w-[260px] 2xl:w-[320px]")}>
           <GlobalSearch className={cn(isAdminNavigation ? "md:w-[220px] lg:w-[240px] xl:w-[280px]" : "md:w-[200px] lg:w-[220px] xl:w-[260px] 2xl:w-[320px]")} />
         </div>
 
-        <div className={cn("hidden shrink-0 items-center justify-end gap-2 md:flex xl:gap-3", isAdminNavigation ? "w-[150px] xl:w-[170px]" : "w-[190px] xl:w-[220px] 2xl:w-[240px]")}>
+        <div className={cn("hidden shrink-0 items-center justify-end gap-2 lg:flex xl:gap-3", isAdminNavigation ? "w-[150px] xl:w-[170px]" : "w-[190px] xl:w-[220px] 2xl:w-[240px]")}>
           {!loading && !user ? (
             <LinkButton href="/login" className="whitespace-nowrap rounded-full px-5 py-2">Login</LinkButton>
           ) : null}
@@ -767,9 +785,11 @@ export default function Navbar() {
           whileTap={{ scale: 0.97 }}
           whileHover={{ scale: 1.01 }}
           transition={{ duration: 0.16, ease: "easeOut" }}
-          className="focus-ring inline-flex h-10 w-10 items-center justify-center rounded-md text-text-muted hover:bg-primary/5 hover:text-primary md:hidden"
+          className="focus-ring inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-text-muted hover:bg-primary/5 hover:text-primary lg:hidden"
           onClick={() => setOpen((value) => !value)}
-          aria-label="Toggle navigation"
+          aria-label={open ? "Close navigation" : "Open navigation"}
+          aria-expanded={open}
+          aria-controls="mobile-navigation"
         >
           {open ? <X size={20} /> : <Menu size={20} />}
         </motion.button>
@@ -784,7 +804,7 @@ export default function Navbar() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="fixed inset-0 top-16 z-40 bg-slate-950/20 backdrop-blur-sm md:hidden"
+            className="fixed inset-0 top-16 z-40 bg-slate-950/30 backdrop-blur-sm lg:hidden"
             aria-label="Close menu"
             onClick={() => setOpen(false)}
           />
@@ -793,7 +813,11 @@ export default function Navbar() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 28 }}
             transition={{ duration: 0.24, ease: "easeOut" }}
-            className="fixed right-3 top-20 z-50 w-[calc(100vw-1.5rem)] max-w-sm rounded-3xl border border-gray-200 bg-white/95 p-4 shadow-elevated backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/95 md:hidden"
+            id="mobile-navigation"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Site navigation"
+            className="fixed inset-x-3 bottom-3 top-20 z-50 max-h-[calc(100svh-5.75rem)] overflow-y-auto overscroll-contain rounded-3xl border border-gray-200 bg-white/95 p-4 shadow-elevated backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/95 sm:left-auto sm:w-[min(24rem,calc(100vw-1.5rem))] lg:hidden"
           >
             <div className="grid gap-2">
               <GlobalSearch className="w-full max-w-none focus-within:w-full" />
@@ -829,6 +853,14 @@ export default function Navbar() {
                         </p>
                         <p className="text-xs font-medium text-text-muted">{role || "member"}</p>
                       </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 border-t border-gray-100 pt-3 dark:border-white/10">
+                      <Link href={profileHref} onClick={(event) => { setOpen(false); openEmployerPanel("profile")(event); }} className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-slate-50 px-3 text-xs font-bold text-text-muted dark:bg-white/5 dark:text-slate-300">
+                        <UserRound className="h-4 w-4" /> Profile
+                      </Link>
+                      <Link href={accountHref} onClick={(event) => { setOpen(false); openEmployerPanel("account")(event); }} className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-slate-50 px-3 text-xs font-bold text-text-muted dark:bg-white/5 dark:text-slate-300">
+                        <Settings className="h-4 w-4" /> Account
+                      </Link>
                     </div>
                     <button
                       type="button"
