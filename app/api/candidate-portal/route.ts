@@ -35,3 +35,15 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ offer: result.data });
   } catch (error) { console.error("[candidate-portal] update failed", error); return NextResponse.json({ error: error instanceof Error ? error.message : "Could not update candidate portal." }, { status: 500 }); }
 }
+
+export async function POST(request: Request) {
+  try {
+    const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") || ""; if (!token) return NextResponse.json({ error: "Authentication is required." }, { status: 401 });
+    const client = createServerSupabaseClient(); const auth = await client.auth.getUser(token); if (auth.error || !auth.data.user) return NextResponse.json({ error: "Invalid session." }, { status: 401 });
+    const body = await request.json().catch(() => ({})); const path = String(body.storage_path || ""); const fileName = String(body.file_name || "").trim().slice(0, 240); if (!path.startsWith(`${auth.data.user.id}/`) || !fileName) return NextResponse.json({ error: "Invalid document upload." }, { status: 400 });
+    let applicationId: string | null = null;
+    if (/^[0-9a-f-]{36}$/i.test(body.application_id || "")) { const application = await client.from("applications").select("id").eq("id", body.application_id).or(`candidate_user_id.eq.${auth.data.user.id},candidate_id.eq.${auth.data.user.id}`).maybeSingle(); if (application.error || !application.data) return NextResponse.json({ error: "Application was not found." }, { status: 404 }); applicationId = application.data.id; }
+    const result = await client.from("candidate_portal_documents").insert({ candidate_user_id: auth.data.user.id, application_id: applicationId, document_type: String(body.document_type || "supporting_document").slice(0, 80), file_name: fileName, storage_bucket: "candidate-documents", storage_path: path, mime_type: String(body.mime_type || "").slice(0, 120) || null, size_bytes: Math.max(0, Number(body.size_bytes) || 0) }).select("id,application_id,document_type,file_name,mime_type,size_bytes,created_at").single(); if (result.error) throw new Error(result.error.message);
+    return NextResponse.json({ document: result.data }, { status: 201 });
+  } catch (error) { console.error("[candidate-portal] document save failed", error); return NextResponse.json({ error: error instanceof Error ? error.message : "Could not save document." }, { status: 500 }); }
+}
