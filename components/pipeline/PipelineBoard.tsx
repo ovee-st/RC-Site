@@ -1,311 +1,105 @@
 "use client";
 
-import { DragDropContext, Draggable, Droppable, DropResult } from "@hello-pangea/dnd";
-import { useState } from "react";
-import type { Application } from "@/types";
+import { DragDropContext, Draggable, Droppable, type DropResult } from "@hello-pangea/dnd";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Archive, CheckSquare2, ChevronLeft, ChevronRight, Download, GripVertical, Loader2, Mail, Pencil, Plus, RotateCcw, Search, Tag, Trash2, UserCheck, X } from "lucide-react";
+import { compactAuthHeaders } from "@/lib/compactAuthToken";
+import { getProfileThumbnailUrl } from "@/lib/profileImageSync";
+import { cn } from "@/lib/cn";
+import { applyOptimisticStageMove } from "@/lib/ats/workflowEngine";
+import { useAuth } from "@/hooks/useAuth";
+import type { PipelineCandidateDto, PipelineDto, PipelineStageDto } from "@/types/ats";
+import ApplicationWorkflowDrawer from "@/components/pipeline/ApplicationWorkflowDrawer";
+import RecruiterDashboardMetrics from "@/components/pipeline/RecruiterDashboardMetrics";
 import Badge from "@/components/ui/Badge";
 import Card from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
-import { demoJobs } from "@/lib/demoData";
-import { cn } from "@/lib/cn";
-import { AlertTriangle, ArrowRight, BarChart3, Check, Sparkles, TrendingDown, UsersRound, X } from "lucide-react";
+import Input from "@/components/ui/Input";
+import Select from "@/components/ui/Select";
+import Skeleton from "@/components/ui/Skeleton";
 
-const stages: Application["status"][] = ["Applied", "Shortlisted", "Interview", "Offer", "Hired"];
+type UndoMove = { candidates: PipelineCandidateDto[]; targetStageId: string };
 
-const initialApplications: Application[] = [
-  { id: "app-1", jobId: "job-1", candidateId: "candidate-1", name: "Md Jahid Anwar", title: "Administrative HR", matchScore: 94, status: "Applied", skills: ["Admin", "Excel"] },
-  { id: "app-2", jobId: "job-1", candidateId: "candidate-2", name: "Nusrat Jahan", title: "Support Executive", matchScore: 78, status: "Shortlisted", skills: ["CRM", "Communication"] },
-  { id: "app-3", jobId: "job-3", candidateId: "candidate-3", name: "Rahim Ahmed", title: "Frontend Developer", matchScore: 91, status: "Interview", skills: ["React", "TypeScript"] }
-];
-
-function getAppliedDepartment(application: Application) {
-  return demoJobs.find((job) => job.id === application.jobId)?.category || application.title;
+async function pipelineRequest(path: string, init?: RequestInit) {
+  const auth = await compactAuthHeaders("ats_pipeline");
+  const response = await fetch(path, { ...init, headers: { ...(init?.body ? { "Content-Type": "application/json" } : {}), ...auth, ...(init?.headers || {}) } });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.error || "Recruitment pipeline request failed.");
+  return payload;
 }
 
-function nextStage(status: Application["status"]) {
-  const index = stages.indexOf(status);
-  return stages[Math.min(index + 1, stages.length - 1)];
-}
-
-function aiRecommendation(application: Application) {
-  if (application.matchScore >= 90) return "Strong AI fit. Move this candidate forward quickly while engagement is warm.";
-  if (application.matchScore >= 75) return "Good fit. Shortlist and validate experience before offer.";
-  return "Needs review. Check missing skills before moving forward.";
-}
+function initials(name: string) { return name.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "MX"; }
 
 export default function PipelineBoard() {
-  const [applications, setApplications] = useState(initialApplications);
-  const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
-  const selectedApplication = applications.find((item) => item.id === selectedApplicationId) || null;
-  const stageCounts = stages.reduce<Record<Application["status"], number>>((counts, stage) => {
-    counts[stage] = applications.filter((item) => item.status === stage).length;
-    return counts;
-  }, {} as Record<Application["status"], number>);
-  const totalApplications = applications.length || 1;
-  const largestStage = stages.reduce((largest, stage) => stageCounts[stage] > stageCounts[largest] ? stage : largest, stages[0]);
-  const interviewDrop = stageCounts.Interview
-    ? Math.max(0, Math.round(((stageCounts.Interview - stageCounts.Offer) / stageCounts.Interview) * 100))
-    : 0;
-  const shortlistShare = Math.round((stageCounts.Shortlisted / totalApplications) * 100);
-  const bottleneckStage = stageCounts[largestStage] >= 2 ? largestStage : null;
+  const { user } = useAuth();
+  const [pipeline, setPipeline] = useState<PipelineDto | null>(null); const [loading, setLoading] = useState(true); const [loadingMore, setLoadingMore] = useState(false); const [error, setError] = useState(""); const [query, setQuery] = useState(""); const [stageFilter, setStageFilter] = useState(""); const [jobFilter, setJobFilter] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(new Set()); const [activeCandidate, setActiveCandidate] = useState<PipelineCandidateDto | null>(null); const [undo, setUndo] = useState<UndoMove | null>(null); const [moving, setMoving] = useState(false); const [tagValue, setTagValue] = useState("");
+  const loadMarker = useRef<HTMLDivElement>(null); const requestNumber = useRef(0);
 
-  const updateStage = async (applicationId: string, status: Application["status"]) => {
-    setApplications((items) => items.map((item) => item.id === applicationId ? { ...item, status } : item));
-    await fetch("/api/application/update", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ application_id: applicationId, new_status: status.toLowerCase() })
-    }).catch(() => null);
-  };
+  const loadPipeline = useCallback(async (page = 1, append = false) => {
+    const requestId = ++requestNumber.current; if (append) setLoadingMore(true); else setLoading(true); setError("");
+    try {
+      const params = new URLSearchParams({ limit: "100", page: String(page) }); if (query.trim()) params.set("search", query.trim()); if (stageFilter) params.set("stage_id", stageFilter); if (jobFilter) params.set("job_id", jobFilter);
+      const next = await pipelineRequest(`/api/pipeline?${params}`) as PipelineDto;
+      if (requestId !== requestNumber.current) return;
+      setPipeline((current) => append && current ? { ...next, candidates: Array.from(new Map([...current.candidates, ...next.candidates].map((item) => [item.applicationId, item])).values()) } : next);
+    } catch (cause) { if (requestId === requestNumber.current) setError(cause instanceof Error ? cause.message : "Could not load the recruitment pipeline."); }
+    finally { if (requestId === requestNumber.current) { setLoading(false); setLoadingMore(false); } }
+  }, [jobFilter, query, stageFilter]);
 
-  const onDragEnd = (result: DropResult) => {
-    if (!result.destination) return;
-    if (result.destination.droppableId === result.source.droppableId) return;
-    updateStage(result.draggableId, result.destination.droppableId as Application["status"]);
-  };
+  useEffect(() => { const timer = window.setTimeout(() => void loadPipeline(), query ? 300 : 0); return () => window.clearTimeout(timer); }, [loadPipeline, query]);
+  useEffect(() => { const shortcut = (event: KeyboardEvent) => { if (event.key === "/" && !/input|textarea|select/i.test((event.target as HTMLElement)?.tagName || "")) { event.preventDefault(); document.getElementById("ats-pipeline-search")?.focus(); } if (event.key === "Escape") { setSelected(new Set()); setActiveCandidate(null); } }; window.addEventListener("keydown", shortcut); return () => window.removeEventListener("keydown", shortcut); }, []);
+  useEffect(() => { const marker = loadMarker.current; if (!marker || !pipeline?.hasMore) return; const observer = new IntersectionObserver((entries) => { if (entries[0]?.isIntersecting && !loadingMore) void loadPipeline(Number(pipeline.nextCursor || 2), true); }, { rootMargin: "300px" }); observer.observe(marker); return () => observer.disconnect(); }, [loadPipeline, loadingMore, pipeline?.hasMore, pipeline?.nextCursor]);
+
+  const activeStages = useMemo(() => pipeline?.stages.filter((stage) => !stage.isArchived) || [], [pipeline]);
+  const jobs = useMemo(() => Array.from(new Map((pipeline?.candidates || []).map((candidate) => [candidate.jobId, candidate.jobTitle])).entries()), [pipeline]);
+  const grouped = useMemo(() => { const map = new Map<string, PipelineCandidateDto[]>(); for (const stage of activeStages) map.set(stage.id, []); for (const candidate of pipeline?.candidates || []) if (map.has(candidate.stageId)) map.get(candidate.stageId)!.push(candidate); return map; }, [activeStages, pipeline?.candidates]);
+
+  const moveCandidates = useCallback(async (applicationIds: string[], targetStageId: string, preserveUndo = false) => {
+    if (!pipeline || !applicationIds.length) return; const target = pipeline.stages.find((stage) => stage.id === targetStageId); if (!target) return;
+    const originals = pipeline.candidates.filter((candidate) => applicationIds.includes(candidate.applicationId)); if (!preserveUndo) setUndo({ candidates: originals, targetStageId });
+    setMoving(true); setError(""); setPipeline((current) => current ? { ...current, candidates: applyOptimisticStageMove(current.candidates, applicationIds, target.id, target.name).map((candidate) => applicationIds.includes(candidate.applicationId) ? { ...candidate, stageEnteredAt: new Date().toISOString() } : candidate) } : current);
+    try { await pipelineRequest("/api/pipeline/move", { method: "POST", body: JSON.stringify({ application_ids: applicationIds, stage_id: targetStageId, operation: "move" }) }); setSelected(new Set()); void loadPipeline(); }
+    catch (cause) { setPipeline((current) => current ? { ...current, candidates: current.candidates.map((candidate) => originals.find((item) => item.applicationId === candidate.applicationId) || candidate) } : current); setUndo(null); setError(cause instanceof Error ? cause.message : "Could not move candidates."); }
+    finally { setMoving(false); }
+  }, [loadPipeline, pipeline]);
+
+  const onDragEnd = (result: DropResult) => { if (!result.destination || result.destination.droppableId === result.source.droppableId) return; const ids = selected.has(result.draggableId) ? Array.from(selected) : [result.draggableId]; void moveCandidates(ids, result.destination.droppableId); };
+  const undoMove = async () => { if (!undo) return; const groupedUndo = new Map<string, string[]>(); for (const candidate of undo.candidates) { const list = groupedUndo.get(candidate.stageId) || []; list.push(candidate.applicationId); groupedUndo.set(candidate.stageId, list); } setUndo(null); for (const [stageId, ids] of groupedUndo) await moveCandidates(ids, stageId, true); };
+  const bulkOperation = async (operation: "assign" | "tag" | "archive" | "reject") => { if (!selected.size || !window.confirm(`${operation[0].toUpperCase()}${operation.slice(1)} ${selected.size} selected candidate${selected.size === 1 ? "" : "s"}?`)) return; setMoving(true); try { await pipelineRequest("/api/pipeline/move", { method: "POST", body: JSON.stringify({ operation, application_ids: Array.from(selected), recruiter_id: operation === "assign" ? user?.id : undefined, tag: operation === "tag" ? tagValue : undefined }) }); setTagValue(""); setSelected(new Set()); await loadPipeline(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Bulk action failed."); } finally { setMoving(false); } };
+  const emailSelected = async () => { const subject = window.prompt("Email subject", "Your MXVL application update"); if (!subject) return; const message = window.prompt("Email message"); if (!message) return; setMoving(true); try { await pipelineRequest("/api/recruitment/communications", { method: "POST", body: JSON.stringify({ application_ids: Array.from(selected), communication_type: "email", subject, body: message }) }); setSelected(new Set()); await loadPipeline(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not record the email communication."); } finally { setMoving(false); } };
+  const exportSelected = () => { const rows = (pipeline?.candidates || []).filter((candidate) => selected.has(candidate.applicationId)); const csv = [["Candidate", "Job", "Stage", "AI Match", "Recruiter", "Applied"], ...rows.map((item) => [item.candidateName, item.jobTitle, item.stageName, item.matchScore ?? "", item.recruiterName || "", item.applicationDate])].map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(",")).join("\n"); const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); link.download = "mxvl-pipeline-export.csv"; link.click(); URL.revokeObjectURL(link.href); };
+  const configureStage = async (action: "rename" | "archive" | "remove", stage: PipelineStageDto) => { let body: Record<string, unknown> = { action, stage_id: stage.id }; if (action === "rename") { const name = window.prompt("Stage name", stage.name); if (!name || name === stage.name) return; body.name = name; } if (action === "archive") body.archived = !stage.isArchived; if (action === "remove" && !window.confirm(`Remove ${stage.name}? This is allowed only when the stage is empty.`)) return; try { await pipelineRequest("/api/pipeline", { method: "PATCH", body: JSON.stringify(body) }); await loadPipeline(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not update stage."); } };
+  const reorderStage = async (stage: PipelineStageDto, direction: -1 | 1) => { const index = activeStages.findIndex((item) => item.id === stage.id); const target = index + direction; if (index < 0 || target < 0 || target >= activeStages.length) return; const ordered = [...activeStages]; [ordered[index], ordered[target]] = [ordered[target], ordered[index]]; setPipeline((current) => current ? { ...current, stages: ordered.map((item, position) => ({ ...item, position })) } : current); try { await pipelineRequest("/api/pipeline", { method: "PATCH", body: JSON.stringify({ action: "reorder", stage_id: stage.id, stage_ids: ordered.map((item) => item.id) }) }); } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not reorder stages."); await loadPipeline(); } };
+  const addStage = async () => { const name = window.prompt("New pipeline stage name"); if (!name) return; try { await pipelineRequest("/api/pipeline", { method: "PATCH", body: JSON.stringify({ action: "add", name }) }); await loadPipeline(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not add stage."); } };
+
+  if (loading && !pipeline) return <div className="space-y-4"><div className="grid gap-3 sm:grid-cols-4">{Array.from({ length: 4 }, (_, index) => <Skeleton key={index} className="h-24 rounded-lg" />)}</div><div className="flex gap-4 overflow-hidden">{Array.from({ length: 4 }, (_, index) => <Skeleton key={index} className="h-96 min-w-72 rounded-lg" />)}</div></div>;
+  if (!pipeline) return <EmptyState icon={<CheckSquare2 />} title="ATS pipeline unavailable" message={error || "Apply the enterprise recruitment workflow migration and refresh this page."} />;
 
   return (
     <DragDropContext onDragEnd={onDragEnd}>
-      <div className="mb-6 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-        <Card className="depth-overlay bg-gradient-to-br from-primary/10 via-primary/5 to-transparent">
-          <div className="depth-content flex items-start gap-3">
-            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/15">
-              <BarChart3 size={20} />
-            </div>
-            <div>
-              <Badge variant={bottleneckStage ? "danger" : "success"} className="mb-3">
-                {bottleneckStage ? "Bottleneck detected" : "Pipeline healthy"}
-              </Badge>
-              <h3 className="type-h3 font-bold">
-                {bottleneckStage === "Shortlisted"
-                  ? "Too many candidates stuck in shortlist"
-                  : bottleneckStage
-                    ? `${bottleneckStage} stage needs attention`
-                    : "Candidate flow is moving steadily"}
-              </h3>
-              <p className="type-body mt-2">
-                {bottleneckStage === "Shortlisted"
-                  ? "Move strong profiles forward or decline weak fits to keep hiring momentum."
-                  : bottleneckStage
-                    ? `Review candidates in ${bottleneckStage.toLowerCase()} and decide the next action.`
-                    : "Keep advancing high-match candidates while the pool is warm."}
-              </p>
-            </div>
-          </div>
-        </Card>
-
-        <Card>
-          <div className="flex items-start gap-3">
-            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-orange-400/10 text-orange-600 ring-1 ring-orange-400/20 dark:text-orange-300">
-              <TrendingDown size={20} />
-            </div>
-            <div>
-              <Badge variant={interviewDrop >= 50 ? "danger" : "primary"} className="mb-3">
-                Stage conversion insight
-              </Badge>
-              <h3 className="type-h3 font-bold">{interviewDrop}% drop after interview stage</h3>
-              <p className="type-body mt-2">
-                {interviewDrop >= 50
-                  ? "Review interview criteria or calibrate screening before candidates reach this stage."
-                  : "Interview conversion is acceptable. Watch for delays if candidate volume rises."}
-              </p>
-            </div>
-          </div>
-        </Card>
+      <RecruiterDashboardMetrics />
+      <div className="mb-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex flex-1 flex-col gap-2 sm:flex-row"><div className="relative min-w-0 flex-1"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" /><Input id="ats-pipeline-search" value={query} onChange={(event) => setQuery(event.target.value)} className="pl-10" placeholder="Search candidates, jobs, recruiters...  /" /></div><Select value={jobFilter} onChange={(event) => setJobFilter(event.target.value)} className="sm:max-w-56"><option value="">All jobs</option>{jobs.map(([id, title]) => <option key={id} value={id}>{title}</option>)}</Select><Select value={stageFilter} onChange={(event) => setStageFilter(event.target.value)} className="sm:max-w-48"><option value="">All stages</option>{activeStages.map((stage) => <option key={stage.id} value={stage.id}>{stage.name}</option>)}</Select></div>
+        <Button variant="secondary" onClick={addStage}><Plus className="h-4 w-4" />Add stage</Button>
       </div>
-
-      <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-5">
-        {stages.map((stage) => {
-          const count = stageCounts[stage];
-          const share = Math.round((count / totalApplications) * 100);
-          const bottleneck = stage === largestStage && count >= 2;
-          return (
-            <Card key={stage} className={cn("p-4", bottleneck && "border-orange-400/30 bg-orange-400/5 dark:bg-orange-400/10")}>
-              <div className="flex items-center justify-between gap-2">
-                <p className="type-label">{stage}</p>
-                {bottleneck ? <AlertTriangle size={15} className="text-orange-500" /> : null}
-              </div>
-              <strong className="mt-2 block text-2xl font-bold text-text-main dark:text-white">{count}</strong>
-              <div className="mt-3 h-2 overflow-hidden rounded-full bg-border/70 dark:bg-white/10">
-                <div
-                  className={cn("h-full rounded-full transition-all duration-500", bottleneck ? "bg-orange-400" : "bg-primary")}
-                  style={{ width: `${share}%` }}
-                />
-              </div>
-            </Card>
-          );
-        })}
-      </div>
-
-      {shortlistShare >= 30 ? (
-        <div className="mb-6 rounded-2xl border border-orange-400/20 bg-orange-400/8 p-4 text-sm font-semibold text-orange-700 shadow-soft dark:bg-orange-400/10 dark:text-orange-300">
-          Too many candidates stuck in shortlist — move forward or decline low-priority profiles to reduce decision drag.
+      {error ? <div className="mb-4 flex items-start justify-between gap-3 rounded-md border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-200"><span>{error}</span><button onClick={() => setError("")} aria-label="Dismiss error"><X className="h-4 w-4" /></button></div> : null}
+      {selected.size ? <div className="sticky top-16 z-30 mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-primary/20 bg-surface p-3 shadow-elevated dark:bg-slate-900"><Badge variant="primary">{selected.size} selected</Badge><Select className="max-w-48 py-2" defaultValue="" onChange={(event) => { if (event.target.value) void moveCandidates(Array.from(selected), event.target.value); event.target.value = ""; }}><option value="">Move stage...</option>{activeStages.map((stage) => <option key={stage.id} value={stage.id}>{stage.name}</option>)}</Select><Button variant="secondary" className="px-3 py-2 text-xs" disabled={!user?.id || moving} onClick={() => bulkOperation("assign")}><UserCheck className="h-3.5 w-3.5" />Assign to me</Button><div className="flex"><Input className="w-32 rounded-r-none py-2 text-xs" value={tagValue} onChange={(event) => setTagValue(event.target.value)} placeholder="Tag" /><Button variant="secondary" className="rounded-l-none px-3 py-2" disabled={!tagValue} onClick={() => bulkOperation("tag")} aria-label="Add tag"><Tag className="h-3.5 w-3.5" /></Button></div><Button variant="secondary" className="px-3 py-2 text-xs" onClick={emailSelected}><Mail className="h-3.5 w-3.5" />Email</Button><Button variant="secondary" className="px-3 py-2 text-xs" onClick={exportSelected}><Download className="h-3.5 w-3.5" />Export</Button><Button variant="secondary" className="px-3 py-2 text-xs" onClick={() => bulkOperation("archive")}><Archive className="h-3.5 w-3.5" />Archive</Button><Button variant="secondary" className="px-3 py-2 text-xs" onClick={() => bulkOperation("reject")}><X className="h-3.5 w-3.5" />Reject</Button></div> : null}
+      <div className="max-w-full overflow-x-auto overscroll-x-contain pb-4" aria-label="Recruitment pipeline Kanban">
+        <div className="grid min-w-max auto-cols-[minmax(280px,320px)] grid-flow-col items-start gap-4">
+          {activeStages.map((stage) => <Droppable droppableId={stage.id} key={stage.id}>{(provided, snapshot) => <section ref={provided.innerRef} {...provided.droppableProps} className={cn("flex max-h-[70vh] min-h-[420px] w-[300px] flex-col rounded-lg border bg-bg/70 transition dark:bg-white/[0.03]", snapshot.isDraggingOver ? "border-primary ring-4 ring-primary/10" : "border-border dark:border-white/10")}>
+            <header className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-border bg-surface/95 p-3 backdrop-blur dark:border-white/10 dark:bg-slate-950/95"><div className="min-w-0"><div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: stage.color }} /><h3 className="truncate text-sm font-black text-text-main dark:text-white">{stage.name}</h3></div><p className="mt-1 text-[10px] font-bold text-text-muted">{stage.candidateCount} candidate{stage.candidateCount === 1 ? "" : "s"}</p></div><div className="flex items-center"><button className="rounded p-1 text-text-muted hover:bg-primary/5 hover:text-primary disabled:opacity-30" disabled={activeStages[0]?.id === stage.id} onClick={() => reorderStage(stage, -1)} title="Move stage left" aria-label={`Move ${stage.name} left`}><ChevronLeft className="h-3.5 w-3.5" /></button><button className="rounded p-1 text-text-muted hover:bg-primary/5 hover:text-primary disabled:opacity-30" disabled={activeStages[activeStages.length - 1]?.id === stage.id} onClick={() => reorderStage(stage, 1)} title="Move stage right" aria-label={`Move ${stage.name} right`}><ChevronRight className="h-3.5 w-3.5" /></button><button className="rounded p-1.5 text-text-muted hover:bg-primary/5 hover:text-primary" onClick={() => configureStage("rename", stage)} title="Rename stage" aria-label={`Rename ${stage.name}`}><Pencil className="h-3.5 w-3.5" /></button><button className="rounded p-1.5 text-text-muted hover:bg-primary/5 hover:text-primary" onClick={() => configureStage("archive", stage)} title="Archive stage" aria-label={`Archive ${stage.name}`}><Archive className="h-3.5 w-3.5" /></button><button className="rounded p-1.5 text-text-muted hover:bg-red-50 hover:text-red-600" onClick={() => configureStage("remove", stage)} title="Remove empty stage" aria-label={`Remove ${stage.name}`}><Trash2 className="h-3.5 w-3.5" /></button></div></header>
+            <div className="flex-1 space-y-3 overflow-y-auto p-3">{(grouped.get(stage.id) || []).map((candidate, index) => <Draggable draggableId={candidate.applicationId} index={index} key={candidate.applicationId}>{(dragProvided, dragSnapshot) => <article ref={dragProvided.innerRef} {...dragProvided.draggableProps} style={{ ...dragProvided.draggableProps.style, contentVisibility: "auto", containIntrinsicSize: "150px" }} className={cn("rounded-lg border border-border bg-surface p-3 shadow-sm transition dark:border-white/10 dark:bg-slate-900", dragSnapshot.isDragging && "rotate-1 border-primary shadow-elevated", selected.has(candidate.applicationId) && "border-primary ring-2 ring-primary/15")}>
+              <div className="flex items-start gap-2"><button {...dragProvided.dragHandleProps} className="mt-1 text-text-muted" aria-label={`Drag ${candidate.candidateName}`}><GripVertical className="h-4 w-4" /></button><input type="checkbox" checked={selected.has(candidate.applicationId)} onChange={() => setSelected((current) => { const next = new Set(current); if (next.has(candidate.applicationId)) next.delete(candidate.applicationId); else next.add(candidate.applicationId); return next; })} className="mt-1.5 accent-primary" aria-label={`Select ${candidate.candidateName}`} /><button className="min-w-0 flex-1 text-left" onClick={() => setActiveCandidate(candidate)}><div className="flex items-center gap-2">{candidate.candidatePhoto ? <img src={getProfileThumbnailUrl(candidate.candidatePhoto) || candidate.candidatePhoto} alt="" loading="lazy" className="h-9 w-9 rounded-full object-cover" /> : <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-primary to-success text-[10px] font-black text-white">{initials(candidate.candidateName)}</span>}<div className="min-w-0"><h4 className="truncate text-sm font-black text-text-main dark:text-white">{candidate.candidateName}</h4><p className="truncate text-[11px] font-semibold text-text-muted">{candidate.jobTitle}</p></div></div><div className="mt-3 flex items-center justify-between gap-2">{candidate.matchScore !== null ? <Badge variant={candidate.matchScore >= 80 ? "match-score" : "primary"}>AI {candidate.matchScore}%</Badge> : <Badge>Not scored</Badge>}<span className="text-[9px] font-bold text-text-muted">{new Date(candidate.applicationDate).toLocaleDateString()}</span></div>{candidate.recruiterName || candidate.tags.length ? <div className="mt-2 flex flex-wrap gap-1">{candidate.recruiterName ? <Badge>{candidate.recruiterName}</Badge> : null}{candidate.tags.slice(0, 2).map((tagName) => <Badge key={tagName} variant="primary">{tagName}</Badge>)}</div> : null}</button></div>
+            </article>}</Draggable>)}{provided.placeholder}{!(grouped.get(stage.id) || []).length ? <div className="grid min-h-32 place-items-center rounded-md border border-dashed border-border p-4 text-center text-xs font-bold text-text-muted dark:border-white/10">Drop candidates here</div> : null}</div>
+          </section>}</Droppable>)}
         </div>
-      ) : null}
-
-      <div className="grid grid-cols-5 gap-3">
-        {stages.map((stage) => {
-          const stageApplications = applications.filter((item) => item.status === stage);
-          const stageBottleneck = stage === largestStage && stageApplications.length >= 2;
-          return (
-            <Droppable droppableId={stage} key={stage}>
-              {(provided, snapshot) => (
-                <Card
-                  ref={provided.innerRef}
-                  {...provided.droppableProps}
-                  className={cn(
-                    "flex h-full min-h-[330px] min-w-0 flex-col bg-white/72 p-4 transition dark:bg-white/5",
-                    stageBottleneck && "border-orange-400/35 bg-orange-400/5 ring-4 ring-orange-400/10 dark:bg-orange-400/10",
-                    snapshot.isDraggingOver && "border-primary ring-4 ring-primary/10"
-                  )}
-                >
-                  <div className="mb-3 flex items-center justify-between gap-2 px-1">
-                    <div>
-                      <h3 className="text-base font-black text-text-main dark:text-white">{stage}</h3>
-                      <p className="type-body mt-1 text-[11px]">{Math.round((stageApplications.length / totalApplications) * 100)}% of pipeline</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {stageBottleneck ? <Badge variant="danger" className="hidden px-2 py-1 text-[10px] xl:inline-flex">Bottleneck</Badge> : null}
-                      <Badge className="px-2 py-1 text-[11px]">{stageApplications.length}</Badge>
-                    </div>
-                  </div>
-                  <div className="flex-1 space-y-2">
-                    {stageApplications.map((application, index) => (
-                      <Draggable draggableId={application.id} index={index} key={application.id}>
-                        {(dragProvided, dragSnapshot) => (
-                          <div
-                            ref={dragProvided.innerRef}
-                            {...dragProvided.draggableProps}
-                            {...dragProvided.dragHandleProps}
-                          >
-                            <Card
-                              variant="interactive"
-                              onClick={() => setSelectedApplicationId(application.id)}
-                              className={cn(
-                                "cursor-pointer bg-surface p-3 active:cursor-grabbing dark:bg-slate-900/90",
-                                dragSnapshot.isDragging && "shadow-md ring-4 ring-primary/10"
-                              )}
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-primary to-success text-[11px] font-bold text-white">
-                                  {application.name.slice(0, 2).toUpperCase()}
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <h4 className="truncate text-sm font-black text-text-main dark:text-white">{application.name}</h4>
-                                  <p className="truncate text-xs font-semibold text-text-muted dark:text-slate-300">
-                                    {getAppliedDepartment(application)}
-                                  </p>
-                                </div>
-                              </div>
-                            </Card>
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
-                    {!stageApplications.length ? (
-                      <EmptyState
-                        icon={<UsersRound size={20} />}
-                        title={`No ${stage.toLowerCase()}`}
-                        message="Candidates appear here as they move."
-                        className="p-3"
-                      />
-                    ) : null}
-                  </div>
-                </Card>
-              )}
-            </Droppable>
-          );
-        })}
       </div>
-      {selectedApplication ? (
-        <div className="fixed inset-0 z-[90] grid place-items-center bg-transparent p-4">
-          <button
-            type="button"
-            className="absolute inset-0 cursor-default"
-            aria-label="Close pipeline candidate details"
-            onClick={() => setSelectedApplicationId(null)}
-          />
-          <Card className="relative w-full max-w-xl p-5 shadow-elevated">
-            <div className="mb-5 flex items-start justify-between gap-4">
-              <div>
-                <Badge variant="primary" className="type-label text-primary">AI Overview</Badge>
-                <h3 className="type-h2 mt-3">{selectedApplication.name}</h3>
-                <p className="type-body mt-1">{getAppliedDepartment(selectedApplication)}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedApplicationId(null)}
-                className="rounded-full p-2 text-text-muted transition hover:bg-primary/5 hover:text-primary"
-                aria-label="Close overview"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="grid gap-4">
-              <div className="rounded-xl border border-border bg-bg p-4 dark:border-slate-700 dark:bg-slate-900">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="type-label">AI Match Score</p>
-                  <Badge variant={selectedApplication.matchScore >= 85 ? "match-score" : "primary"}>{selectedApplication.matchScore}%</Badge>
-                </div>
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-border/70 dark:bg-slate-800">
-                  <div
-                    className={cn("h-full rounded-full", selectedApplication.matchScore >= 85 ? "bg-success" : "bg-primary")}
-                    style={{ width: `${selectedApplication.matchScore}%` }}
-                  />
-                </div>
-                <p className="type-body mt-3">{aiRecommendation(selectedApplication)}</p>
-              </div>
-
-              <div className="rounded-xl border border-border bg-bg p-4 dark:border-slate-700 dark:bg-slate-900">
-                <p className="type-label">Matched Skills</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {selectedApplication.skills.map((skill) => <Badge key={skill} variant="success">{skill}</Badge>)}
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-5 grid gap-2 sm:grid-cols-4">
-              <Button
-                type="button"
-                variant={selectedApplication.status === "Shortlisted" ? "success" : "secondary"}
-                className="gap-1.5 px-3 py-2 text-xs"
-                onClick={() => updateStage(selectedApplication.id, "Shortlisted")}
-              >
-                {selectedApplication.status === "Shortlisted" ? <Check className="h-3.5 w-3.5" /> : <Sparkles className="h-3.5 w-3.5" />}
-                Shortlist
-              </Button>
-              <Button
-                type="button"
-                className="gap-1.5 px-3 py-2 text-xs"
-                disabled={selectedApplication.status === "Hired"}
-                onClick={() => updateStage(selectedApplication.id, nextStage(selectedApplication.status))}
-              >
-                <ArrowRight className="h-3.5 w-3.5" />
-                Move
-              </Button>
-              <Button
-                type="button"
-                variant={selectedApplication.status === "Offer" ? "success" : "secondary"}
-                className="gap-1.5 px-3 py-2 text-xs"
-                onClick={() => updateStage(selectedApplication.id, "Offer")}
-              >
-                Offer
-              </Button>
-              <Button
-                type="button"
-                variant={selectedApplication.status === "Hired" ? "success" : "primary"}
-                className="gap-1.5 px-3 py-2 text-xs"
-                onClick={() => updateStage(selectedApplication.id, "Hired")}
-              >
-                Hire
-              </Button>
-            </div>
-          </Card>
-        </div>
-      ) : null}
+      <div ref={loadMarker} className="grid min-h-10 place-items-center">{loadingMore ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> : pipeline.hasMore ? <span className="text-xs font-bold text-text-muted">Scroll to load more applications</span> : null}</div>
+      {undo ? <div className="fixed bottom-24 left-1/2 z-[90] flex -translate-x-1/2 items-center gap-3 rounded-lg bg-slate-950 px-4 py-3 text-sm font-bold text-white shadow-2xl"><span>Moved {undo.candidates.length} candidate{undo.candidates.length === 1 ? "" : "s"}</span><button className="flex items-center gap-1 text-blue-300" onClick={undoMove}><RotateCcw className="h-4 w-4" />Undo</button><button onClick={() => setUndo(null)} aria-label="Dismiss"><X className="h-4 w-4" /></button></div> : null}
+      {activeCandidate ? <ApplicationWorkflowDrawer candidate={activeCandidate} onClose={() => setActiveCandidate(null)} onChanged={() => void loadPipeline()} /> : null}
+      {moving ? <div className="pointer-events-none fixed inset-x-0 top-0 z-[120] h-1 overflow-hidden bg-primary/20"><div className="h-full w-1/3 animate-pulse bg-primary" /></div> : null}
     </DragDropContext>
   );
 }
