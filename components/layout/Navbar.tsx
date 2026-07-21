@@ -26,12 +26,14 @@ const navItemsByRole = {
   ],
   candidate: [
     { label: "Home", href: "/" },
-    { label: "Jobs", href: "/jobs" }
+    { label: "Jobs", href: "/jobs" },
+    { label: "My Applications", href: "/candidate/portal" }
   ],
   employer: [
     { label: "Home", href: "/employer" },
     { label: "Jobs", href: "/jobs" },
     { label: "Candidates", href: "/employer/candidates" },
+    { label: "Talent CRM", href: "/employer/talent-crm" },
     { label: "We Hire for You", href: "/we-hire-for-you" },
     { label: "Plans", href: "/subscriptions" }
   ],

@@ -1,0 +1,25 @@
+import { NextResponse } from "next/server";
+import { cleanText, crmErrorResponse, crmRateResponse, enforceCrmWriteRate, isUuid, requireTalentCrmRequester } from "@/lib/crm/server";
+
+const TYPES = new Set(["outreach", "interview_invitation", "follow_up", "rejection", "offer", "general"]);
+const SELECT = "id,employer_user_id,candidate_id,application_id,channel,direction,message_type,subject,body,status,provider_reference,metadata,created_by,sent_at,created_at,updated_at";
+
+function draft(type: string, candidateName: string, jobTitle: string) {
+  const job = jobTitle || "the opportunity"; const name = candidateName || "there";
+  const drafts: Record<string, { subject: string; body: string }> = {
+    outreach: { subject: `A role that may interest you`, body: `Hi ${name},\n\nYour experience appears relevant to ${job}. We would value the opportunity to discuss the role and learn more about your goals.\n\nBest,\nThe hiring team` },
+    interview_invitation: { subject: `Interview invitation: ${job}`, body: `Hi ${name},\n\nWe would like to invite you to interview for ${job}. Please review the proposed schedule and let us know whether it works for you.\n\nBest,\nThe hiring team` },
+    follow_up: { subject: `Following up on ${job}`, body: `Hi ${name},\n\nWe are following up regarding ${job}. Please let us know if you have any questions or updates to share.\n\nBest,\nThe hiring team` },
+    rejection: { subject: `Update on your application`, body: `Hi ${name},\n\nThank you for the time you invested in ${job}. We will not be moving forward at this stage, but we appreciate your interest and hope to stay connected.\n\nBest,\nThe hiring team` },
+    offer: { subject: `Offer update: ${job}`, body: `Hi ${name},\n\nWe are pleased to share an offer update for ${job}. Please review the details and contact us with any questions.\n\nBest,\nThe hiring team` }
+  };
+  return drafts[type] || { subject: `Update from the hiring team`, body: `Hi ${name},\n\nWe wanted to share an update regarding ${job}.\n\nBest,\nThe hiring team` };
+}
+
+export async function GET(request: Request) {
+  try { const context = await requireTalentCrmRequester(request); if ("response" in context) return context.response; const url = new URL(request.url); const page = Math.max(1, Number(url.searchParams.get("page") || 1)); const limit = Math.max(1, Math.min(100, Number(url.searchParams.get("limit") || 50))); let query = context.client.from("talent_messages").select(SELECT, { count: "exact" }).eq("employer_user_id", context.workspaceOwnerId).order("created_at", { ascending: false }); if (isUuid(url.searchParams.get("candidate_id"))) query = query.eq("candidate_id", url.searchParams.get("candidate_id")); const from = (page - 1) * limit; const result = await query.range(from, from + limit - 1); if (result.error) throw new Error(result.error.message); return NextResponse.json({ messages: result.data || [], page, total: result.count || 0 }); } catch (error) { return crmErrorResponse(error, "Could not load messages."); }
+}
+
+export async function POST(request: Request) {
+  try { const context = await requireTalentCrmRequester(request, true); if ("response" in context) return context.response; if (!enforceCrmWriteRate(context.userId, "talent-messages", 60)) return crmRateResponse(); const body = await request.json().catch(() => ({})); const type = TYPES.has(body.message_type) ? body.message_type : "general"; if (body.action === "draft") return NextResponse.json({ draft: draft(type, cleanText(body.candidate_name, 120), cleanText(body.job_title, 160)), generatedBy: "MXVL recruiter assistant", reviewRequired: true }); const content = cleanText(body.body, 20_000); if (!content) return NextResponse.json({ error: "Message body is required." }, { status: 400 }); const channel = ["email", "in_app", "sms", "whatsapp"].includes(body.channel) ? body.channel : "email"; const status = body.send === true ? "queued" : "draft"; const result = await context.client.from("talent_messages").insert({ employer_user_id: context.workspaceOwnerId, candidate_id: isUuid(body.candidate_id) ? body.candidate_id : null, application_id: isUuid(body.application_id) ? body.application_id : null, channel, message_type: type, subject: cleanText(body.subject, 300) || null, body: content, status, created_by: context.userId, metadata: { review_required: false, provider: null } }).select(SELECT).single(); if (result.error) throw new Error(result.error.message); await context.client.from("communication_logs").insert({ employer_user_id: context.workspaceOwnerId, candidate_id: result.data.candidate_id, message_id: result.data.id, channel, direction: "outbound", subject: result.data.subject, summary: content.slice(0, 500), actor_id: context.userId, metadata: { status } }); return NextResponse.json({ message: result.data, delivery: status === "queued" ? "Queued for a future provider integration." : "Saved as draft." }, { status: 201 }); } catch (error) { return crmErrorResponse(error, "Could not save message."); }
+}

@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { getIndexableJobSlugs } from "@/lib/jobSeoData";
 import { getSeoHubSitemapData } from "@/lib/seoHubData";
 import { SITE_URL } from "@/lib/seo";
+import { createServerSupabaseClient } from "@/lib/supabaseServer";
 
 const publicRoutes: Array<{
   path: string;
@@ -52,5 +53,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6
   }));
 
-  return [...staticEntries, ...jobEntries, ...categoryEntries, ...locationEntries, ...companyEntries];
+  let careerEntries: MetadataRoute.Sitemap = [];
+  try {
+    const client = createServerSupabaseClient();
+    const result = await client.from("career_pages").select("slug,updated_at").eq("is_published", true).limit(5_000);
+    careerEntries = (result.data || []).map((page) => ({
+      url: new URL(`/careers/${page.slug}`, SITE_URL).toString(),
+      lastModified: page.updated_at,
+      changeFrequency: "weekly" as const,
+      priority: 0.7
+    }));
+  } catch {
+    careerEntries = [];
+  }
+
+  return [...staticEntries, ...jobEntries, ...categoryEntries, ...locationEntries, ...companyEntries, ...careerEntries];
 }

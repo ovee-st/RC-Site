@@ -17,7 +17,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useJobStore } from "@/store/useJobStore";
 import { demoCandidates } from "@/lib/demoData";
 import { matchCandidateToJob } from "@/lib/ai/matching";
-import { Sparkles } from "lucide-react";
+import { Sparkles, UsersRound } from "lucide-react";
 
 const EMPLOYER_PANEL_EVENT = "mx-employer-panel-change";
 
@@ -107,6 +107,10 @@ export default function EmployerCommandCenter() {
           <h1 className="type-h1 mt-3">Hiring command center</h1>
         </div>
         <div className="flex flex-wrap items-center gap-3">
+          <Link href="/employer/talent-crm" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-5 text-sm font-black text-emerald-700 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-200">
+            <UsersRound className="h-4 w-4" />
+            Talent CRM
+          </Link>
           <Link href="/subscriptions" className="inline-flex min-h-11 items-center justify-center rounded-full border border-slate-200 bg-white px-5 text-sm font-black text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:text-blue-600 hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:border-blue-400/60">
             View Plans
           </Link>
