@@ -19,33 +19,6 @@ alter table if exists public.profiles
         'viewer'
   ));
 
-create table if not exists public.support_tickets (
-  id uuid primary key default gen_random_uuid(),
-  ticket_number text unique,
-  user_id uuid references auth.users(id) on delete set null,
-  created_by uuid references auth.users(id) on delete set null,
-  assigned_to uuid references auth.users(id) on delete set null,
-  assigned_employee_id uuid,
-  user_role text,
-  username text,
-  subject text not null,
-  description text,
-  message text,
-  category text,
-  priority text default 'medium',
-  status text default 'open',
-  source text default 'web',
-  tags text[] default '{}',
-  attachment_url text,
-  attachment_urls text[] default '{}',
-  sla_due_at timestamptz,
-  first_response_at timestamptz,
-  resolved_at timestamptz,
-  closed_at timestamptz,
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
-);
-
 alter table public.support_tickets add column if not exists created_by uuid references auth.users(id) on delete set null;
 alter table public.support_tickets add column if not exists assigned_to uuid references auth.users(id) on delete set null;
 alter table public.support_tickets add column if not exists assigned_employee_id uuid;
@@ -124,21 +97,6 @@ as $$
       and p.role in ('support_senior','support_manager','admin','viewer')
   );
 $$;
-
-create or replace function public.touch_support_ticket_updated_at()
-returns trigger
-language plpgsql
-as $$
-begin
-  new.updated_at = now();
-  return new;
-end;
-$$;
-
-drop trigger if exists support_tickets_touch_updated_at on public.support_tickets;
-create trigger support_tickets_touch_updated_at
-before update on public.support_tickets
-for each row execute function public.touch_support_ticket_updated_at();
 
 alter table public.support_tickets enable row level security;
 alter table public.support_ticket_messages enable row level security;
@@ -222,14 +180,21 @@ using (public.is_support_staff(auth.uid()))
 with check (public.is_support_staff(auth.uid()));
 
 insert into public.support_macros (title, category, content)
-values
-  ('Password Reset Instructions', 'Account Access', 'Please use the reset password option from the login page. If the link expires, request a new link and check spam/promotions.'),
-  ('Payment Verification', 'Payment Issue', 'We are checking your payment record now. Please share the transaction ID or screenshot if available.'),
-  ('Pro Plan Upgrade Benefits', 'Subscription', 'Pro gives candidates verified visibility, better CV tools, and priority matching signals across employer searches.'),
-  ('CV Download Guidance', 'CV Service', 'Open Resume Builder, choose ATS CV or Customized CV, then download the generated file.'),
-  ('Subscription Activation', 'Subscription', 'Your subscription will activate after payment verification. We will notify you as soon as it is active.'),
-  ('Employer Posting Help', 'Employer Support', 'Open employer home, click Post New Job, complete the required fields, select skills, and publish the role.')
-on conflict do nothing;
+select seed.title, seed.category, seed.content
+from (
+  values
+    ('Password Reset Instructions', 'Account Access', 'Please use the reset password option from the login page. If the link expires, request a new link and check spam/promotions.'),
+    ('Payment Verification', 'Payment Issue', 'We are checking your payment record now. Please share the transaction ID or screenshot if available.'),
+    ('Pro Plan Upgrade Benefits', 'Subscription', 'Pro gives candidates verified visibility, better CV tools, and priority matching signals across employer searches.'),
+    ('CV Download Guidance', 'CV Service', 'Open Resume Builder, choose ATS CV or Customized CV, then download the generated file.'),
+    ('Subscription Activation', 'Subscription', 'Your subscription will activate after payment verification. We will notify you as soon as it is active.'),
+    ('Employer Posting Help', 'Employer Support', 'Open employer home, click Post New Job, complete the required fields, select skills, and publish the role.')
+) as seed(title, category, content)
+where not exists (
+  select 1
+  from public.support_macros existing
+  where existing.title = seed.title
+);
 
 -- Optional realtime support. Duplicate-object errors are ignored for reruns.
 do $$

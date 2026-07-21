@@ -1,0 +1,19 @@
+[
+  "supabase-schema.sql",
+  "supabase-auth-user-sync.sql",
+  "supabase-candidate-availability.sql",
+  "supabase-profile-media.sql",
+  "supabase-employer-subscriptions.sql",
+  "supabase-manual-subscription-payments.sql",
+  "supabase-hiring-consultations.sql",
+  "supabase-interview-preparation.sql",
+  "supabase-support-system.sql",
+  "supabase-live-chat-system.sql",
+  "supabase-support-operations-center.sql",
+  "supabase-job-seo-foundation.sql",
+  "supabase-candidate-intelligence.sql",
+  "supabase-enterprise-recruitment-workflow.sql",
+  "supabase-talent-crm.sql",
+  "supabase-performance-indexes.sql",
+  "supabase-platform-hardening.sql"
+]

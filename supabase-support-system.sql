@@ -14,55 +14,21 @@ alter table if exists public.profiles
   add constraint profiles_role_check
   check (role in ('candidate', 'employer', 'employee', 'admin', 'viewer'));
 
-create unique index if not exists profiles_username_key
-  on public.profiles (lower(username))
-  where username is not null;
+-- The base schema already creates these support tables. Keep this migration
+-- additive so the canonical support columns are added explicitly.
+alter table public.employees
+  add column if not exists avatar_url text,
+  add column if not exists role text default 'employee',
+  add column if not exists status text not null default 'active',
+  add column if not exists is_active boolean default true;
 
-create table if not exists public.employees (
-  id uuid primary key references auth.users(id) on delete cascade,
-  user_id uuid generated always as (id) stored,
-  full_name text not null,
-  email text unique not null,
-  username text unique,
-  avatar_url text,
-  department text default 'Support',
-  role text default 'employee' check (role in ('employee', 'support_manager')),
-  permissions text[] default array['tickets:read','tickets:update','messages:create'],
-  active boolean default true,
-  is_active boolean default true,
-  created_at timestamptz default now()
-);
+alter table public.support_tickets
+  add column if not exists category text not null default 'Other',
+  add column if not exists attachment_url text;
 
-create table if not exists public.support_tickets (
-  id uuid primary key default gen_random_uuid(),
-  ticket_number text unique not null,
-  user_id uuid not null references auth.users(id) on delete cascade,
-  user_role text not null check (user_role in ('candidate','employer')),
-  username text not null,
-  subject text not null,
-  category text not null default 'Other',
-  message text not null,
-  priority text default 'MEDIUM' check (upper(priority) in ('LOW','MEDIUM','HIGH','URGENT')),
-  status text default 'OPEN' check (status in ('OPEN','IN_PROGRESS','WAITING_USER','ESCALATED','RESOLVED','CLOSED')),
-  assigned_employee_id uuid references public.employees(id),
-  attachment_url text,
-  attachment_urls text[] default '{}',
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
-);
-
-create table if not exists public.ticket_messages (
-  id uuid primary key default gen_random_uuid(),
-  ticket_id uuid not null references public.support_tickets(id) on delete cascade,
-  sender_id uuid not null references auth.users(id) on delete cascade,
-  sender_role text not null check (sender_role in ('candidate','employer','employee','admin','viewer')),
-  message text not null,
-  attachment_url text,
-  attachment_urls text[] default '{}',
-  internal_note boolean default false,
-  is_internal_note boolean generated always as (internal_note) stored,
-  created_at timestamptz default now()
-);
+alter table public.ticket_messages
+  add column if not exists attachment_url text,
+  add column if not exists is_internal_note boolean generated always as (internal_note) stored;
 
 create table if not exists public.ticket_activity (
   id uuid primary key default gen_random_uuid(),
@@ -74,20 +40,7 @@ create table if not exists public.ticket_activity (
   created_at timestamptz default now()
 );
 
-create index if not exists support_tickets_user_id_idx on public.support_tickets(user_id);
-create index if not exists support_tickets_assigned_employee_id_idx on public.support_tickets(assigned_employee_id);
-create index if not exists support_tickets_status_idx on public.support_tickets(status);
-create index if not exists ticket_messages_ticket_id_idx on public.ticket_messages(ticket_id);
 create index if not exists ticket_activity_ticket_id_idx on public.ticket_activity(ticket_id);
-
-create or replace function public.current_profile_role()
-returns text
-language sql
-security definer
-set search_path = public
-as $function$
-  select role from public.profiles where id = auth.uid()
-$function$;
 
 create or replace function public.generate_rc_username(role_prefix text)
 returns text
@@ -230,11 +183,12 @@ for each row execute function public.touch_support_ticket_updated_at();
 
 -- Seed demo rows require matching auth users in production. These inserts are safe no-ops
 -- unless the referenced profiles/users already exist.
-insert into public.employees (id, full_name, email, username, department)
-select id, coalesce(full_name, email), email, coalesce(username, 'employee_' || right(id::text, 6)), 'Support'
+insert into public.employees (id, user_id, full_name, email, username, department)
+select id, id, coalesce(full_name, email), email, coalesce(username, 'employee_' || right(id::text, 6)), 'Support'
 from public.profiles
 where role = 'employee'
 on conflict (id) do update set
+  user_id = excluded.user_id,
   full_name = excluded.full_name,
   email = excluded.email,
   username = excluded.username,

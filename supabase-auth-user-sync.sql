@@ -22,10 +22,6 @@ alter table if exists public.profiles
   add constraint profiles_role_check
   check (role in ('candidate', 'employer', 'employee', 'admin', 'viewer'));
 
-create unique index if not exists profiles_username_unique_idx
-  on public.profiles (username)
-  where username is not null;
-
 create or replace function public.rc_normalize_role(input_role text)
 returns text
 language plpgsql
