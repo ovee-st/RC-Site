@@ -57,7 +57,8 @@ export function parseCrmSchemaDiagnostic(error: unknown): CrmSchemaDiagnostic | 
     return { type: "relationship", object, table: relationship[1], message: `Missing relationship: ${object}` };
   }
 
-  const missingFunction = combined.match(/function\s+(?:public\.)?([a-z_][a-z0-9_]*)[^\n]*does not exist/i);
+  const missingFunction = combined.match(/function\s+(?:public\.)?([a-z_][a-z0-9_]*)[^\n]*does not exist/i)
+    || combined.match(/could not find the function\s+(?:public\.)?([a-z_][a-z0-9_]*)/i);
   if (missingFunction) {
     const fn = cleanIdentifier(missingFunction[1]);
     return { type: "function", object: fn, message: `Missing function: ${fn}` };

@@ -28,7 +28,8 @@ describe("Talent CRM API", () => {
     expect(pools).not.toMatch(/candidates"\)\.select\([^\n]*(?:title|avatar)/);
     expect(rediscovery).not.toMatch(/candidates"\)\.select\([^\n]*title/);
     expect(analytics).toContain('rpc("crm_talent_metrics"');
-    expect(analytics).not.toContain("limit(10_000)");
+    expect(analytics).toContain("loadCompatibilityMetrics");
+    expect(analytics).not.toMatch(/applications"\)\.select\([^\n]*source/);
   });
 
   it("paginates CRM list endpoints and exposes pool deletion", () => {

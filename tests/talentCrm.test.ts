@@ -53,6 +53,10 @@ describe("Talent CRM domain", () => {
     });
   });
 
+  it("reports a missing PostgREST RPC function", () => {
+    expect(parseCrmSchemaDiagnostic({ message: "Could not find the function public.crm_talent_metrics(target_owner) in the schema cache" })?.message).toBe("Missing function: crm_talent_metrics");
+  });
+
   it("defines health checks for every Talent CRM persistence area", () => {
     const tables = new Set(TALENT_CRM_SCHEMA_REQUIREMENTS.map((requirement) => requirement.table));
     for (const table of ["talent_pools", "talent_pool_members", "employer_contacts", "employee_referrals", "career_pages", "career_page_events", "offer_templates", "talent_messages", "candidate_portal_documents"]) {
