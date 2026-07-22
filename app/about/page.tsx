@@ -21,11 +21,11 @@ const focusAreas = [
 
 export default function AboutPage() {
   return (
-    <main className="bg-bg py-16 dark:bg-slate-950">
+    <main className="bg-bg py-10 sm:py-16 dark:bg-slate-950">
       <Container>
         <div className="max-w-3xl">
           <Badge variant="primary">About MXVL</Badge>
-          <h1 className="mt-4 text-4xl font-black tracking-tight text-text-main dark:text-white md:text-5xl">About MX Venture Lab</h1>
+          <h1 className="mt-4 text-3xl font-black tracking-tight text-text-main dark:text-white sm:text-4xl md:text-5xl">About MX Venture Lab</h1>
           <p className="mt-5 text-base leading-8 text-text-muted dark:text-slate-300">
             MX Venture Lab is a Bangladesh-based AI-powered recruitment and business solutions platform built to connect employers with qualified talent faster and more responsibly. MXVL combines managed hiring support, digital recruitment workflows, candidate profile intelligence, and practical business services for teams that want to grow with confidence.
           </p>

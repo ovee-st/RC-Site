@@ -271,10 +271,10 @@ Responsibilities:
       </Button>
 
       {mounted && open ? createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-md">
+        <div className="fixed inset-0 z-[9999] flex items-end justify-center bg-slate-950/45 p-0 backdrop-blur-md sm:items-center sm:p-4">
           <button type="button" className="absolute inset-0 cursor-default" aria-label="Close post job form" onClick={() => setOpen(false)} />
-          <div className="relative z-10 flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-[2rem] border border-border bg-surface shadow-elevated dark:border-white/10 dark:bg-slate-950">
-            <div className="shrink-0 border-b border-border/70 px-6 py-5 dark:border-white/10">
+          <div className="relative z-10 flex max-h-[92svh] w-full max-w-4xl flex-col overflow-hidden rounded-t-2xl border border-border bg-surface shadow-elevated sm:max-h-[92vh] sm:rounded-[2rem] dark:border-white/10 dark:bg-slate-950">
+            <div className="shrink-0 border-b border-border/70 px-4 py-4 sm:px-6 sm:py-5 dark:border-white/10">
               <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-4">
                 <div className="grid h-12 w-12 place-items-center rounded-2xl bg-primary/10 text-primary">
@@ -292,7 +292,7 @@ Responsibilities:
               </div>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
             <div className="grid gap-4 md:grid-cols-2">
               <Input value={form.company} onChange={(event) => updateForm("company", event.target.value)} placeholder="Company Name" />
               <Input value={form.title} onChange={(event) => updateForm("title", event.target.value)} placeholder="Designation / Job Title" />

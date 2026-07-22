@@ -707,12 +707,12 @@ export default function Navbar() {
     >
       <div className={cn("mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6", isAdminNavigation ? "gap-3 xl:gap-4" : "gap-4 xl:gap-6 2xl:gap-10")}>
         <div className={cn("flex min-w-0 flex-1 items-center", isAdminNavigation ? "gap-4 xl:gap-5" : "gap-4 xl:gap-6 2xl:gap-8")}>
-          <Link href={homeHref} className="flex shrink-0 items-center gap-3">
-            <div className="grid h-12 w-12 place-items-center overflow-visible">
-              <Image src={SITE_LOGO_LIGHT} alt="MX Venture Lab logo" width={48} height={48} className="h-12 w-12 object-contain dark:hidden" priority />
-              <Image src={SITE_LOGO_DARK} alt="MX Venture Lab logo" width={48} height={48} className="hidden h-12 w-12 object-contain dark:block" priority />
+          <Link href={homeHref} className="flex min-w-0 shrink-0 items-center gap-2 sm:gap-3">
+            <div className="grid h-10 w-10 shrink-0 place-items-center overflow-visible sm:h-12 sm:w-12">
+              <Image src={SITE_LOGO_LIGHT} alt="MX Venture Lab logo" width={48} height={48} className="h-10 w-10 object-contain sm:h-12 sm:w-12 dark:hidden" priority />
+              <Image src={SITE_LOGO_DARK} alt="MX Venture Lab logo" width={48} height={48} className="hidden h-10 w-10 object-contain sm:h-12 sm:w-12 dark:block" priority />
             </div>
-            <span className="whitespace-nowrap text-sm font-black tracking-tight text-text-main dark:text-white">MX Venture Lab</span>
+            <span className="max-w-[8.5rem] truncate whitespace-nowrap text-sm font-black tracking-tight text-text-main sm:max-w-none dark:text-white">MX Venture Lab</span>
           </Link>
 
           <nav className={cn("hidden min-w-0 items-center whitespace-nowrap lg:flex", isAdminNavigation ? "gap-3 xl:gap-4" : "gap-3 xl:gap-5 2xl:gap-6")}>

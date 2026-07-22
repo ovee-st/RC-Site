@@ -55,7 +55,17 @@ export default function DashboardMockup() {
       animate={reduceMotion ? undefined : { opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.65, ease: "easeOut" }}
     >
-      <Card className="overflow-x-auto rounded-3xl border-white/70 bg-white/95 p-4 shadow-[0_30px_100px_rgba(37,99,235,0.18)] dark:border-white/10 dark:bg-slate-900/95 sm:p-5">
+      <Card className="rounded-3xl border-white/70 bg-white/95 p-3 shadow-[0_30px_100px_rgba(37,99,235,0.18)] dark:border-white/10 dark:bg-slate-900/95 md:hidden">
+        <div className="grid gap-3" aria-label="AI recruitment dashboard preview">
+          <MobileHub title="Candidate Hub" subtitle="Your career in motion" value="88%" label="Profile strength" tone="candidate" />
+          <div className="flex min-h-24 items-center gap-4 rounded-2xl border border-violet-300 bg-slate-950 px-4 py-4 text-white ring-2 ring-violet-400/70">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/10"><Sparkles className="h-6 w-6 text-blue-300" /></span>
+            <div className="min-w-0"><Badge className="border-white/20 bg-white/10 text-[9px] text-white shadow-none">AI Matching Engine</Badge><p className="mt-2 text-sm font-black">Talent meets opportunity</p></div>
+          </div>
+          <MobileHub title="Employer Hub" subtitle="Your hiring pipeline" value="72%" label="Hiring progress" tone="employer" />
+        </div>
+      </Card>
+      <Card className="hidden overflow-x-auto rounded-3xl border-white/70 bg-white/95 p-4 shadow-[0_30px_100px_rgba(37,99,235,0.18)] dark:border-white/10 dark:bg-slate-900/95 sm:p-5 md:block">
         <div className="grid min-w-[42rem] grid-cols-[minmax(14rem,1fr)_minmax(11rem,0.72fr)_minmax(14rem,1fr)] items-stretch justify-center gap-6 lg:min-w-0">
           <div className="min-w-0">
             <HubPanel title="Candidate Hub" subtitle="Your career in motion" metrics={candidateMetrics} tone="candidate" />
@@ -78,4 +88,10 @@ export default function DashboardMockup() {
       </Card>
     </motion.div>
   );
+}
+
+function MobileHub({ title, subtitle, value, label, tone }: { title: string; subtitle: string; value: string; label: string; tone: "candidate" | "employer" }) {
+  const candidate = tone === "candidate";
+  const Icon = candidate ? UserRound : BriefcaseBusiness;
+  return <div className={`flex min-w-0 items-center gap-3 rounded-2xl border p-4 ${candidate ? "border-blue-200 bg-blue-50/90 dark:border-blue-400/20 dark:bg-blue-950/30" : "border-emerald-200 bg-emerald-50/90 dark:border-emerald-400/20 dark:bg-emerald-950/30"}`}><span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl text-white ${candidate ? "bg-blue-600" : "bg-emerald-600"}`}><Icon className="h-5 w-5" /></span><div className="min-w-0 flex-1"><h2 className="text-base font-black text-slate-950 dark:text-white">{title}</h2><p className="text-xs font-semibold text-slate-500 dark:text-slate-300">{subtitle}</p></div><div className="shrink-0 text-right"><strong className="block text-xl font-black text-slate-950 dark:text-white">{value}</strong><span className="block max-w-20 text-[9px] font-black uppercase leading-tight text-slate-500 dark:text-slate-400">{label}</span></div></div>;
 }

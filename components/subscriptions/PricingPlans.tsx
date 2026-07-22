@@ -36,12 +36,12 @@ export default function PricingPlans() {
 
   return (
     <main className="min-h-screen bg-[#F8FAFC] text-slate-950 dark:bg-slate-950 dark:text-white">
-      <section className="relative overflow-hidden py-20 sm:py-24">
+      <section className="relative overflow-hidden py-12 sm:py-24">
         <div className="absolute left-1/2 top-0 h-80 w-80 -translate-x-1/2 rounded-full bg-blue-500/15 blur-3xl" />
         <Container>
           <div className="relative mx-auto max-w-4xl text-center">
             <Badge variant="primary" className="mb-5">Employer subscriptions</Badge>
-            <h1 className="text-4xl font-black tracking-tight text-slate-950 dark:text-white sm:text-5xl lg:text-6xl">
+            <h1 className="text-3xl font-black tracking-tight text-slate-950 dark:text-white sm:text-5xl lg:text-6xl">
               Hire Smarter with MXVL Employer Plans
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-base leading-8 text-slate-600 dark:text-slate-300 sm:text-lg">
@@ -85,7 +85,7 @@ export default function PricingPlans() {
               return (
                 <motion.div key={plan.id} whileHover={{ y: -8 }} transition={{ duration: 0.2 }} className={plan.highlight ? "xl:-mt-5" : ""}>
                   <Card
-                    className={`flex h-full flex-col rounded-[20px] p-6 ${
+                    className={`flex h-full flex-col rounded-[20px] p-4 sm:p-6 ${
                       plan.highlight
                         ? "border-blue-300 bg-gradient-to-b from-blue-600 to-blue-500 text-white shadow-[0_24px_70px_rgba(37,99,235,0.28)] dark:border-blue-400"
                         : "bg-white dark:bg-slate-900"

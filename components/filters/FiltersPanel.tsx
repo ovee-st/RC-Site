@@ -92,6 +92,7 @@ function FilterSection({
 
 export default function FiltersPanel() {
   const { filters, toggleFilter, clearFilters } = useJobStore();
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [openSection, setOpenSection] = useState<string | null>(null);
   const [skillSearch, setSkillSearch] = useState("");
 
@@ -114,6 +115,22 @@ export default function FiltersPanel() {
 
   return (
     <aside className="space-y-3">
+      <button
+        type="button"
+        onClick={() => setMobileOpen((open) => !open)}
+        className="flex min-h-12 w-full items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-left shadow-soft md:hidden dark:border-slate-700 dark:bg-slate-900"
+        aria-expanded={mobileOpen}
+        aria-controls="mobile-job-filters"
+      >
+        <span className="flex items-center gap-3 text-sm font-black text-text-main dark:text-white">
+          <SlidersHorizontal className="h-4 w-4 text-primary" />
+          Filter jobs
+          {activeCount ? <Badge variant="primary">{activeCount}</Badge> : null}
+        </span>
+        <ChevronDown className={cn("h-4 w-4 text-primary transition", mobileOpen && "rotate-180")} />
+      </button>
+
+      <div id="mobile-job-filters" className={cn("space-y-3", mobileOpen ? "block" : "hidden", "md:block")}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="type-h3 font-bold">Filters</h2>
@@ -198,6 +215,7 @@ export default function FiltersPanel() {
       <Button type="button" onClick={clearFilters} variant="secondary" className="w-full rounded-xl py-2.5">
         Clear All
       </Button>
+      </div>
     </aside>
   );
 }

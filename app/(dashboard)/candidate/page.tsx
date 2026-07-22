@@ -1533,8 +1533,8 @@ export default function CandidateDashboard() {
         </div>
 
         {selectedActivity ? (
-          <div className="fixed inset-0 z-[75] grid place-items-center bg-slate-950/25 p-4 backdrop-blur-sm" onMouseDown={() => setSelectedActivity(null)}>
-            <Card className="w-full max-w-lg p-6 shadow-hover" onMouseDown={(event) => event.stopPropagation()}>
+          <div className="fixed inset-0 z-[75] flex items-end justify-center bg-slate-950/25 p-0 backdrop-blur-sm sm:grid sm:place-items-center sm:p-4" onMouseDown={() => setSelectedActivity(null)}>
+            <Card className="max-h-[92svh] w-full max-w-lg overflow-y-auto rounded-b-none rounded-t-2xl p-5 shadow-hover sm:rounded-md sm:p-6" onMouseDown={(event) => event.stopPropagation()}>
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <Badge variant="primary">Activity status</Badge>
@@ -1546,15 +1546,15 @@ export default function CandidateDashboard() {
                 </button>
               </div>
               <p className="mt-4 text-sm leading-6 text-text-muted dark:text-slate-300">{selectedActivity.description}</p>
-              <div className="mt-5 flex flex-wrap justify-end gap-3">
-                <Button type="button" variant="secondary" onClick={() => setSelectedActivity(null)} className="rounded-xl">Close</Button>
+              <div className="mt-5 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:justify-end">
+                <Button type="button" variant="secondary" onClick={() => setSelectedActivity(null)} className="w-full rounded-xl sm:w-auto">Close</Button>
                 <Button
                   type="button"
                   onClick={() => {
                     selectedActivity.action();
                     setSelectedActivity(null);
                   }}
-                  className="rounded-xl"
+                  className="w-full rounded-xl sm:w-auto"
                 >
                   {selectedActivity.actionLabel}
                 </Button>
@@ -1564,19 +1564,19 @@ export default function CandidateDashboard() {
         ) : null}
 
         {matchPanelOpen ? (
-          <div className="fixed inset-0 z-[75] grid place-items-center bg-slate-950/25 p-4 backdrop-blur-sm" onMouseDown={() => setMatchPanelOpen(false)}>
-            <Card className="max-h-[86vh] w-full max-w-3xl overflow-hidden p-0 shadow-hover" onMouseDown={(event) => event.stopPropagation()}>
-              <div className="flex items-start justify-between gap-4 border-b border-border p-5 dark:border-white/10">
+          <div className="fixed inset-0 z-[75] flex items-end justify-center bg-slate-950/25 p-0 backdrop-blur-sm sm:grid sm:place-items-center sm:p-4" onMouseDown={() => setMatchPanelOpen(false)}>
+            <Card className="max-h-[92svh] w-full max-w-3xl overflow-hidden rounded-b-none rounded-t-2xl p-0 shadow-hover sm:max-h-[86vh] sm:rounded-md" onMouseDown={(event) => event.stopPropagation()}>
+              <div className="flex items-start justify-between gap-4 border-b border-border p-4 sm:p-5 dark:border-white/10">
                 <div>
                   <Badge variant="primary">AI matched jobs</Badge>
-                  <h3 className="mt-3 text-2xl font-black text-text-main dark:text-white">Best-fit roles above 70%</h3>
+                  <h3 className="mt-3 text-xl font-black text-text-main dark:text-white sm:text-2xl">Best-fit roles above 70%</h3>
                   <p className="mt-1 text-sm text-text-muted dark:text-slate-300">Review your strongest matches without leaving the dashboard.</p>
                 </div>
                 <button type="button" onClick={() => setMatchPanelOpen(false)} className="rounded-full p-2 text-text-muted transition hover:bg-primary/10 hover:text-primary">
                   <X className="h-5 w-5" />
                 </button>
               </div>
-              <div className="max-h-[58vh] space-y-3 overflow-y-auto p-5">
+              <div className="max-h-[68svh] space-y-3 overflow-y-auto p-4 sm:max-h-[58vh] sm:p-5">
                 {floatingMatches.length ? floatingMatches.map(({ job, match }) => (
                   <div key={job.id} className="rounded-2xl border border-border bg-surface p-4 transition hover:border-primary/30 hover:shadow-soft dark:border-white/10 dark:bg-surface-dark">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -1613,8 +1613,8 @@ export default function CandidateDashboard() {
           </div>
         ) : null}
         {editing ? (
-          <div className="fixed inset-0 z-[80] grid place-items-center bg-slate-950/30 p-4 backdrop-blur-sm">
-            <Card className="max-h-[90vh] w-full max-w-2xl overflow-y-auto p-6 shadow-elevated">
+          <div className="fixed inset-0 z-[80] flex items-end justify-center bg-slate-950/30 p-0 backdrop-blur-sm sm:grid sm:place-items-center sm:p-4">
+            <Card className="max-h-[92svh] w-full max-w-2xl overflow-y-auto rounded-b-none rounded-t-2xl p-4 shadow-elevated sm:max-h-[90vh] sm:rounded-md sm:p-6">
               <div className="mb-5 flex items-center justify-between gap-3">
                 <div>
                   <Badge variant="primary" className="type-label text-primary">Edit Section</Badge>
