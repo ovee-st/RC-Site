@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { calculateTalentCrmMetrics, extractOfferVariables, renderOfferTemplate, scoreRediscoveryCandidate, slugifyCareerPage } from "@/lib/talentCrm";
+import { parseCrmSchemaDiagnostic, TALENT_CRM_SCHEMA_REQUIREMENTS } from "@/lib/crm/schema";
 
 describe("Talent CRM domain", () => {
   it("creates stable career page slugs", () => {
@@ -32,5 +33,30 @@ describe("Talent CRM domain", () => {
     expect(metrics.referralConversion).toBe(50);
     expect(metrics.applicationConversion).toBe(50);
     expect(metrics.sourceQuality[0]).toEqual({ source: "Referral", candidates: 2, hires: 1, conversion: 50 });
+  });
+
+  it("reports the exact missing CRM table instead of a generic migration warning", () => {
+    expect(parseCrmSchemaDiagnostic({ message: "Could not find the table 'public.talent_pool_members' in the schema cache" })).toEqual({
+      type: "table",
+      object: "talent_pool_members",
+      table: "talent_pool_members",
+      message: "Missing table: talent_pool_members"
+    });
+  });
+
+  it("reports the exact missing column", () => {
+    expect(parseCrmSchemaDiagnostic({ message: "column candidates.avatar does not exist" })).toEqual({
+      type: "column",
+      object: "candidates.avatar",
+      table: "candidates",
+      message: "Missing column: candidates.avatar"
+    });
+  });
+
+  it("defines health checks for every Talent CRM persistence area", () => {
+    const tables = new Set(TALENT_CRM_SCHEMA_REQUIREMENTS.map((requirement) => requirement.table));
+    for (const table of ["talent_pools", "talent_pool_members", "employer_contacts", "employee_referrals", "career_pages", "career_page_events", "offer_templates", "talent_messages", "candidate_portal_documents"]) {
+      expect(tables.has(table), table).toBe(true);
+    }
   });
 });

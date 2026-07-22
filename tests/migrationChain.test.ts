@@ -96,6 +96,8 @@ describe("Supabase migration chain", () => {
     before("supabase-support-system.sql", "supabase-live-chat-system.sql");
     before("supabase-live-chat-system.sql", "supabase-support-operations-center.sql");
     before("supabase-enterprise-recruitment-workflow.sql", "supabase-talent-crm.sql");
+    before("supabase-talent-crm.sql", "supabase-talent-crm-stabilization.sql");
+    before("supabase-talent-crm-stabilization.sql", "supabase-performance-indexes.sql");
     before("supabase-talent-crm.sql", "supabase-platform-hardening.sql");
   });
 
@@ -148,5 +150,17 @@ describe("Supabase migration chain", () => {
     for (const column of ["user_id", "avatar_url", "role", "status", "is_active"]) {
       expect(schema.get("employees"), `public.employees.${column}`).toContain(column);
     }
+  });
+
+  it("keeps Talent CRM upgrades idempotent and security scoped", () => {
+    const crm = readFileSync(resolve(root, "supabase-talent-crm.sql"), "utf8");
+    const stabilization = readFileSync(resolve(root, "supabase-talent-crm-stabilization.sql"), "utf8");
+    expect((crm.match(/create table if not exists public\./gi) || []).length).toBeGreaterThanOrEqual(12);
+    expect(stabilization).toContain("create or replace function public.crm_touch_updated_at()");
+    expect(stabilization).toContain("create policy career_pages_public_read");
+    expect(stabilization).toContain("create policy career_pages_workspace_access");
+    expect(stabilization).toContain("create or replace function public.crm_schema_health()");
+    expect(stabilization).toContain("create or replace function public.crm_talent_metrics(target_owner uuid)");
+    expect(stabilization).not.toMatch(/create\s+table\s+(?!if not exists)/i);
   });
 });
