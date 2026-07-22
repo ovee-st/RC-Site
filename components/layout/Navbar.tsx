@@ -3,8 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BadgeCheck, Bell, BriefcaseBusiness, CalendarClock, CheckCircle2, CreditCard, Eye, LogOut, Menu, Settings, UserRound, Users, X, XCircle, type LucideIcon } from "lucide-react";
+import { ArrowRight, BadgeCheck, Bell, BriefcaseBusiness, Building2, CalendarClock, CheckCircle2, CreditCard, Eye, Home, Info, LogOut, Mail, Menu, Settings, UserRound, Users, X, XCircle, type LucideIcon } from "lucide-react";
 import { type MouseEvent as ReactMouseEvent, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { LinkButton } from "@/components/ui/Button";
 import GlobalSearch from "@/components/search/GlobalSearch";
@@ -68,6 +69,15 @@ const navItemsByRole = {
     { label: "Support", href: "/admin/support" }
   ]
 };
+
+const mobilePublicNavItems = [
+  { label: "Home", href: "/", icon: Home },
+  { label: "Jobs", href: "/jobs", icon: BriefcaseBusiness },
+  { label: "Companies", href: "/jobs#companies", icon: Building2 },
+  { label: "Pricing", href: "/subscriptions", icon: CreditCard },
+  { label: "About", href: "/about", icon: Info },
+  { label: "Contact", href: "/contact", icon: Mail }
+];
 
 const AUTH_CHANGE_EVENT = "mx-auth-change";
 const EMPLOYER_PANEL_EVENT = "mx-employer-panel-change";
@@ -291,6 +301,9 @@ export default function Navbar() {
   const [clearedNotificationIds, setClearedNotificationIds] = useState<string[]>([]);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
   const notificationMenuRef = useRef<HTMLDivElement | null>(null);
+  const mobileMenuButtonRef = useRef<HTMLButtonElement | null>(null);
+  const mobileDrawerRef = useRef<HTMLDivElement | null>(null);
+  const mobileDrawerCloseRef = useRef<HTMLButtonElement | null>(null);
   const { user, role, loading } = useAuth();
   const currentRole = role as string | null;
   const isSupportRole = currentRole === "support_agent" || currentRole === "support_senior" || currentRole === "support_manager";
@@ -318,6 +331,9 @@ export default function Navbar() {
   const initials = getInitials(displayName);
   const resolvedRole = user ? (currentRole === "admin" ? "admin" : currentRole === "viewer" ? "viewer" : isSupportRole ? "support" : currentRole === "employee" ? "employee" : currentRole === "employer" ? "employer" : "candidate") : "guest";
   const navItems = navItemsByRole[resolvedRole];
+  const mobileWorkspaceItems = user
+    ? navItems.filter((item) => !mobilePublicNavItems.some((publicItem) => publicItem.href === item.href))
+    : [];
   const homeHref = resolvedRole === "admin" || resolvedRole === "viewer" ? "/admin" : resolvedRole === "support" ? "/support" : resolvedRole === "employee" ? "/employee" : resolvedRole === "employer" ? "/employer" : "/";
   const isAdminNavigation = resolvedRole === "admin" || resolvedRole === "viewer";
   const showRoleNotifications = Boolean(user) && (resolvedRole === "candidate" || resolvedRole === "employer");
@@ -338,15 +354,64 @@ export default function Navbar() {
 
   useEffect(() => {
     if (!open) return;
+
+    const drawer = mobileDrawerRef.current;
+    const menuButton = mobileMenuButtonRef.current;
+    const focusableSelector = [
+      "a[href]",
+      "button:not([disabled])",
+      "input:not([disabled])",
+      "select:not([disabled])",
+      "textarea:not([disabled])",
+      "[tabindex]:not([tabindex='-1'])"
+    ].join(",");
+
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setOpen(false);
+        return;
+      }
+
+      if (event.key !== "Tab" || !drawer) return;
+
+      const focusableElements = Array.from(drawer.querySelectorAll<HTMLElement>(focusableSelector));
+      if (!focusableElements.length) {
+        event.preventDefault();
+        drawer.focus();
+        return;
+      }
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+      const activeElement = document.activeElement;
+
+      if (event.shiftKey && (activeElement === firstElement || activeElement === drawer)) {
+        event.preventDefault();
+        lastElement.focus();
+      } else if (!event.shiftKey && activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
+      }
     };
+
     const previousOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    const previousTouchAction = document.body.style.touchAction;
     document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.touchAction = "none";
     document.addEventListener("keydown", handleKeyDown);
+
+    const focusFrame = window.requestAnimationFrame(() => mobileDrawerCloseRef.current?.focus());
+
     return () => {
+      window.cancelAnimationFrame(focusFrame);
       document.body.style.overflow = previousOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      document.body.style.touchAction = previousTouchAction;
       document.removeEventListener("keydown", handleKeyDown);
+      window.requestAnimationFrame(() => menuButton?.focus());
     };
   }, [open]);
 
@@ -781,6 +846,7 @@ export default function Navbar() {
         </div>
 
         <motion.button
+          ref={mobileMenuButtonRef}
           type="button"
           whileTap={{ scale: 0.97 }}
           whileHover={{ scale: 1.01 }}
@@ -795,88 +861,160 @@ export default function Navbar() {
         </motion.button>
       </div>
 
-      <AnimatePresence>
-        {open ? (
-          <>
-          <motion.button
-            type="button"
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="fixed inset-0 top-16 z-40 bg-slate-950/30 backdrop-blur-sm lg:hidden"
-            aria-label="Close menu"
-            onClick={() => setOpen(false)}
-          />
-          <motion.div
-            initial={{ opacity: 0, x: 28 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 28 }}
-            transition={{ duration: 0.24, ease: "easeOut" }}
-            id="mobile-navigation"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Site navigation"
-            className="fixed inset-x-3 bottom-3 top-20 z-50 max-h-[calc(100svh-5.75rem)] overflow-y-auto overscroll-contain rounded-3xl border border-gray-200 bg-white/95 p-4 shadow-elevated backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/95 sm:left-auto sm:w-[min(24rem,calc(100vw-1.5rem))] lg:hidden"
-          >
-            <div className="grid gap-2">
-              <GlobalSearch className="w-full max-w-none focus-within:w-full" />
-              {navItems.map((item) => {
-                const active = isActiveRoute(pathname, item.href);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setOpen(false)}
-                    className={cn(
-                      "relative rounded-xl px-4 py-3 text-sm font-semibold text-text-muted hover:bg-primary/5 hover:text-primary",
-                      active && "bg-primary/8 text-primary dark:bg-primary/15 dark:text-blue-300"
-                    )}
-                  >
-                    {item.label}
-                    {active ? <span className="absolute bottom-1.5 left-4 h-0.5 w-8 rounded-full bg-primary" /> : null}
-                  </Link>
-                );
-              })}
-              <div className="grid gap-2 pt-2">
-                {!loading && !user ? (
-                  <LinkButton href="/login" className="w-full rounded-full px-5 py-2">Login</LinkButton>
-                ) : null}
-                {!loading && user ? (
-                  <div className="rounded-2xl border border-gray-200 bg-white p-3 dark:border-white/10 dark:bg-white/5">
-                    <div className="mb-3 flex items-center gap-2">
-                      <span className="block h-8 w-8 shrink-0 overflow-hidden rounded-full">{avatar}</span>
-                      <div className="min-w-0">
-                        <p className="flex items-center gap-1 truncate text-sm font-semibold text-text-main dark:text-white">
-                          <span className="truncate">{displayName}</span>
-                          {verified ? <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" /> : null}
-                        </p>
-                        <p className="text-xs font-medium text-text-muted">{role || "member"}</p>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 border-t border-gray-100 pt-3 dark:border-white/10">
-                      <Link href={profileHref} onClick={(event) => { setOpen(false); openEmployerPanel("profile")(event); }} className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-slate-50 px-3 text-xs font-bold text-text-muted dark:bg-white/5 dark:text-slate-300">
-                        <UserRound className="h-4 w-4" /> Profile
-                      </Link>
-                      <Link href={accountHref} onClick={(event) => { setOpen(false); openEmployerPanel("account")(event); }} className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-slate-50 px-3 text-xs font-bold text-text-muted dark:bg-white/5 dark:text-slate-300">
-                        <Settings className="h-4 w-4" /> Account
-                      </Link>
+      {typeof document !== "undefined"
+        ? createPortal(
+          <AnimatePresence>
+            {open ? (
+              <div className="fixed inset-0 z-[200] lg:hidden">
+                <motion.button
+                  type="button"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.275, ease: "easeOut" }}
+                  className="absolute inset-0 cursor-default bg-black/40 backdrop-blur-sm"
+                  aria-label="Close navigation menu"
+                  tabIndex={-1}
+                  onClick={() => setOpen(false)}
+                />
+
+                <motion.div
+                  ref={mobileDrawerRef}
+                  initial={{ x: "100%" }}
+                  animate={{ x: 0 }}
+                  exit={{ x: "100%" }}
+                  transition={{ duration: 0.275, ease: [0.22, 1, 0.36, 1] }}
+                  id="mobile-navigation"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="mobile-navigation-title"
+                  tabIndex={-1}
+                  className="absolute inset-y-0 right-0 z-10 flex h-[100dvh] w-[min(92vw,24rem)] max-w-full flex-col overflow-hidden border-l border-gray-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950"
+                >
+                  <div className="flex min-h-[72px] shrink-0 items-center justify-between gap-4 border-b border-gray-200 px-5 dark:border-white/10">
+                    <div className="min-w-0">
+                      <p id="mobile-navigation-title" className="text-base font-black text-text-main dark:text-white">Menu</p>
+                      <p className="mt-0.5 text-xs font-semibold text-text-muted dark:text-slate-400">Explore MX Venture Lab</p>
                     </div>
                     <button
+                      ref={mobileDrawerCloseRef}
                       type="button"
-                      onClick={handleLogout}
-                      className="mt-2 w-full rounded-full px-5 py-2 text-sm font-semibold text-gray-600 transition hover:bg-red-50 hover:text-red-600 dark:text-slate-300 dark:hover:bg-red-500/10"
+                      onClick={() => setOpen(false)}
+                      className="focus-ring inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-gray-200 text-text-muted transition hover:border-primary/30 hover:bg-primary/5 hover:text-primary dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10"
+                      aria-label="Close navigation"
                     >
-                      Logout
+                      <X className="h-5 w-5" />
                     </button>
                   </div>
-                ) : null}
+
+                  <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5">
+                    <GlobalSearch className="mb-5 w-full max-w-none focus-within:w-full [&>div:first-child]:!h-11 [&>div:first-child]:!py-0 [&_button]:min-h-11 [&_button]:min-w-11 [&_input]:min-h-11" />
+
+                    <nav aria-label="Public navigation" className="grid gap-1">
+                      {mobilePublicNavItems.map((item) => {
+                        const Icon = item.icon;
+                        const active = isActiveRoute(pathname, item.href);
+                        return (
+                          <Link
+                            key={item.label}
+                            href={item.href}
+                            onClick={() => setOpen(false)}
+                            className={cn(
+                              "focus-ring flex min-h-12 items-center gap-3 rounded-md px-4 text-sm font-bold text-text-muted transition hover:bg-primary/5 hover:text-primary dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-blue-300",
+                              active && "bg-primary/8 text-primary dark:bg-primary/15 dark:text-blue-300"
+                            )}
+                            aria-current={active ? "page" : undefined}
+                          >
+                            <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+                            <span>{item.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </nav>
+
+                    {mobileWorkspaceItems.length ? (
+                      <div className="mt-6 border-t border-gray-200 pt-5 dark:border-white/10">
+                        <p className="mb-2 px-4 text-[11px] font-black uppercase text-text-muted dark:text-slate-400">Workspace</p>
+                        <nav aria-label="Workspace navigation" className="grid gap-1">
+                          {mobileWorkspaceItems.map((item) => {
+                            const active = isActiveRoute(pathname, item.href);
+                            return (
+                              <Link
+                                key={item.href}
+                                href={item.href}
+                                onClick={() => setOpen(false)}
+                                className={cn(
+                                  "focus-ring flex min-h-12 items-center rounded-md px-4 text-sm font-bold text-text-muted transition hover:bg-primary/5 hover:text-primary dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-blue-300",
+                                  active && "bg-primary/8 text-primary dark:bg-primary/15 dark:text-blue-300"
+                                )}
+                                aria-current={active ? "page" : undefined}
+                              >
+                                {item.label}
+                              </Link>
+                            );
+                          })}
+                        </nav>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="shrink-0 border-t border-gray-200 bg-white px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 dark:border-white/10 dark:bg-slate-950">
+                    {!loading && !user ? (
+                      <div className="grid grid-cols-2 gap-3">
+                        <Link
+                          href="/login"
+                          onClick={() => setOpen(false)}
+                          className="focus-ring inline-flex min-h-11 items-center justify-center rounded-md border border-gray-300 px-4 text-sm font-black text-text-main transition hover:border-primary/40 hover:text-primary dark:border-white/15 dark:text-white"
+                        >
+                          Login
+                        </Link>
+                        <Link
+                          href="/login"
+                          onClick={() => setOpen(false)}
+                          className="focus-ring inline-flex min-h-11 items-center justify-center gap-1 rounded-md bg-primary px-2 text-xs font-black text-white shadow-soft transition hover:bg-blue-700 sm:gap-2 sm:px-4 sm:text-sm"
+                        >
+                          Get Started <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                        </Link>
+                      </div>
+                    ) : null}
+
+                    {!loading && user ? (
+                      <div className="rounded-md border border-gray-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
+                        <div className="mb-3 flex items-center gap-2">
+                          <span className="block h-8 w-8 shrink-0 overflow-hidden rounded-full">{avatar}</span>
+                          <div className="min-w-0">
+                            <p className="flex items-center gap-1 truncate text-sm font-semibold text-text-main dark:text-white">
+                              <span className="truncate">{displayName}</span>
+                              {verified ? <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" /> : null}
+                            </p>
+                            <p className="text-xs font-medium text-text-muted">{role || "member"}</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 border-t border-gray-200 pt-3 dark:border-white/10">
+                          <Link href={profileHref} onClick={(event) => { setOpen(false); openEmployerPanel("profile")(event); }} className="focus-ring flex min-h-11 items-center justify-center gap-2 rounded-md bg-white px-3 text-xs font-bold text-text-muted dark:bg-white/5 dark:text-slate-300">
+                            <UserRound className="h-4 w-4" /> Profile
+                          </Link>
+                          <Link href={accountHref} onClick={(event) => { setOpen(false); openEmployerPanel("account")(event); }} className="focus-ring flex min-h-11 items-center justify-center gap-2 rounded-md bg-white px-3 text-xs font-bold text-text-muted dark:bg-white/5 dark:text-slate-300">
+                            <Settings className="h-4 w-4" /> Account
+                          </Link>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleLogout}
+                          className="focus-ring mt-2 min-h-11 w-full rounded-md px-5 text-sm font-semibold text-gray-600 transition hover:bg-red-50 hover:text-red-600 dark:text-slate-300 dark:hover:bg-red-500/10"
+                        >
+                          Logout
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                </motion.div>
               </div>
-            </div>
-          </motion.div>
-          </>
-        ) : null}
-      </AnimatePresence>
+            ) : null}
+          </AnimatePresence>,
+          document.body
+        )
+        : null}
     </header>
   );
 }
