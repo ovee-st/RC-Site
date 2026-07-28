@@ -6,8 +6,8 @@ import Card from "@/components/ui/Card";
 import Container from "@/components/layout/Container";
 import FadeInSection from "./FadeInSection";
 
-const candidateBenefits = ["AI Job Recommendations", "Resume Builder", "Career Growth", "Interview Preparation", "Application Tracking"];
-const employerBenefits = ["Candidate Matching", "Hiring Analytics", "Managed Recruitment", "Talent Pool Access", "Faster Hiring"];
+const candidateBenefits = ["Discover roles that fit", "Present a stronger resume", "Prepare for interviews with confidence", "Track every application", "Build career momentum"];
+const employerBenefits = ["Surface stronger candidates", "See hiring signals clearly", "Add expert recruiting capacity", "Build a reusable talent pipeline", "Move from shortlist to hire faster"];
 
 function BenefitColumn({ title, items, type }: { title: string; items: string[]; type: "candidate" | "employer" }) {
   const candidate = type === "candidate";

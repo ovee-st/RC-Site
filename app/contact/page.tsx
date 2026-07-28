@@ -20,7 +20,7 @@ export default function ContactPage() {
         <div className="max-w-3xl">
           <Badge variant="primary">Contact</Badge>
           <h1 className="mt-4 text-3xl font-black tracking-tight text-text-main dark:text-white sm:text-4xl md:text-5xl">Contact MX Venture Lab</h1>
-          <p className="mt-5 text-base leading-8 text-text-muted dark:text-slate-300">Reach out for hiring support, subscription questions, payment verification, candidate account help, or business service inquiries.</p>
+          <p className="mt-5 text-base leading-8 text-text-muted dark:text-slate-300">Tell us what you need help with. We&apos;ll route your message to the right MXVL team and help you move forward.</p>
         </div>
 
         <div className="mt-10 grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
@@ -36,13 +36,13 @@ export default function ContactPage() {
           </div>
 
           <Card className="rounded-md p-4 sm:p-6">
-            <h2 className="text-xl font-black text-text-main dark:text-white">Send a message</h2>
+            <h2 className="text-xl font-black text-text-main dark:text-white">How can we help?</h2>
             <form className="mt-5 grid gap-4">
-              <Input name="name" placeholder="Name" />
-              <Input name="email" type="email" placeholder="Email" />
-              <Input name="subject" placeholder="Subject" />
-              <textarea name="message" placeholder="Message" rows={6} className="rounded-md border border-border bg-white px-4 py-3 text-base font-semibold outline-none transition placeholder:text-text-muted focus:border-primary focus:ring-4 focus:ring-primary/10 sm:text-sm dark:border-white/10 dark:bg-white/5 dark:text-white" />
-              <Button type="button" className="w-full justify-center sm:w-auto">Submit Message</Button>
+              <Input name="name" placeholder="Your name" />
+              <Input name="email" type="email" placeholder="Work or personal email" />
+              <Input name="subject" placeholder="What do you need help with?" />
+              <textarea name="message" placeholder="Share the details our team should know" rows={6} className="rounded-md border border-border bg-white px-4 py-3 text-base font-semibold outline-none transition placeholder:text-text-muted focus:border-primary focus:ring-4 focus:ring-primary/10 sm:text-sm dark:border-white/10 dark:bg-white/5 dark:text-white" />
+              <Button type="button" className="w-full justify-center sm:w-auto">Send Your Message</Button>
             </form>
           </Card>
         </div>

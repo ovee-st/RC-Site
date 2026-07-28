@@ -27,12 +27,12 @@ export default function HelpCenterPage() {
         <div className="max-w-3xl">
           <Badge variant="primary">Help Center</Badge>
           <h1 className="mt-4 text-4xl font-black tracking-tight text-text-main dark:text-white md:text-5xl">How can we help?</h1>
-          <p className="mt-5 text-base leading-8 text-text-muted dark:text-slate-300">Search answers for candidate accounts, employer subscriptions, manual payment verification, coupon usage, profiles, password reset, and account management.</p>
+          <p className="mt-5 text-base leading-8 text-text-muted dark:text-slate-300">Find practical answers about applications, subscriptions, payments, profiles, password resets, and managing your account.</p>
         </div>
 
         <div className="relative mt-8 max-w-2xl">
           <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-text-muted" />
-          <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search FAQs" className="pl-12" />
+          <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search for an answer" className="pl-12" />
         </div>
 
         <div className="mt-10 grid gap-6">
@@ -50,7 +50,7 @@ export default function HelpCenterPage() {
             </Card>
           )) : (
             <Card className="rounded-md p-8 text-center">
-              <p className="text-sm font-bold text-text-muted dark:text-slate-300">No FAQ matched your search.</p>
+              <p className="text-sm font-bold text-text-muted dark:text-slate-300">We couldn&apos;t find an answer for that. Try a different keyword or contact our support team.</p>
             </Card>
           )}
         </div>

@@ -29,40 +29,40 @@ import { SITE_NAME, SITE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Services",
-  description: "Explore MX Venture Lab technology, workspace, facility, project management, and business operations services.",
+  description: "Explore MX Venture Lab technology, workspace, facility, project management, and business operations services built to help growing teams execute with confidence.",
   alternates: { canonical: "/services" }
 };
 
 const services = [
   {
     title: "IT Support Services",
-    preview: "Reliable technology operations",
-    description: "Maintain secure, reliable, and productive business operations through professional technical support, infrastructure management, troubleshooting, system maintenance, and technology optimization.",
+    preview: "Keep your team productive",
+    description: "Reduce downtime, resolve technical issues faster, and keep the systems your team relies on secure and dependable.",
     icon: ServerCog
   },
   {
     title: "Interior Design & Workspace Solutions",
     previewTitle: "Interior Design Solutions",
-    preview: "Modern workspace transformation",
-    description: "Design efficient and inspiring work environments through office planning, workspace optimization, renovation support, and modern interior solutions tailored to your business culture.",
+    preview: "Make every space work harder",
+    description: "Create a practical, welcoming workplace that supports how your team works today and where your business is going next.",
     icon: MonitorCog
   },
   {
     title: "Mobile App Development",
-    preview: "Custom digital solutions",
-    description: "Develop scalable Android and iOS applications that improve customer engagement, automate workflows, and support business growth through innovative digital experiences.",
+    preview: "Turn ideas into useful products",
+    description: "Bring a mobile product to life that makes customer experiences easier and everyday workflows more efficient.",
     icon: Smartphone
   },
   {
     title: "Business Support Services",
-    preview: "Operational excellence support",
-    description: "Enhance operational efficiency through administrative support, business coordination, documentation management, reporting systems, and process improvement initiatives.",
+    preview: "Give your team room to grow",
+    description: "Take recurring coordination, documentation, and administrative work off your team so they can focus on higher-value priorities.",
     icon: Layers3
   },
   {
     title: "Facility & Project Management",
-    preview: "Structured execution & delivery",
-    description: "Plan, coordinate, and execute facility operations, office expansions, renovations, vendor management, and business projects with structured oversight and measurable outcomes.",
+    preview: "Move complex work forward",
+    description: "Keep facilities, vendors, renovations, and business projects on track with clear ownership and accountable delivery.",
     icon: Workflow
   }
 ];
@@ -70,58 +70,58 @@ const services = [
 const supportServices = [
   {
     title: "Technology Support",
-    description: "Comprehensive IT assistance that minimizes downtime, improves reliability, and keeps teams productive.",
+    description: "Solve day-to-day IT problems quickly, reduce disruption, and give your team dependable technical support.",
     items: ["Help Desk", "Maintenance", "Troubleshooting"],
     icon: Headphones
   },
   {
     title: "Workspace Development",
-    description: "Create modern, productive work environments through strategic planning, design, and implementation.",
+    description: "Turn your workplace into an environment that helps people focus, collaborate, and do their best work.",
     items: ["Office Design", "Renovation", "Space Planning"],
     icon: MonitorCog
   },
   {
     title: "Business Operations Support",
-    description: "Strengthen internal processes and improve day-to-day operational efficiency through dedicated support services.",
+    description: "Clear operational bottlenecks and keep important administrative work moving without overloading your core team.",
     items: ["Administration", "Documentation", "Coordination"],
     icon: Layers3
   },
   {
     title: "Facility Management",
-    description: "Ensure smooth facility operations through maintenance planning, vendor coordination, asset oversight, and workplace management.",
+    description: "Keep workplaces safe, reliable, and ready through proactive maintenance, vendor coordination, and asset oversight.",
     items: ["Facility Operations", "Vendor Management", "Maintenance Planning"],
     icon: Building2
   },
   {
     title: "Project Management",
-    description: "Deliver projects successfully through structured planning, execution tracking, stakeholder management, and performance monitoring.",
+    description: "Bring plans, people, and deadlines together so important projects reach the finish line with fewer surprises.",
     items: ["Project Planning", "Execution", "Monitoring"],
     icon: CheckCircle2
   }
 ];
 
 const industries = [
-  { title: "Corporate Offices", description: "Administrative, operational, and workplace support solutions for corporate organizations.", icon: Building2 },
-  { title: "Logistics & Delivery", description: "Technology, workforce, and operational solutions for fast-moving logistics businesses.", icon: Truck },
-  { title: "Retail & E-Commerce", description: "Digital, operational, and customer-focused solutions for modern retail businesses.", icon: ShoppingBag },
-  { title: "Manufacturing", description: "Facility support, operational efficiency, and workplace optimization for production environments.", icon: Factory },
-  { title: "Healthcare", description: "Support services and infrastructure solutions designed for healthcare organizations.", icon: HeartPulse },
-  { title: "Education", description: "Technology and operational solutions that support learning institutions and training centers.", icon: GraduationCap },
-  { title: "Startups & SMEs", description: "Flexible, scalable business support designed for growing companies and emerging ventures.", icon: Rocket }
+  { title: "Corporate Offices", description: "Keep workplace operations organized, responsive, and ready to support growing teams.", icon: Building2 },
+  { title: "Logistics & Delivery", description: "Improve coordination and reliability across fast-moving teams, systems, and daily operations.", icon: Truck },
+  { title: "Retail & E-Commerce", description: "Strengthen the digital and operational experiences behind every customer interaction.", icon: ShoppingBag },
+  { title: "Manufacturing", description: "Support safer facilities, smoother operations, and more productive production environments.", icon: Factory },
+  { title: "Healthcare", description: "Build dependable infrastructure and support systems for teams focused on patient care.", icon: HeartPulse },
+  { title: "Education", description: "Help learning institutions run reliable technology, facilities, and administrative operations.", icon: GraduationCap },
+  { title: "Startups & SMEs", description: "Add flexible expertise and execution capacity without building every function in-house.", icon: Rocket }
 ];
 
 const processSteps = [
-  { title: "Discovery & Consultation", description: "Share your goals, challenges, and project requirements.", icon: Workflow },
-  { title: "Assessment & Planning", description: "We analyze requirements and create a practical execution strategy.", icon: Sparkles },
-  { title: "Execution & Delivery", description: "Our team implements the solution with clear communication and measurable milestones.", icon: CheckCircle2 },
-  { title: "Support & Improvement", description: "We provide ongoing support and continuous optimization to maximize long-term value.", icon: Rocket }
+  { title: "Tell Us What Is Holding You Back", description: "Share the outcome you need, the challenge in the way, and what success should look like.", icon: Workflow },
+  { title: "Get a Practical Plan", description: "We turn your priorities into a clear scope, delivery path, and accountable next steps.", icon: Sparkles },
+  { title: "See the Work Move Forward", description: "Our team delivers against visible milestones and keeps you informed without adding noise.", icon: CheckCircle2 },
+  { title: "Keep Improving", description: "We stay close after delivery to solve issues, refine the work, and protect long-term value.", icon: Rocket }
 ];
 
 const values = [
-  { title: "Reliable Execution", description: "Focused on delivering practical outcomes through structured planning and accountability.", icon: Gauge },
-  { title: "Tailored Solutions", description: "Every service is customized to match your organization's unique goals and operational requirements.", icon: Sparkles },
-  { title: "Experienced Professionals", description: "Benefit from expertise across technology, facilities, operations, and project delivery.", icon: ShieldCheck },
-  { title: "Long-Term Partnership", description: "We build lasting relationships through dependable support and continuous improvement.", icon: Headphones }
+  { title: "Work That Gets Finished", description: "Clear ownership and visible progress keep important work moving from plan to outcome.", icon: Gauge },
+  { title: "Built Around Your Reality", description: "Recommendations reflect your goals, team, constraints, and operating environment.", icon: Sparkles },
+  { title: "The Right Expertise", description: "Bring in practical experience across technology, facilities, operations, and project delivery.", icon: ShieldCheck },
+  { title: "Support Beyond Delivery", description: "Count on a partner who stays accountable, responsive, and focused on lasting value.", icon: Headphones }
 ];
 
 export default function ServicesPage() {
@@ -145,14 +145,14 @@ export default function ServicesPage() {
             <div>
               <Badge variant="primary" className="type-label text-primary">Our Services</Badge>
               <h1 className="mt-5 max-w-4xl text-5xl font-black leading-[1.02] tracking-[-0.055em] text-text-main dark:text-white sm:text-6xl">
-                Business Solutions Built for Growth, Efficiency &amp; Execution
+                Turn Operational Challenges into Confident Progress
               </h1>
               <p className="mt-6 max-w-2xl text-lg font-medium leading-8 text-text-muted dark:text-slate-300">
-                From technology and workplace design to operational support and project execution, MX Venture Lab delivers practical solutions that help organizations work smarter, scale faster, and operate more efficiently.
+                We help growing teams solve technology, workplace, facility, and execution challenges without adding unnecessary complexity.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <LinkButton href="#primary-services" className="rounded-2xl px-7 py-4 text-base font-black">
-                  Explore Services <ArrowRight className="h-4 w-4" />
+                  Find the Right Support <ArrowRight className="h-4 w-4" />
                 </LinkButton>
               </div>
             </div>
@@ -190,8 +190,8 @@ export default function ServicesPage() {
         <Container>
           <div className="max-w-2xl">
             <Badge variant="primary" className="type-label text-primary">Primary Services Offered</Badge>
-            <h2 className="type-h1 mt-4">Practical solutions for modern business challenges</h2>
-            <p className="type-body mt-4 text-base">Whether you&apos;re launching a digital product, improving workplace efficiency, managing facilities, or strengthening business operations, MX Venture Lab delivers solutions designed around real-world business needs.</p>
+            <h2 className="type-h1 mt-4">Solve the work that slows your business down</h2>
+            <p className="type-body mt-4 text-base">From recurring operational pressure to a critical new project, get focused expertise that turns a real business need into practical progress.</p>
           </div>
           <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             {services.map((service) => {
@@ -231,8 +231,8 @@ export default function ServicesPage() {
         <Container>
           <div className="max-w-2xl">
             <Badge variant="primary" className="type-label text-primary">Industries We Serve</Badge>
-            <h2 className="type-h1 mt-4">Supporting businesses across diverse industries</h2>
-            <p className="type-body mt-4 text-base">MX Venture Lab works with organizations of all sizes, helping them improve operations, technology, facilities, and workplace performance.</p>
+            <h2 className="type-h1 mt-4">Support shaped around how your industry works</h2>
+            <p className="type-body mt-4 text-base">Every environment has different pressures. We adapt our people, planning, and delivery to the realities of your organization.</p>
           </div>
           <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             {industries.map((industry) => {
@@ -253,7 +253,7 @@ export default function ServicesPage() {
         <Container>
           <div className="text-center">
             <Badge variant="primary" className="type-label text-primary">How It Works</Badge>
-            <h2 className="type-h1 mt-4">A structured path from requirement to successful delivery</h2>
+            <h2 className="type-h1 mt-4">A clear path from challenge to measurable progress</h2>
           </div>
           <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {processSteps.map((step, index) => {
@@ -293,11 +293,11 @@ export default function ServicesPage() {
       <Section className="pb-24 pt-10">
         <Container>
           <div className="rounded-[2rem] bg-gradient-to-r from-blue-600 to-blue-500 px-6 py-14 text-center text-white shadow-primary sm:px-10">
-            <h2 className="text-3xl font-black tracking-tight sm:text-4xl">Let&apos;s Build Smarter Operations Together</h2>
-            <p className="mx-auto mt-4 max-w-2xl text-base font-semibold text-white/85">Whether you&apos;re improving technology, upgrading facilities, launching digital solutions, or strengthening business operations, MX Venture Lab is ready to support your next stage of growth.</p>
+            <h2 className="text-3xl font-black tracking-tight sm:text-4xl">Ready to Move an Important Priority Forward?</h2>
+            <p className="mx-auto mt-4 max-w-2xl text-base font-semibold text-white/85">Tell us what your team needs to improve, launch, or deliver. We&apos;ll help you shape a practical next step.</p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <LinkButton href="/contact" variant="secondary" className="rounded-2xl border-white/30 bg-white px-7 py-4 text-base font-black text-blue-700 hover:text-blue-700">Book a Consultation</LinkButton>
-              <LinkButton href="#primary-services" className="rounded-2xl bg-white/15 px-7 py-4 text-base font-black text-white ring-1 ring-white/25 hover:bg-white/20">Explore Services</LinkButton>
+              <LinkButton href="/contact" variant="secondary" className="rounded-2xl border-white/30 bg-white px-7 py-4 text-base font-black text-blue-700 hover:text-blue-700">Discuss Your Priority</LinkButton>
+              <LinkButton href="#primary-services" className="rounded-2xl bg-white/15 px-7 py-4 text-base font-black text-white ring-1 ring-white/25 hover:bg-white/20">Review Our Capabilities</LinkButton>
             </div>
           </div>
         </Container>

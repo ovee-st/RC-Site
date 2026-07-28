@@ -8,8 +8,8 @@ import Container from "@/components/layout/Container";
 import FadeInSection from "./FadeInSection";
 
 const paths = [
-  { title: "For Candidates", icon: UserRound, cta: "Explore Careers", href: "/jobs", points: ["AI Job Matching", "Career Dashboard", "Resume Builder", "Application Tracking"] },
-  { title: "For Employers", icon: BriefcaseBusiness, cta: "Start Hiring", href: "/login", points: ["AI Candidate Matching", "Managed Hiring", "Job Posting", "Talent Search"] }
+  { title: "For Candidates", icon: UserRound, cta: "Explore Opportunities", href: "/jobs", points: ["Find better-fit roles", "Keep your search organized", "Strengthen your resume", "Track every next step"] },
+  { title: "For Employers", icon: BriefcaseBusiness, cta: "Build Your Hiring Workspace", href: "/login", points: ["Rank candidates by fit", "Add recruiting support", "Reach the right talent", "Build future pipelines"] }
 ];
 
 export default function HiringPaths() {

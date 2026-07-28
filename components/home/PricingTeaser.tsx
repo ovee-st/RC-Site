@@ -11,15 +11,15 @@ const plans = [
   {
     title: "Candidate Pro",
     icon: UserRound,
-    description: "Unlock career tools, stronger visibility, and support for your next move.",
-    items: ["Unlimited AI Career Coach", "CV downloads", "Priority visibility"],
+    description: "Prepare more effectively, present your strengths clearly, and move through your job search with confidence.",
+    items: ["Unlimited career coaching", "Downloadable CVs", "Priority visibility"],
     href: "/login"
   },
   {
     title: "Employer Plans",
     icon: BriefcaseBusiness,
-    description: "Unlock hiring tools, candidate access, and recruitment automation.",
-    items: ["AI shortlists", "Talent search", "Hiring analytics"],
+    description: "Find stronger candidates sooner and keep every hiring decision organized in one workspace.",
+    items: ["Ranked shortlists", "Talent search", "Hiring insights"],
     href: "/subscriptions"
   }
 ];
@@ -32,7 +32,7 @@ export default function PricingTeaser() {
           <div className="mx-auto max-w-3xl text-center">
             <Badge variant="neutral">Flexible plans</Badge>
             <h2 className="mt-4 text-3xl font-black tracking-normal text-slate-950 dark:text-white md:text-5xl">
-              Flexible options for career growth and hiring growth.
+              Choose the support that moves your next goal forward.
             </h2>
           </div>
         </FadeInSection>
@@ -55,7 +55,7 @@ export default function PricingTeaser() {
                     ))}
                   </ul>
                   <LinkButton href={plan.href} className="mt-8" variant="secondary">
-                    View options <ArrowRight className="h-4 w-4" />
+                    {plan.title === "Candidate Pro" ? "Explore Candidate Pro" : "Compare Employer Plans"} <ArrowRight className="h-4 w-4" />
                   </LinkButton>
                 </Card>
               </FadeInSection>
