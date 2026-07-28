@@ -23,6 +23,7 @@ import Container from "@/components/layout/Container";
 import Section from "@/components/layout/Section";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
+import IconTile from "@/components/ui/IconTile";
 import { LinkButton } from "@/components/ui/Button";
 import { generateServiceSchema, serializeJsonLd } from "@/lib/schema";
 import { SITE_NAME, SITE_URL } from "@/lib/seo";
@@ -124,6 +125,9 @@ const values = [
   { title: "Support Beyond Delivery", description: "Count on a partner who stays accountable, responsive, and focused on lasting value.", icon: Headphones }
 ];
 
+const serviceTones = ["blue", "violet", "cyan", "emerald", "amber"] as const;
+const industryTones = ["blue", "cyan", "violet", "amber", "emerald", "slate", "blue"] as const;
+
 export default function ServicesPage() {
   const serviceSchema = generateServiceSchema({
     name: "MX Venture Lab Business Support Services",
@@ -167,11 +171,11 @@ export default function ServicesPage() {
                 <div className="grid h-12 w-12 place-items-center rounded-2xl bg-primary text-white shadow-primary"><Sparkles className="h-6 w-6" /></div>
               </div>
               <div className="relative mt-5 grid gap-3">
-                {services.map((service) => {
+                {services.map((service, index) => {
                   const Icon = service.icon;
                   return (
-                    <div key={service.title} className="flex items-center gap-3 rounded-2xl border border-border bg-bg/80 p-4 dark:border-white/10 dark:bg-white/5">
-                      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary dark:bg-primary/20"><Icon className="h-5 w-5" /></div>
+                    <div key={service.title} className="flex items-center gap-3 rounded-xl border border-border bg-bg/80 p-4 shadow-soft dark:border-white/10 dark:bg-white/5">
+                      <IconTile tone={serviceTones[index]}><Icon /></IconTile>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-black text-text-main dark:text-white">{"previewTitle" in service ? service.previewTitle : service.title}</p>
                         <p className="text-xs font-semibold text-text-muted">{service.preview}</p>
@@ -208,15 +212,15 @@ export default function ServicesPage() {
         </Container>
       </Section>
 
-      <Section className="py-16">
+      <Section className="section-soft py-16">
         <Container>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {supportServices.map((service) => {
+            {supportServices.map((service, index) => {
               const Icon = service.icon;
               return (
                 <Card key={service.title} className="rounded-2xl p-6 dark:bg-slate-900">
                   <div className="flex items-start gap-4">
-                    <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-success/10 text-success"><Icon className="h-5 w-5" /></div>
+                    <IconTile tone={serviceTones[index]}><Icon /></IconTile>
                     <div><h3 className="text-lg font-black text-text-main dark:text-white">{service.title}</h3><p className="type-body mt-2">{service.description}</p></div>
                   </div>
                   <div className="mt-5 flex flex-wrap gap-2">{service.items.map((item) => <Badge key={item}>{item}</Badge>)}</div>
@@ -227,7 +231,7 @@ export default function ServicesPage() {
         </Container>
       </Section>
 
-      <Section className="py-16">
+      <Section className="section-radial py-16">
         <Container>
           <div className="max-w-2xl">
             <Badge variant="primary" className="type-label text-primary">Industries We Serve</Badge>
@@ -235,11 +239,11 @@ export default function ServicesPage() {
             <p className="type-body mt-4 text-base">Every environment has different pressures. We adapt our people, planning, and delivery to the realities of your organization.</p>
           </div>
           <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {industries.map((industry) => {
+            {industries.map((industry, index) => {
               const Icon = industry.icon;
               return (
                 <Card key={industry.title} interactive className="rounded-2xl p-6 dark:bg-slate-900">
-                  <Icon className="h-7 w-7 text-primary" />
+                  <IconTile tone={industryTones[index]}><Icon /></IconTile>
                   <h3 className="mt-5 text-lg font-black text-text-main dark:text-white">{industry.title}</h3>
                   <p className="type-body mt-3">{industry.description}</p>
                 </Card>
@@ -249,7 +253,7 @@ export default function ServicesPage() {
         </Container>
       </Section>
 
-      <Section className="py-16">
+      <Section className="section-soft py-16">
         <Container>
           <div className="text-center">
             <Badge variant="primary" className="type-label text-primary">How It Works</Badge>

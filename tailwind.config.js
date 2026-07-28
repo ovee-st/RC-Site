@@ -32,16 +32,18 @@ const config = {
         sm: "8px",
         md: "12px",
         lg: "16px",
-        xl: "16px"
+        xl: "16px",
+        control: "var(--radius-control)",
+        card: "var(--radius-card)"
       },
       boxShadow: {
-        soft: "0 4px 20px rgba(0,0,0,0.05)",
-        hover: "0 8px 30px rgba(0,0,0,0.08)",
+        soft: "var(--shadow-control)",
+        hover: "var(--shadow-card-hover)",
+        card: "var(--shadow-card)",
         primary: "0 22px 70px rgba(15,23,42,0.12), 0 1px 0 rgba(255,255,255,0.7) inset",
         secondary: "0 10px 30px rgba(15,23,42,0.07)",
         elevated: "0 30px 90px rgba(15,23,42,0.16)",
         "dark-primary": "0 24px 80px rgba(0,0,0,0.34), 0 1px 0 rgba(255,255,255,0.08) inset",
-        card: "0 4px 20px rgba(0,0,0,0.05)",
         glow: "0 24px 90px rgba(37, 99, 235, 0.22)",
         "soft-ring": "0 0 0 1px rgba(37, 99, 235, 0.08), 0 18px 55px rgba(15, 23, 42, 0.08)"
       },

@@ -31,7 +31,7 @@ function BenefitColumn({ title, items, type }: { title: string; items: string[];
 
 export default function ProblemSolution() {
   return (
-    <FadeInSection className="py-16 md:py-24">
+    <FadeInSection className="section-radial py-16 md:py-24">
       <Container>
         <div className="mx-auto max-w-3xl text-center">
           <Badge variant="primary">Why MXVL</Badge>

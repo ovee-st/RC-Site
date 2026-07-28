@@ -20,8 +20,8 @@ const Card = forwardRef<HTMLDivElement, CardProps>(({ className, variant = "defa
     whileHover={resolvedVariant === "interactive" ? { scale: 1.02 } : undefined}
     transition={{ duration: 0.2, ease: "easeOut" }}
     className={cn(
-      "depth-secondary rounded-xl p-6 transition",
-      resolvedVariant === "interactive" && "cursor-pointer hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-hover",
+      "depth-secondary rounded-card p-6 shadow-card transition-[border-color,box-shadow,transform] duration-200",
+      resolvedVariant === "interactive" && "cursor-pointer motion-safe:hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-hover",
       resolvedVariant === "highlighted" && "border-primary bg-primary/5 shadow-primary dark:bg-primary/10 dark:shadow-dark-primary",
       className
     )}

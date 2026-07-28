@@ -20,7 +20,7 @@ const questions = [
 
 export default function ConversionFAQ() {
   return (
-    <FadeInSection className="py-16 md:py-24">
+    <FadeInSection className="section-soft py-16 md:py-24">
       <Container>
         <div className="mx-auto max-w-3xl text-center">
           <Badge variant="primary">Questions worth asking</Badge>

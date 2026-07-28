@@ -19,7 +19,7 @@ export default function MatchScoring() {
   const reduceMotion = useReducedMotion();
 
   return (
-    <FadeInSection className="py-16 md:py-24">
+    <FadeInSection className="section-radial py-16 md:py-24">
       <Container>
         <Card className="grid gap-8 overflow-hidden rounded-[2rem] p-6 md:p-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
           <div>

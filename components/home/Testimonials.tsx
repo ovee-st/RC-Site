@@ -51,7 +51,7 @@ function ExperienceCard({ story }: { story: (typeof experienceStandards)[number]
 
 export default function Testimonials() {
   return (
-    <FadeInSection className="py-16 md:py-24">
+    <FadeInSection className="section-soft py-16 md:py-24">
       <Container>
         <div className="mx-auto mb-10 max-w-3xl text-center">
           <Badge variant="primary">What you can expect</Badge>

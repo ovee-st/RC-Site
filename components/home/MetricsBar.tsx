@@ -14,7 +14,7 @@ const trustSignals = [
 
 export default function MetricsBar() {
   return (
-    <FadeInSection className="py-8">
+    <FadeInSection className="section-soft py-8">
       <Container>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {trustSignals.map((signal) => (

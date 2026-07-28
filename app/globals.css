@@ -12,6 +12,11 @@
   --color-text-main: #0f172a;
   --color-text-muted: #64748b;
   --color-success: #22c55e;
+  --radius-control: 0.75rem;
+  --radius-card: 1rem;
+  --shadow-control: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 1px rgba(15, 23, 42, 0.02);
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 12px 32px rgba(15, 23, 42, 0.06);
+  --shadow-card-hover: 0 2px 4px rgba(15, 23, 42, 0.05), 0 18px 42px rgba(15, 23, 42, 0.10);
 }
 
 .dark {
@@ -21,11 +26,13 @@
   --color-border: rgba(148, 163, 184, 0.28);
   --color-text-main: #f8fafc;
   --color-text-muted: #cbd5e1;
+  --shadow-control: 0 1px 2px rgba(0, 0, 0, 0.18);
+  --shadow-card: 0 1px 1px rgba(255, 255, 255, 0.04) inset, 0 14px 38px rgba(0, 0, 0, 0.22);
+  --shadow-card-hover: 0 1px 1px rgba(255, 255, 255, 0.06) inset, 0 20px 48px rgba(0, 0, 0, 0.30);
 }
 
 * {
   box-sizing: border-box;
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, opacity 0.2s ease, filter 0.2s ease;
 }
 
 html {
@@ -97,6 +104,12 @@ body {
     -webkit-tap-highlight-color: transparent;
   }
 
+  :where(button, [role="button"], a, input, select, textarea, summary) {
+    transition-property: color, background-color, border-color, box-shadow, opacity, transform;
+    transition-duration: 180ms;
+    transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+  }
+
   h1 {
     @apply text-balance text-4xl font-bold tracking-tight text-text-main dark:text-white;
   }
@@ -136,7 +149,7 @@ body {
   }
 
   .focus-ring {
-    @apply focus:outline-none focus:ring-4 focus:ring-primary/15;
+    @apply outline-none focus-visible:ring-4 focus-visible:ring-primary/15 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-950;
   }
 
   .section-shell {
@@ -189,7 +202,7 @@ body {
   }
 
   .interactive-lift {
-    @apply hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.97];
+    @apply motion-safe:hover:-translate-y-0.5 motion-safe:active:translate-y-0 motion-safe:active:scale-[0.98];
   }
 
   .hover-color {
@@ -197,7 +210,7 @@ body {
   }
 
   .hover-lift {
-    @apply transition duration-200 hover:-translate-y-0.5 hover:shadow-hover;
+    @apply transition duration-200 motion-safe:hover:-translate-y-0.5 hover:shadow-hover;
   }
 
   .glass-panel {
@@ -239,6 +252,36 @@ body {
 
   .dark .depth-secondary {
     background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .section-soft {
+    @apply border-y border-slate-200/70 bg-white/55 dark:border-white/[0.06] dark:bg-white/[0.025];
+  }
+
+  .section-radial {
+    background:
+      radial-gradient(circle at 18% 20%, rgba(37, 99, 235, 0.08), transparent 24rem),
+      radial-gradient(circle at 82% 72%, rgba(16, 185, 129, 0.06), transparent 22rem);
+  }
+
+  .dark .section-radial {
+    background:
+      radial-gradient(circle at 18% 20%, rgba(37, 99, 235, 0.12), transparent 24rem),
+      radial-gradient(circle at 82% 72%, rgba(16, 185, 129, 0.08), transparent 22rem);
+  }
+
+  .section-grid {
+    background-image:
+      linear-gradient(rgba(148, 163, 184, 0.09) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 163, 184, 0.09) 1px, transparent 1px);
+    background-size: 32px 32px;
+    mask-image: linear-gradient(to bottom, transparent, black 18%, black 82%, transparent);
+  }
+
+  .dark .section-grid {
+    background-image:
+      linear-gradient(rgba(148, 163, 184, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
   }
 
   .depth-overlay {
