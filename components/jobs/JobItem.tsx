@@ -11,6 +11,7 @@ import Input from "@/components/ui/Input";
 import PriorityIndicator from "@/components/ui/PriorityIndicator";
 import { cn } from "@/lib/cn";
 import { useAuth } from "@/hooks/useAuth";
+import { emitAdoptionAction } from "@/lib/adoption";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { normalizeDateValue, normalizeJobStatus } from "@/lib/jobUpdate";
 import { bdjobsDepartments } from "@/lib/bdjobsDepartments";
@@ -149,6 +150,7 @@ export default function JobItem({ job, matchScore }: { job: Job; matchScore: num
 
     setSelectedJob(job);
     setApplied(true);
+    emitAdoptionAction("candidate_first_application");
   };
 
   useEffect(() => {

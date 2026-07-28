@@ -18,6 +18,7 @@ import { mapSupabaseJob } from "@/lib/mapSupabaseJob";
 import { getBestAvatarUrl } from "@/lib/authUserSync";
 import { getProfileThumbnailUrl } from "@/lib/profileImageSync";
 import { compactAuthHeaders } from "@/lib/compactAuthToken";
+import { emitAdoptionAction } from "@/lib/adoption";
 
 const CANDIDATE_PROFILE_KEY = "mx_candidate_profile";
 
@@ -321,6 +322,7 @@ export default function EmployerCandidates() {
         [action]: true
       }
     }));
+    emitAdoptionAction(action === "shortlisted" ? "employer_shortlisted_candidate" : "employer_invited_candidate");
     if (selectedJob) void compactAuthHeaders("candidate_human_action").then((auth) => fetch("/api/candidates/audit", { method: "POST", headers: { "Content-Type": "application/json", ...auth }, body: JSON.stringify({ candidate_id: candidateId, job_id: selectedJob.id, human_action: action === "shortlisted" ? "shortlisted" : "invited" }) })).catch(() => null);
   };
 

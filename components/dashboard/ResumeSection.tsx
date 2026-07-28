@@ -8,6 +8,7 @@ import Badge from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { analyticsEvents } from "@/lib/analytics";
+import { emitAdoptionAction } from "@/lib/adoption";
 
 export default function ResumeSection({ profile, documents: initialDocuments }: { profile: CandidateProfile; documents: CandidateDocument[] }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -30,6 +31,7 @@ export default function ResumeSection({ profile, documents: initialDocuments }: 
     }
     setDocuments((current) => [{ id: `doc-${Date.now()}`, name: file.name, type: "Resume", url, uploadedAt: new Date().toISOString(), score: 86 }, ...current]);
     analyticsEvents.resumeUpload(file.type || file.name.split(".").pop());
+    emitAdoptionAction("candidate_resume_uploaded");
     setUploading(false);
   }
 
@@ -42,12 +44,17 @@ export default function ResumeSection({ profile, documents: initialDocuments }: 
       </div>
       <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_280px]">
         <div className="max-h-48 space-y-2 overflow-y-auto pr-1">
-          {documents.map((doc) => (
+          {documents.length ? documents.map((doc) => (
             <div key={doc.id} className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-bg p-3 dark:border-white/10 dark:bg-white/5">
               <div className="min-w-0"><p className="truncate text-sm font-black text-text-main dark:text-white">{doc.name}</p><p className="mt-1 text-xs font-semibold text-text-muted dark:text-slate-300">{doc.type} · Uploaded {new Date(doc.uploadedAt).toLocaleDateString()}</p></div>
               <a href={doc.url} download className="rounded-xl border border-border p-2 text-text-muted transition hover:text-primary dark:border-white/10"><Download className="h-4 w-4" /></a>
             </div>
-          ))}
+          )) : (
+            <div className="rounded-2xl border border-dashed border-border p-5 text-center dark:border-white/10">
+              <p className="text-sm font-black text-text-main dark:text-white">No resume uploaded yet</p>
+              <p className="mt-1 text-xs leading-5 text-text-muted dark:text-slate-300">Upload your latest resume to unlock document analysis and stronger matching context.</p>
+            </div>
+          )}
         </div>
         <div className="rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/10 to-success/10 p-4">
           <Sparkles className="h-5 w-5 text-primary" />

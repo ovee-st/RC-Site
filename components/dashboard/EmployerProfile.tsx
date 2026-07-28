@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Building2, Camera, CheckCircle2, Pencil, Save, X } from "lucide-react";
 import Card from "@/components/ui/Card";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
+import { emitAdoptionAction } from "@/lib/adoption";
 import { authSafeAvatarAliases, avatarAliases, normalizeProfileImageUrl, stripInlineAuthAvatarMetadata, syncProfileImageState, uploadProfileMedia } from "@/lib/profileImageSync";
 
 type EmployerProfileState = {
@@ -94,6 +95,19 @@ export default function EmployerProfile() {
   const [editing, setEditing] = useState(false);
   const [message, setMessage] = useState("");
   const bannerPreviewUrl = draft.banner_url || profile.banner_url;
+  const profileCompletion = useMemo(() => {
+    const fields = [
+      profile.company_name,
+      profile.contact_person,
+      profile.phone,
+      profile.location,
+      profile.industry,
+      profile.company_size,
+      profile.about,
+      profile.website_url
+    ];
+    return Math.round((fields.filter((value) => value.trim()).length / fields.length) * 100);
+  }, [profile]);
 
   useEffect(() => {
     let active = true;
@@ -239,6 +253,7 @@ export default function EmployerProfile() {
       router.replace("/employer#profile");
       document.getElementById("profile")?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 900);
+    emitAdoptionAction("employer_profile_completed");
   };
 
   return (
@@ -267,6 +282,16 @@ export default function EmployerProfile() {
           {editing ? <X className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
           {editing ? "Cancel" : "Edit Profile"}
         </Button>
+      </div>
+
+      <div className="mt-5 rounded-md border border-border bg-bg p-4 dark:border-white/10 dark:bg-white/5">
+        <div className="flex items-center justify-between gap-3">
+          <div><p className="text-sm font-black text-text-main dark:text-white">Company profile completion</p><p className="mt-1 text-xs font-semibold text-text-muted">Add company context candidates can use before applying.</p></div>
+          <strong className="text-sm text-primary">{profileCompletion}%</strong>
+        </div>
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-white/10" role="progressbar" aria-label="Company profile completion" aria-valuemin={0} aria-valuemax={100} aria-valuenow={profileCompletion}>
+          <div className="h-full rounded-full bg-primary transition-[width] duration-300 motion-reduce:transition-none" style={{ width: `${profileCompletion}%` }} />
+        </div>
       </div>
 
       {editing ? (

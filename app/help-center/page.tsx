@@ -35,7 +35,7 @@ export default function HelpCenterPage() {
           <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search for an answer" className="pl-12" />
         </div>
 
-        <div className="mt-10 grid gap-6">
+        <div id="feature-guides" className="mt-10 scroll-mt-24 grid gap-6">
           {filteredSections.length ? filteredSections.map((section) => (
             <Card key={section.title} className="rounded-md p-6">
               <h2 className="text-2xl font-black text-text-main dark:text-white">{section.title}</h2>

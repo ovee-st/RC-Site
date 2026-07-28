@@ -105,5 +105,15 @@ export const analyticsEvents = {
   weHireForYouSubmission: (hiringType?: string, hiringVolume?: number) => trackEvent("we_hire_for_you_form_submission", {
     hiring_type: hiringType,
     hiring_volume: hiringVolume
-  })
+  }),
+  onboardingStarted: (role: string) => trackEvent("onboarding_started", { role }),
+  onboardingCompleted: (role: string) => trackEvent("onboarding_completed", { role }),
+  tourSkipped: (role: string) => trackEvent("tour_skipped", { role }),
+  checklistCompleted: (role: string) => trackEvent("checklist_completed", { role }),
+  feedbackSubmitted: (feedbackType: string, pagePath: string) => trackEvent("feedback_submitted", {
+    feedback_type: feedbackType,
+    page_path: pagePath
+  }),
+  helpCenterOpened: (pagePath: string) => trackEvent("help_center_opened", { page_path: pagePath }),
+  profileCompleted: (role: string) => trackEvent("profile_completed", { role })
 };

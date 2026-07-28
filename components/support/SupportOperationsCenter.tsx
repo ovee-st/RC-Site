@@ -175,7 +175,7 @@ function DashboardView() {
           </div>
           <div className="mt-5 grid max-h-[420px] gap-3 overflow-y-auto pr-1">
             {loading ? <p className="text-sm font-bold text-text-muted">Loading queue...</p> : tickets.slice(0, 8).map((ticket) => <TicketRow key={ticket.id} ticket={ticket} />)}
-            {!loading && !tickets.length ? <p className="rounded-2xl border border-dashed border-border p-6 text-center text-sm font-bold text-text-muted dark:border-white/10">No support items yet.</p> : null}
+            {!loading && !tickets.length ? <div className="rounded-2xl border border-dashed border-border p-6 text-center dark:border-white/10"><p className="text-sm font-black text-text-main dark:text-white">The support queue is clear</p><p className="mt-1 text-sm font-semibold text-text-muted">New tickets and chat-created requests will appear here automatically.</p><Link href="/support/live-chat" className="focus-ring mt-3 inline-flex min-h-11 items-center rounded-md px-3 text-sm font-black text-primary hover:bg-primary/5">Monitor live chat</Link></div> : null}
           </div>
         </Card>
 

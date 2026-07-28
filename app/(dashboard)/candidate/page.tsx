@@ -29,6 +29,7 @@ import JobRecommendations from "@/components/dashboard/JobRecommendations";
 import JobInterviewPreparation from "@/components/candidate/JobInterviewPreparation";
 import type { CandidateAnalytics, CandidateDocument, CandidateProfile, InterviewEvent } from "@/types/candidate";
 import type { CandidateApplication, JobRecommendation } from "@/types/application";
+import { emitAdoptionAction } from "@/lib/adoption";
 
 type CandidateTab = "home" | "profile" | "jobs" | "applied" | "resume" | "interview-prep";
 type EditableSection = "profile" | "about" | "skills" | "experience" | "education" | "certifications" | "salary" | "availability" | null;
@@ -1101,6 +1102,10 @@ export default function CandidateDashboard() {
     void syncCandidateProfile(normalizedProfile, user).then(() => {
       window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
     });
+    emitAdoptionAction("candidate_profile_completed");
+    if (normalizedProfile.experience.some((item) => item.role.trim() && item.company.trim())) {
+      emitAdoptionAction("candidate_experience_added");
+    }
   };
 
   const openEditor = (section: EditableSection) => {

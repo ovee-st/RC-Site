@@ -15,6 +15,7 @@ import CandidateInsightHover from "@/components/insights/CandidateInsightHover";
 import { cn } from "@/lib/cn";
 import { FilePenLine } from "lucide-react";
 import { useJobStore } from "@/store/useJobStore";
+import { emitAdoptionAction } from "@/lib/adoption";
 
 type CandidateAction = {
   shortlisted?: boolean;
@@ -77,6 +78,7 @@ export default function RecruiterMatches() {
         [action]: true
       }
     }));
+    emitAdoptionAction(action === "shortlisted" ? "employer_shortlisted_candidate" : "employer_invited_candidate");
   };
 
   return (

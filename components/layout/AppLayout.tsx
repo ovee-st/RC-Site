@@ -6,6 +6,7 @@ import LazyChatWidget from "@/components/layout/LazyChatWidget";
 import ServiceWorkerRegister from "@/components/layout/ServiceWorkerRegister";
 import Footer from "@/components/home/Footer";
 import BackToTopButton from "@/components/layout/BackToTopButton";
+import LazyBetaExperience from "@/components/layout/LazyBetaExperience";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   return (
@@ -16,6 +17,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       <Footer />
       <BackToTopButton />
       <LazyChatWidget />
+      <LazyBetaExperience />
       <div className="fixed bottom-5 right-5 z-50">
         <ThemeToggle className="h-12 rounded-full px-4 shadow-elevated backdrop-blur-xl" />
       </div>
