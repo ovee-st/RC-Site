@@ -7,12 +7,16 @@ import ServiceWorkerRegister from "@/components/layout/ServiceWorkerRegister";
 import Footer from "@/components/home/Footer";
 import BackToTopButton from "@/components/layout/BackToTopButton";
 import LazyBetaExperience from "@/components/layout/LazyBetaExperience";
+import ClientErrorMonitor from "@/components/operations/ClientErrorMonitor";
+import ReleaseBanner from "@/components/operations/ReleaseBanner";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   return (
     <div className="depth-page min-h-screen text-text-main antialiased dark:text-white">
       <ServiceWorkerRegister />
+      <ClientErrorMonitor />
       <Navbar />
+      <ReleaseBanner />
       <PageTransition>{children}</PageTransition>
       <Footer />
       <BackToTopButton />

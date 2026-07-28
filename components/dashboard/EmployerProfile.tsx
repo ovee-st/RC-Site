@@ -10,6 +10,7 @@ import Input from "@/components/ui/Input";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
 import { emitAdoptionAction } from "@/lib/adoption";
+import { analyticsEvents } from "@/lib/analytics";
 import { authSafeAvatarAliases, avatarAliases, normalizeProfileImageUrl, stripInlineAuthAvatarMetadata, syncProfileImageState, uploadProfileMedia } from "@/lib/profileImageSync";
 
 type EmployerProfileState = {
@@ -254,6 +255,7 @@ export default function EmployerProfile() {
       document.getElementById("profile")?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 900);
     emitAdoptionAction("employer_profile_completed");
+    analyticsEvents.companyProfileCompleted();
   };
 
   return (

@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { addHistoryVersion, type HistoryVersion } from "@/lib/ai/history";
 import type { JobImprovementResult, RecruitingJobInput } from "@/lib/ai/recruitingTypes";
 import { compactAuthHeaders } from "@/lib/compactAuthToken";
+import { analyticsEvents } from "@/lib/analytics";
 import type { ExtractedJobFields, GeneratedJobFields, JobImportSourceType, StructuredJobImportDto } from "@/lib/import/types";
 
 type FieldOrigin = "extracted" | "generated" | "missing" | "edited";
@@ -159,6 +160,7 @@ export default function JobImporter() {
       setDto(imported);
       setDraft(importedDraft);
       setHistory(addHistoryVersion([], "Original Import", importedDraft));
+      analyticsEvents.aiJobImportUsed(sourceType);
       setEdited(new Set());
       setDuplicateAction("new");
     } catch (importError) {
@@ -232,6 +234,7 @@ export default function JobImporter() {
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error || `Could not ${updating ? "update" : "publish"} the job.`);
       setSuccess(updating ? "Existing job updated successfully." : "Job published successfully.");
+      if (!updating) analyticsEvents.jobPublished(String(result.job?.id || ""));
       window.setTimeout(() => router.push("/employer"), 900);
     } catch (publishError) {
       setError(publishError instanceof Error ? publishError.message : "The job could not be saved.");

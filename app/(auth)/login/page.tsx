@@ -151,6 +151,7 @@ export default function LoginPage() {
     }
     const user = response.data.user;
     const resolvedRole = mode === "login" ? await resolveUserRole(user, role) : role;
+    if (mode === "login") analyticsEvents.firstLogin(resolvedRole, "email");
     const metadata = user?.user_metadata || {};
     const resolvedDefaultProfile = getDefaultProfile(resolvedRole, name);
     const displayName = metadata.full_name || metadata.name || resolvedDefaultProfile.name || email.split("@")[0];

@@ -16,5 +16,6 @@
   "supabase-talent-crm.sql",
   "supabase-talent-crm-stabilization.sql",
   "supabase-performance-indexes.sql",
-  "supabase-platform-hardening.sql"
+  "supabase-platform-hardening.sql",
+  "supabase-operations-intelligence.sql"
 ]

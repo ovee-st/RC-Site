@@ -5,6 +5,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  Activity,
   Bell,
   BriefcaseBusiness,
   CheckCircle2,
@@ -51,8 +52,13 @@ import {
   type ResumeProfile
 } from "@/lib/resumeDocuments";
 
+const LazyOperationsIntelligence = dynamic(() => import("@/components/admin/OperationsIntelligence"), {
+  ssr: false
+});
+
 type AdminSection =
   | "dashboard"
+  | "operations-intelligence"
   | "users"
   | "candidates"
   | "employers"
@@ -132,6 +138,10 @@ const sectionMeta: Record<AdminSection, { title: string; description: string }> 
     title: "Admin Command Center",
     description: "Monitor users, revenue, jobs, applications, and operational signals from one premium control room."
   },
+  "operations-intelligence": {
+    title: "Operations Intelligence",
+    description: "Monitor product adoption, private beta activity, platform health, support, releases, and operational risk."
+  },
   users: {
     title: "User Management",
     description: "Search, filter, edit roles, suspend accounts, and review platform usage."
@@ -176,6 +186,7 @@ const sectionMeta: Record<AdminSection, { title: string; description: string }> 
 
 const navItems = [
   { label: "Dashboard", href: "/admin", key: "dashboard", icon: LayoutDashboard },
+  { label: "Operations Intelligence", href: "/admin/operations-intelligence", key: "operations-intelligence", icon: Activity },
   { label: "Users", href: "/admin/users", key: "users", icon: UserCog },
   { label: "Candidates", href: "/admin/candidates", key: "candidates", icon: Users },
   { label: "Employers", href: "/admin/employers", key: "employers", icon: BriefcaseBusiness },
@@ -468,6 +479,7 @@ async function getAdminSessionPayload() {
 function adminSectionTables(section: AdminSection) {
   const tablesBySection: Record<AdminSection, string[]> = {
     dashboard: ["profiles", "candidates", "employers", "jobs", "applications", "contact_requests", "subscription_payment_requests", "transactions", "employer_subscriptions"],
+    "operations-intelligence": [],
     users: ["profiles"],
     candidates: ["profiles", "candidates"],
     employers: ["profiles", "employers", "jobs", "employer_subscriptions"],
@@ -880,7 +892,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
     let active = true;
 
     async function loadAdminData() {
-      if (section === "dashboard") {
+      if (section === "dashboard" || section === "operations-intelligence") {
         setDataLoading(false);
         return;
       }
@@ -1825,6 +1837,7 @@ export default function AdminPanel({ section }: { section: AdminSection }) {
           ) : (
             <>
               {section === "dashboard" ? <DashboardSection /> : null}
+              {section === "operations-intelligence" ? <LazyOperationsIntelligence readOnly={readOnly} /> : null}
               {section === "users" ? <UsersSection rows={filteredProfiles} query={query} roleFilter={roleFilter} setRoleFilter={setRoleFilter} onUpdate={updateRecord} onRoleChange={updateUserRole} onDelete={deleteRecord} readOnly={readOnly} onNotice={setNotice} /> : null}
               {section === "candidates" ? <CandidatesSection rows={adminData.candidates} profiles={adminData.profiles} applications={adminData.applications} onUpdate={updateRecord} onPlanChange={updateCandidatePlan} onDelete={deleteRecord} readOnly={readOnly} /> : null}
               {section === "employers" ? (

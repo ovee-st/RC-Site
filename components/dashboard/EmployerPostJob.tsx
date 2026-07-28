@@ -12,6 +12,7 @@ import { useJobStore } from "@/store/useJobStore";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
 import { emitAdoptionAction } from "@/lib/adoption";
+import { analyticsEvents } from "@/lib/analytics";
 import { bdjobsDepartments } from "@/lib/bdjobsDepartments";
 import { employmentTypeOptions, workLocationOptions } from "@/lib/jobOptions";
 import SkillPicker from "@/components/skills/SkillPicker";
@@ -258,6 +259,8 @@ Responsibilities:
     setSaving(false);
     setMessage("Job published successfully.");
     emitAdoptionAction("employer_first_job");
+    analyticsEvents.jobPostCreated(job.id);
+    analyticsEvents.jobPublished(job.id);
     window.setTimeout(() => {
       setOpen(false);
       setForm(defaultJob);

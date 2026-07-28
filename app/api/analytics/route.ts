@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createServerSupabaseClient } from "@/lib/supabaseServer";
 
 type AnalyticsValue = string | number | boolean | null;
 type AnalyticsParameters = Record<string, AnalyticsValue>;
@@ -32,6 +33,37 @@ function sanitizeParameters(value: unknown): AnalyticsParameters {
 
 function getClientId(sessionId?: string, userId?: string) {
   return sessionId || userId || crypto.randomUUID();
+}
+
+async function persistProductEvent(input: {
+  eventName: string;
+  pageLocation?: string;
+  userId?: string;
+  sessionId?: string;
+  parameters: AnalyticsParameters;
+}) {
+  try {
+    const client = createServerSupabaseClient();
+    const pagePath = input.pageLocation ? new URL(input.pageLocation, "https://www.mxvlab.com").pathname : null;
+    const duration = Number(input.parameters.duration_ms);
+    const result = await client.from("platform_product_events").insert({
+      user_id: input.userId || null,
+      anonymous_id: input.userId ? null : input.sessionId || null,
+      event_name: input.eventName,
+      page_path: pagePath,
+      role: typeof input.parameters.role === "string" ? input.parameters.role.slice(0, 40) : null,
+      session_id: input.sessionId || null,
+      duration_ms: Number.isFinite(duration) && duration >= 0 ? Math.round(duration) : null,
+      completed: typeof input.parameters.completed === "boolean" ? input.parameters.completed : null,
+      properties: input.parameters,
+      occurred_at: new Date().toISOString()
+    });
+    if (result.error && !/does not exist|schema cache/i.test(result.error.message)) {
+      console.error("[product-analytics] event persistence failed", { code: result.error.code, message: result.error.message });
+    }
+  } catch {
+    // Product analytics persistence must never affect the user request.
+  }
 }
 
 export async function POST(request: Request) {
@@ -76,16 +108,28 @@ export async function POST(request: Request) {
     ]
   };
 
+  const persistence = persistProductEvent({
+    eventName,
+    pageLocation,
+    userId,
+    sessionId,
+    parameters
+  });
+
   if (!measurementId || !apiSecret) {
+    await persistence;
     return NextResponse.json({ ok: true, forwarded: false, reason: "GA4 Measurement Protocol is not configured." }, { status: 202 });
   }
 
   try {
-    const response = await fetch(`https://www.google-analytics.com/mp/collect?measurement_id=${encodeURIComponent(measurementId)}&api_secret=${encodeURIComponent(apiSecret)}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
+    const [response] = await Promise.all([
+      fetch(`https://www.google-analytics.com/mp/collect?measurement_id=${encodeURIComponent(measurementId)}&api_secret=${encodeURIComponent(apiSecret)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      }),
+      persistence
+    ]);
 
     if (!response.ok) {
       return NextResponse.json({ ok: true, forwarded: false, status: response.status }, { status: 202 });

@@ -115,5 +115,15 @@ export const analyticsEvents = {
     page_path: pagePath
   }),
   helpCenterOpened: (pagePath: string) => trackEvent("help_center_opened", { page_path: pagePath }),
-  profileCompleted: (role: string) => trackEvent("profile_completed", { role })
+  profileCompleted: (role: string) => trackEvent("profile_completed", { role }),
+  firstLogin: (role: string, method = "email") => trackEvent("first_login", { role, method, completed: true }),
+  companyProfileCompleted: () => trackEvent("company_profile_completed", { role: "employer", completed: true }),
+  jobPostCreated: (jobId?: string) => trackEvent("job_post_created", { job_id: jobId, role: "employer", completed: true }),
+  jobPublished: (jobId?: string) => trackEvent("job_published", { job_id: jobId, role: "employer", completed: true }),
+  aiJobImportUsed: (sourceType?: string) => trackEvent("ai_job_import_used", { source_type: sourceType, role: "employer", completed: true }),
+  resumeAiUsed: (action?: string) => trackEvent("resume_ai_used", { action, role: "candidate", completed: true }),
+  talentCrmUsed: (action?: string) => trackEvent("talent_crm_used", { action, role: "employer", completed: true }),
+  interviewPackGenerated: () => trackEvent("interview_pack_generated", { role: "employer", completed: true }),
+  pipelineMoved: (candidateCount: number) => trackEvent("pipeline_moved", { candidate_count: candidateCount, role: "employer", completed: true }),
+  offerAccepted: (offerId: string) => trackEvent("offer_accepted", { offer_id: offerId, role: "candidate", completed: true })
 };

@@ -3,6 +3,7 @@
 import { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { CalendarDays, CheckCircle2, FileText, Loader2, Mail, RefreshCw, Upload } from "lucide-react";
 import { compactAuthHeaders } from "@/lib/compactAuthToken";
+import { analyticsEvents } from "@/lib/analytics";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import Badge from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -38,7 +39,7 @@ export default function CandidatePortal() {
 
   const respond = async (offerId: string, status: "accepted" | "declined") => {
     setSaving(true); setError("");
-    try { await portalRequest({ method: "PATCH", body: JSON.stringify({ offer_id: offerId, status }) }); await load(); }
+    try { await portalRequest({ method: "PATCH", body: JSON.stringify({ offer_id: offerId, status }) }); if (status === "accepted") analyticsEvents.offerAccepted(offerId); await load(); }
     catch (value) { setError(value instanceof Error ? value.message : "Could not respond to offer."); }
     finally { setSaving(false); }
   };

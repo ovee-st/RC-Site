@@ -4,6 +4,7 @@ import { DragDropContext, Draggable, Droppable, type DropResult } from "@hello-p
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Archive, CheckSquare2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Download, GripVertical, Loader2, Mail, Pencil, Plus, RotateCcw, Search, Tag, Trash2, UserCheck, X } from "lucide-react";
 import { compactAuthHeaders } from "@/lib/compactAuthToken";
+import { analyticsEvents } from "@/lib/analytics";
 import { getProfileThumbnailUrl } from "@/lib/profileImageSync";
 import { cn } from "@/lib/cn";
 import { applyOptimisticStageMove } from "@/lib/ats/workflowEngine";
@@ -61,7 +62,7 @@ export default function PipelineBoard() {
     if (!pipeline || !applicationIds.length) return; const target = pipeline.stages.find((stage) => stage.id === targetStageId); if (!target) return;
     const originals = pipeline.candidates.filter((candidate) => applicationIds.includes(candidate.applicationId)); if (!preserveUndo) setUndo({ candidates: originals, targetStageId });
     setMoving(true); setError(""); setPipeline((current) => current ? { ...current, candidates: applyOptimisticStageMove(current.candidates, applicationIds, target.id, target.name).map((candidate) => applicationIds.includes(candidate.applicationId) ? { ...candidate, stageEnteredAt: new Date().toISOString() } : candidate) } : current);
-    try { await pipelineRequest("/api/pipeline/move", { method: "POST", body: JSON.stringify({ application_ids: applicationIds, stage_id: targetStageId, operation: "move" }) }); setSelected(new Set()); void loadPipeline(); }
+    try { await pipelineRequest("/api/pipeline/move", { method: "POST", body: JSON.stringify({ application_ids: applicationIds, stage_id: targetStageId, operation: "move" }) }); analyticsEvents.pipelineMoved(applicationIds.length); setSelected(new Set()); void loadPipeline(); }
     catch (cause) { setPipeline((current) => current ? { ...current, candidates: current.candidates.map((candidate) => originals.find((item) => item.applicationId === candidate.applicationId) || candidate) } : current); setUndo(null); setError(cause instanceof Error ? cause.message : "Could not move candidates."); }
     finally { setMoving(false); }
   }, [loadPipeline, pipeline]);

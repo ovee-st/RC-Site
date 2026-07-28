@@ -289,6 +289,17 @@ export default function BetaExperience() {
         })
       });
       if (!response.ok) throw new Error("Feedback request failed");
+      void fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          feedback_type: feedbackType,
+          message: feedbackMessage.trim(),
+          page_path: pathname,
+          role: adoptionRole || "guest"
+        }),
+        keepalive: true
+      }).catch(() => null);
       setFeedbackStatus("sent");
       setFeedbackMessage("");
       analyticsEvents.feedbackSubmitted(feedbackType, pathname);

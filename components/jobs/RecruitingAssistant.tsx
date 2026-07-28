@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AlertCircle, Check, Download, History, Loader2, RotateCcw, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { compactAuthHeaders } from "@/lib/compactAuthToken";
+import { analyticsEvents } from "@/lib/analytics";
 import { compareHistoryVersions, type HistoryVersion } from "@/lib/ai/history";
 import type { ImproveAction, InterviewPack, JobImprovementResult, JobReviewResult, RecruitingJobInput, ScreeningPack, ScoreResult } from "@/lib/ai/recruitingTypes";
 import type { JobImporterDraft } from "@/components/jobs/jobImporterTypes";
@@ -94,7 +95,10 @@ export default function RecruitingAssistant({ job, draft, history, onApplyImprov
     setGenerating(kind);
     setError("");
     try {
-      if (kind === "interview") setInterviewPack(await assistantPost<InterviewPack>("/api/jobs/interview-pack", { job }));
+      if (kind === "interview") {
+        setInterviewPack(await assistantPost<InterviewPack>("/api/jobs/interview-pack", { job }));
+        analyticsEvents.interviewPackGenerated();
+      }
       else setScreeningPack(await assistantPost<ScreeningPack>("/api/jobs/screening", { job }));
     } catch (generateError) {
       setError(generateError instanceof Error ? generateError.message : "The recruiting pack could not be generated.");

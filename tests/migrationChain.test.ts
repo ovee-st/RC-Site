@@ -99,6 +99,7 @@ describe("Supabase migration chain", () => {
     before("supabase-talent-crm.sql", "supabase-talent-crm-stabilization.sql");
     before("supabase-talent-crm-stabilization.sql", "supabase-performance-indexes.sql");
     before("supabase-talent-crm.sql", "supabase-platform-hardening.sql");
+    before("supabase-platform-hardening.sql", "supabase-operations-intelligence.sql");
   });
 
   it("only creates indexes on existing public table columns", () => {
@@ -162,5 +163,16 @@ describe("Supabase migration chain", () => {
     expect(stabilization).toContain("create or replace function public.crm_schema_health()");
     expect(stabilization).toContain("create or replace function public.crm_talent_metrics(target_owner uuid)");
     expect(stabilization).not.toMatch(/create\s+table\s+(?!if not exists)/i);
+  });
+
+  it("keeps operations intelligence additive, indexed, and service-role scoped", () => {
+    const operations = readFileSync(resolve(root, "supabase-operations-intelligence.sql"), "utf8");
+    expect((operations.match(/create table if not exists public\./gi) || []).length).toBeGreaterThanOrEqual(9);
+    expect(operations).toContain("platform_product_events");
+    expect(operations).toContain("beta_invites");
+    expect(operations).toContain("platform_errors");
+    expect(operations).toContain("feedback_hub");
+    expect(operations).toContain("enable row level security");
+    expect(operations).not.toMatch(/create\s+policy/i);
   });
 });
