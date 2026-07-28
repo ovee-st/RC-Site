@@ -1,38 +1,51 @@
 "use client";
 
-import { Quote } from "lucide-react";
+import { BriefcaseBusiness, CheckCircle2, UserRound } from "lucide-react";
 import Badge from "@/components/ui/Badge";
 import Card from "@/components/ui/Card";
 import Container from "@/components/layout/Container";
 import FadeInSection from "./FadeInSection";
 
-const candidateStories = [
-  { quote: "The job matches felt relevant to my experience, and I could track every application without losing the next step.", name: "Nusrat Jahan", title: "Customer Support Professional" },
-  { quote: "The resume tools helped me present my skills clearly and prepare with more confidence for interviews.", name: "Rakib Ahmed", title: "Operations Candidate" }
+const experienceStandards = [
+  {
+    title: "A candidate experience built around clarity",
+    audience: "For Candidates",
+    description: "See applications, interview preparation, profile progress, and recommended roles without losing track of the next step.",
+    points: ["Profile visibility stays manageable", "Multiple applications remain organized", "Recommendations include fit context"],
+    icon: UserRound,
+    tone: "blue" as const
+  },
+  {
+    title: "An employer experience built around control",
+    audience: "For Employers",
+    description: "Review candidates, hiring stages, communication, and talent pipelines in one workspace while keeping every decision human.",
+    points: ["AI recommendations remain editable", "Manual candidate review is always available", "Talent pools support future hiring"],
+    icon: BriefcaseBusiness,
+    tone: "green" as const
+  }
 ];
 
-const employerStories = [
-  { quote: "MX Venture Lab reduced our screening time and helped us focus first on candidates with the strongest fit.", name: "Tanvir Rahman", title: "Operations Lead, Growth Textile Ltd" },
-  { quote: "Managed hiring gave us interview-ready talent quickly without losing visibility into the process.", name: "Rahim Ahmed", title: "Founder, Field Growth Co." }
-];
+function ExperienceCard({ story }: { story: (typeof experienceStandards)[number] }) {
+  const Icon = story.icon;
+  const blue = story.tone === "blue";
 
-function StoryGroup({ title, stories, tone }: { title: string; stories: typeof candidateStories; tone: "blue" | "green" }) {
   return (
-    <div>
-      <h3 className="mb-4 text-xl font-black text-slate-950 dark:text-white">{title}</h3>
-      <div className="grid gap-4">
-        {stories.map((item) => (
-          <Card key={item.name} variant="interactive" className="rounded-3xl p-6">
-            <Quote className={`h-7 w-7 ${tone === "blue" ? "text-blue-600" : "text-emerald-600"}`} />
-            <p className="mt-4 text-base font-semibold leading-7 text-slate-700 dark:text-slate-200">&ldquo;{item.quote}&rdquo;</p>
-            <div className="mt-5 border-t border-slate-200 pt-4 dark:border-white/10">
-              <p className="font-black text-slate-950 dark:text-white">{item.name}</p>
-              <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">{item.title}</p>
-            </div>
-          </Card>
+    <Card variant="interactive" className="h-full rounded-3xl p-6">
+      <div className={`grid h-11 w-11 place-items-center rounded-2xl ${blue ? "bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-300" : "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-300"}`}>
+        <Icon className="h-5 w-5" />
+      </div>
+      <p className={`mt-5 text-xs font-black uppercase tracking-[0.16em] ${blue ? "text-blue-600 dark:text-blue-300" : "text-emerald-600 dark:text-emerald-300"}`}>{story.audience}</p>
+      <h3 className="mt-2 text-xl font-black text-slate-950 dark:text-white">{story.title}</h3>
+      <p className="mt-3 text-sm font-semibold leading-6 text-slate-600 dark:text-slate-300">{story.description}</p>
+      <div className="mt-5 grid gap-3 border-t border-slate-200 pt-5 dark:border-white/10">
+        {story.points.map((point) => (
+          <p key={point} className="flex items-start gap-2 text-sm font-bold text-slate-700 dark:text-slate-200">
+            <CheckCircle2 className={`mt-0.5 h-4 w-4 shrink-0 ${blue ? "text-blue-600" : "text-emerald-600"}`} />
+            {point}
+          </p>
         ))}
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -40,13 +53,13 @@ export default function Testimonials() {
   return (
     <FadeInSection className="py-16 md:py-24">
       <Container>
-        <div className="mb-10 text-center">
-          <Badge variant="primary">Success on both sides</Badge>
-          <h2 className="mt-4 text-3xl font-black tracking-normal text-slate-950 dark:text-white md:text-5xl">Better career moves. Better hires.</h2>
+        <div className="mx-auto mb-10 max-w-3xl text-center">
+          <Badge variant="primary">What you can expect</Badge>
+          <h2 className="mt-4 text-3xl font-black tracking-normal text-slate-950 dark:text-white md:text-5xl">Trust is built into the experience.</h2>
+          <p className="mx-auto mt-4 max-w-2xl text-sm font-semibold leading-6 text-slate-600 dark:text-slate-300">We publish customer stories only when results and permissions can be verified. Until then, these are the product standards MXVL is designed to uphold.</p>
         </div>
-        <div className="grid gap-8 lg:grid-cols-2">
-          <StoryGroup title="Candidate Success Stories" stories={candidateStories} tone="blue" />
-          <StoryGroup title="Employer Success Stories" stories={employerStories} tone="green" />
+        <div className="grid gap-6 lg:grid-cols-2">
+          {experienceStandards.map((story) => <ExperienceCard key={story.audience} story={story} />)}
         </div>
       </Container>
     </FadeInSection>

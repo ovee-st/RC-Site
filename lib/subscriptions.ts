@@ -76,7 +76,7 @@ export const EMPLOYER_PLANS: EmployerPlan[] = [
     id: "growth",
     name: "MXVL Growth",
     tagline: "Built for teams scaling active hiring.",
-    badge: "MOST POPULAR",
+    badge: "FOR GROWING TEAMS",
     monthlyPrice: 7500,
     highlight: true,
     aiCredits: 100,

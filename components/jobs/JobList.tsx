@@ -160,9 +160,9 @@ export default function JobList({ headerAction, showArchived = false }: { header
           <div className="p-5">
             <EmptyState
               icon={<SlidersHorizontal size={22} />}
-              title={showArchived ? "No archived jobs found" : "No jobs found"}
-              message={showArchived ? "Archived or expired roles will appear here after you archive them." : "Try removing filters or searching with a broader skill keyword."}
-              actionLabel="Clear filters"
+              title={showArchived ? "No archived jobs yet" : "No roles match these filters yet"}
+              message={showArchived ? "Roles will appear here after you archive them or they expire." : "Broaden your search or clear the filters to explore every open opportunity."}
+              actionLabel={showArchived ? "Clear filters" : "Browse all jobs"}
               onAction={clearFilters}
             />
           </div>

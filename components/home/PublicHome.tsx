@@ -8,8 +8,11 @@ import MatchScoring from "./MatchScoring";
 import MetricsBar from "./MetricsBar";
 import PricingTeaser from "./PricingTeaser";
 import ProblemSolution from "./ProblemSolution";
+import PlatformPreview from "./PlatformPreview";
 import ServiceCategories from "./ServiceCategories";
+import SocialProof from "./SocialProof";
 import Testimonials from "./Testimonials";
+import ConversionFAQ from "./ConversionFAQ";
 
 export default function PublicHome() {
   return (
@@ -19,10 +22,13 @@ export default function PublicHome() {
       <HiringPaths />
       <ProblemSolution />
       <HowItWorks />
+      <PlatformPreview />
       <ServiceCategories />
       <MatchScoring />
+      <SocialProof />
       <Testimonials />
       <PricingTeaser />
+      <ConversionFAQ />
       <FinalCTA />
     </main>
   );

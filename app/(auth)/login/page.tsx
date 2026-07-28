@@ -30,10 +30,10 @@ import { roleHomeRoutes } from "@/lib/rbac";
 import { analyticsEvents } from "@/lib/analytics";
 
 const metrics = [
-  { value: "10K+", label: "Candidate Profiles", icon: UsersRound, tone: "text-blue-600 dark:text-blue-300" },
-  { value: "500+", label: "Employers", icon: BriefcaseBusiness, tone: "text-violet-600 dark:text-violet-300" },
-  { value: "48h", label: "Average Hiring Time", icon: Clock3, tone: "text-emerald-600 dark:text-emerald-300" },
-  { value: "90%", label: "Match Accuracy", icon: Sparkles, tone: "text-rose-600 dark:text-rose-300" }
+  { value: "One", label: "Connected Workspace", icon: UsersRound, tone: "text-blue-600 dark:text-blue-300" },
+  { value: "Human", label: "Decision Control", icon: BriefcaseBusiness, tone: "text-violet-600 dark:text-violet-300" },
+  { value: "Visible", label: "Hiring Progress", icon: Clock3, tone: "text-emerald-600 dark:text-emerald-300" },
+  { value: "Clear", label: "Match Reasoning", icon: Sparkles, tone: "text-rose-600 dark:text-rose-300" }
 ];
 
 type LoginRole = "candidate" | "employer";
