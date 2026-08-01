@@ -17,6 +17,7 @@ import { useJobStore } from "@/store/useJobStore";
 import { demoCandidates } from "@/lib/demoData";
 import { matchCandidateToJob } from "@/lib/ai/matching";
 import { Sparkles, UsersRound } from "lucide-react";
+import DailyBrief from "@/components/ai-workspace/DailyBrief";
 
 const RecruiterMatches = dynamic(() => import("@/components/dashboard/RecruiterMatches"), {
   loading: () => <DashboardModuleSkeleton label="Loading candidate matches" />
@@ -111,6 +112,7 @@ export default function EmployerCommandCenter() {
 
   return (
     <PageContainer>
+      <DailyBrief role="employer" />
       <div className="mb-6 flex flex-col justify-between gap-6 md:flex-row md:items-end">
         <div>
           <Badge variant="primary" className="type-label text-primary">Recruiter Dashboard</Badge>

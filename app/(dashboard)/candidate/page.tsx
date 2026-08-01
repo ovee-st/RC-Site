@@ -30,6 +30,7 @@ import JobInterviewPreparation from "@/components/candidate/JobInterviewPreparat
 import type { CandidateAnalytics, CandidateDocument, CandidateProfile, InterviewEvent } from "@/types/candidate";
 import type { CandidateApplication, JobRecommendation } from "@/types/application";
 import { emitAdoptionAction } from "@/lib/adoption";
+import DailyBrief from "@/components/ai-workspace/DailyBrief";
 
 type CandidateTab = "home" | "profile" | "jobs" | "applied" | "resume" | "interview-prep";
 type EditableSection = "profile" | "about" | "skills" | "experience" | "education" | "certifications" | "salary" | "availability" | null;
@@ -1254,6 +1255,20 @@ export default function CandidateDashboard() {
           <main className="min-w-0">
             {activeTab === "home" ? (
               <div className="space-y-4">
+                <DailyBrief role="candidate" profile={{
+                  name: profile.name,
+                  title: profile.title,
+                  location: profile.location,
+                  about: profile.about,
+                  skills: profile.skills,
+                  experience: profile.experience,
+                  education: profile.education,
+                  certifications: profile.certifications,
+                  salary: profile.salary,
+                  availability: profile.availability,
+                  profileCompletion: dashboardProfile.profileCompletion,
+                  resumeScore: dashboardProfile.resumeScore
+                }} />
                 <StatsCards profile={dashboardProfile} applications={dashboardApplications} />
 
                 <div className="grid grid-cols-12 gap-4">

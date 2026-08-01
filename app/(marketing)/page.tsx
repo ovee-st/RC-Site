@@ -25,6 +25,7 @@ import AnalyticsPanel from "@/components/dashboard/AnalyticsPanel";
 import JobRecommendations from "@/components/dashboard/JobRecommendations";
 import ResumeSection from "@/components/dashboard/ResumeSection";
 import EmployerCommandCenter from "@/components/dashboard/EmployerCommandCenter";
+import DailyBrief from "@/components/ai-workspace/DailyBrief";
 import PublicHome from "@/components/home/PublicHome";
 import AdminPanel from "@/components/admin/AdminPanel";
 import type { CandidateAnalytics, CandidateDocument, CandidateProfile, InterviewEvent } from "@/types/candidate";
@@ -108,6 +109,15 @@ function CandidateHomeDashboard({ profile }: { profile: CandidateProfile }) {
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-bg py-6 dark:bg-slate-950">
       <Container>
+        <DailyBrief role="candidate" profile={{
+          name: profile.name,
+          title: profile.title,
+          location: profile.location,
+          bio: profile.bio,
+          skills: profile.skills,
+          profileCompletion: profile.profileCompletion,
+          resumeScore: profile.resumeScore
+        }} />
         <div className="mb-4 border-b border-border pb-4 dark:border-white/10">
           <Badge variant="primary" className="type-label text-primary">Candidate Portal</Badge>
           <h1 className="mt-2 text-3xl font-black tracking-tight text-text-main dark:text-white">Your Career Command Center</h1>
