@@ -134,9 +134,9 @@ export default function JobList({ headerAction, showArchived = false }: { header
       <div className="border-b border-border bg-surface/80 p-4 backdrop-blur dark:border-white/10 dark:bg-slate-900/80 sm:p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <h2 className="text-xl font-semibold tracking-tight text-text-main dark:text-white sm:text-2xl">
+            <h1 className="text-2xl font-black tracking-tight text-text-main dark:text-white sm:text-3xl">
               {role === "employer" ? (showArchived ? "Archived jobs" : "Published jobs") : "Top job picks for you"}
-            </h2>
+            </h1>
             <p className="mt-1 text-sm leading-6 text-text-muted dark:text-slate-300">
               {role === "employer"
                 ? showArchived

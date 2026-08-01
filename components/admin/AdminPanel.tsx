@@ -37,6 +37,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
+import EnterpriseStatusBadge from "@/components/ui/StatusBadge";
 import Input from "@/components/ui/Input";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
@@ -758,17 +759,7 @@ function AdminAvatar({ row, className }: { row: AnyRecord; className?: string })
 }
 
 function StatusBadge({ value, className }: { value?: string | boolean; className?: string }) {
-  const normalized = String(value ?? "active").toLowerCase();
-  const variant = normalized.includes("paid") || normalized.includes("active") || normalized.includes("resolved") || value === true
-    ? "success"
-    : normalized.includes("pending") || normalized.includes("progress")
-      ? "primary"
-      : normalized.includes("suspend") || normalized.includes("failed")
-        ? "danger"
-        : "neutral";
-
-  const label = value === true ? "Active" : value === false ? "Inactive" : String(value ?? "active");
-  return <Badge variant={variant as any} className={className}>{label}</Badge>;
+  return <EnterpriseStatusBadge status={value} className={className} />;
 }
 
 export default function AdminPanel({ section }: { section: AdminSection }) {

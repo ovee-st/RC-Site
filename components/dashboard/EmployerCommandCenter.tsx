@@ -16,7 +16,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useJobStore } from "@/store/useJobStore";
 import { demoCandidates } from "@/lib/demoData";
 import { matchCandidateToJob } from "@/lib/ai/matching";
-import { Sparkles, UsersRound } from "lucide-react";
+import { ChevronDown, Sparkles, UsersRound } from "lucide-react";
 import DailyBrief from "@/components/ai-workspace/DailyBrief";
 
 const RecruiterMatches = dynamic(() => import("@/components/dashboard/RecruiterMatches"), {
@@ -113,29 +113,28 @@ export default function EmployerCommandCenter() {
   return (
     <PageContainer>
       <DailyBrief role="employer" />
-      <div className="mb-6 flex flex-col justify-between gap-6 md:flex-row md:items-end">
+      <div className="mb-6 mt-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
         <div>
           <Badge variant="primary" className="type-label text-primary">Recruiter Dashboard</Badge>
-          <h1 className="type-h1 mt-3">Hiring command center</h1>
+          <h2 className="type-h2 mt-3">Hiring workspace</h2>
+          <p className="type-body mt-2 max-w-2xl">Monitor active roles, candidate momentum, plan usage, and the recruiting pipeline.</p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <Link href="/employer/talent-crm" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-5 text-sm font-black text-emerald-700 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-200">
-            <UsersRound className="h-4 w-4" />
-            Talent CRM
-          </Link>
-          <Link href="/subscriptions" className="inline-flex min-h-11 items-center justify-center rounded-full border border-slate-200 bg-white px-5 text-sm font-black text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:text-blue-600 hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:border-blue-400/60">
-            View Plans
-          </Link>
-          <Link href="/dashboard/employer/jobs/import" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-5 text-sm font-black text-blue-700 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md dark:border-blue-400/20 dark:bg-blue-400/10 dark:text-blue-200">
-            <Sparkles className="h-4 w-4" />
-            Import Job
-          </Link>
-          <EmployerPostJob />
-        </div>
+        <details className="group relative self-start md:self-end">
+          <summary className="focus-ring flex min-h-11 cursor-pointer list-none items-center justify-center gap-2 rounded-control border border-border bg-surface px-5 text-sm font-semibold text-text-main shadow-soft hover:border-primary/30 hover:text-primary dark:border-white/10 dark:bg-slate-900 dark:text-white">
+            Workspace actions
+            <ChevronDown className="h-4 w-4 transition group-open:rotate-180" />
+          </summary>
+          <div className="z-20 mt-2 grid min-w-[230px] gap-2 rounded-card border border-border bg-surface p-2 shadow-elevated dark:border-white/10 dark:bg-slate-900 md:absolute md:right-0">
+            <Link href="/employer/talent-crm" className="focus-ring flex min-h-11 items-center gap-2 rounded-control px-3 text-sm font-bold text-text-main hover:bg-primary/5 hover:text-primary dark:text-white"><UsersRound className="h-4 w-4" />Talent CRM</Link>
+            <Link href="/subscriptions" className="focus-ring flex min-h-11 items-center rounded-control px-3 text-sm font-bold text-text-main hover:bg-primary/5 hover:text-primary dark:text-white">View Plans</Link>
+            <Link href="/dashboard/employer/jobs/import" className="focus-ring flex min-h-11 items-center gap-2 rounded-control px-3 text-sm font-bold text-text-main hover:bg-primary/5 hover:text-primary dark:text-white"><Sparkles className="h-4 w-4" />Import Job</Link>
+            <EmployerPostJob />
+          </div>
+        </details>
       </div>
       <StaggerContainer className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((item) => (
-          <Card key={item.label} variant="interactive" className={`depth-overlay min-h-32 overflow-hidden bg-gradient-to-br ${item.gradient}`}>
+          <Card key={item.label} kind="metric" variant="interactive" className={`depth-overlay overflow-hidden bg-gradient-to-br ${item.gradient}`}>
             <div className="depth-content">
               <p className="type-label">{item.label}</p>
               <strong className="mt-3 block text-3xl font-bold text-text-main dark:text-white">{item.value}</strong>

@@ -146,15 +146,31 @@ export default function DailyBrief({ role, profile = {} }: DailyBriefProps) {
         </Card>
       </div>
 
-      <Card>
-        <div><p className="type-label">AI Workspace</p><h2 className="type-h3 mt-1">Continue with an existing AI capability</h2><p className="type-body mt-2">These actions open the platform&apos;s current tools. The Daily Brief does not recreate their analysis.</p></div>
-        <div className="mt-5 grid gap-3 md:grid-cols-3">
-          {capabilityLinks[role].map((item) => {
-            const Icon = item.icon;
-            return <Link key={item.label} href={item.href} className="focus-ring group rounded-card border border-border bg-bg/70 p-4 transition hover:border-primary/30 hover:bg-primary/5 dark:border-white/10 dark:bg-white/5"><Icon className="h-5 w-5 text-primary" /><h3 className="mt-3 text-sm font-black text-text-main group-hover:text-primary dark:text-white">{item.label}</h3><p className="mt-1 text-xs leading-5 text-text-muted dark:text-slate-400">{item.detail}</p></Link>;
-          })}
-        </div>
-      </Card>
+      {role === "employer" ? (
+        <details className="group rounded-card border border-border bg-surface shadow-card dark:border-white/10 dark:bg-slate-900">
+          <summary className="focus-ring flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 rounded-card px-5 py-4 sm:px-6">
+            <span><span className="type-label block">AI Workspace</span><span className="mt-1 block text-sm font-black text-text-main dark:text-white">Open recruiting AI tools</span></span>
+            <ArrowRight className="h-4 w-4 text-primary transition group-open:rotate-90" />
+          </summary>
+          <div className="border-t border-border p-5 dark:border-white/10 sm:p-6">
+            <CapabilityLinks role={role} />
+          </div>
+        </details>
+      ) : (
+        <Card><CapabilityLinks role={role} showHeader /></Card>
+      )}
     </section>
   );
+}
+
+function CapabilityLinks({ role, showHeader = false }: { role: DailyBriefProps["role"]; showHeader?: boolean }) {
+  return <>
+    {showHeader ? <div><p className="type-label">AI Workspace</p><h2 className="type-h3 mt-1">Continue with an existing AI capability</h2><p className="type-body mt-2">These actions open the platform&apos;s current tools. The Daily Brief does not recreate their analysis.</p></div> : null}
+    <div className={showHeader ? "mt-5 grid gap-3 md:grid-cols-3" : "grid gap-3 md:grid-cols-3"}>
+      {capabilityLinks[role].map((item) => {
+        const Icon = item.icon;
+        return <Link key={item.label} href={item.href} className="focus-ring group rounded-card border border-border bg-bg/70 p-4 transition hover:border-primary/30 hover:bg-primary/5 dark:border-white/10 dark:bg-white/5"><Icon className="h-5 w-5 text-primary" /><h3 className="mt-3 text-sm font-black text-text-main group-hover:text-primary dark:text-white">{item.label}</h3><p className="mt-1 text-xs leading-5 text-text-muted dark:text-slate-400">{item.detail}</p></Link>;
+      })}
+    </div>
+  </>;
 }

@@ -194,7 +194,7 @@ export default function LoginPage() {
       <div className="absolute inset-0 -z-10 bg-[linear-gradient(135deg,rgba(37,99,235,0.10),transparent_38%,rgba(124,58,237,0.08)_68%,rgba(16,185,129,0.05))] dark:bg-[linear-gradient(135deg,rgba(37,99,235,0.14),transparent_42%,rgba(124,58,237,0.12)_72%,rgba(16,185,129,0.05))]" />
 
       <div className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-[1500px] xl:grid-cols-[minmax(0,1.12fr)_minmax(440px,0.88fr)]">
-        <section className="relative flex min-w-0 flex-col justify-center px-6 py-12 sm:px-10 lg:px-16 xl:px-20 xl:py-16">
+        <section className="relative order-2 flex min-w-0 flex-col justify-center px-6 py-12 sm:px-10 lg:px-16 xl:order-1 xl:px-20 xl:py-16">
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-3 rounded-full border border-blue-200/80 bg-white/75 px-3 py-2 text-xs font-black text-blue-700 shadow-sm backdrop-blur-xl dark:border-blue-400/20 dark:bg-white/8 dark:text-blue-200">
               <Image src="/mxvl-logo.webp" alt="MX Venture Lab" width={24} height={24} className="h-6 w-6 object-contain dark:hidden" />
@@ -263,7 +263,7 @@ export default function LoginPage() {
           </div>
         </section>
 
-        <section className="flex items-center justify-center border-t border-white/70 bg-white/58 px-5 py-10 backdrop-blur-xl sm:px-10 xl:border-l xl:border-t-0 dark:border-white/10 dark:bg-slate-950/42">
+        <section className="order-1 flex items-center justify-center border-b border-white/70 bg-white/58 px-5 py-8 backdrop-blur-xl sm:px-10 sm:py-10 xl:order-2 xl:border-b-0 xl:border-l dark:border-white/10 dark:bg-slate-950/42">
           <div className="w-full max-w-[490px] rounded-lg border border-white/90 bg-white/88 p-6 shadow-[0_30px_90px_rgba(15,23,42,0.14)] backdrop-blur-2xl sm:p-8 dark:border-white/10 dark:bg-slate-900/88 dark:shadow-black/30">
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -328,7 +328,7 @@ export default function LoginPage() {
                 <div className="relative">
                   <LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                   <Input value={password} onChange={(event) => setPassword(event.target.value)} type={showPassword ? "text" : "password"} placeholder="Enter your password" autoComplete={mode === "login" ? "current-password" : "new-password"} className="h-12 rounded-md bg-white pl-12 pr-14 shadow-none dark:bg-slate-950/60" />
-                  <button type="button" onClick={() => setShowPassword((current) => !current)} className="focus-ring absolute right-3 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-white" aria-label={showPassword ? "Hide password" : "Show password"}>
+                  <button type="button" onClick={() => setShowPassword((current) => !current)} className="focus-ring absolute right-1 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-white" aria-label={showPassword ? "Hide password" : "Show password"}>
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
@@ -354,14 +354,14 @@ export default function LoginPage() {
                 <>
                   <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">New to MXVL?</p>
                   <div className="mt-2 flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
-                    <button type="button" onClick={() => { setRole("candidate"); setMode("signup"); setMessage(""); }} className="focus-ring inline-flex items-center gap-1 text-sm font-black text-blue-700 hover:text-blue-500 dark:text-blue-300">Register as Candidate <ArrowRight className="h-3.5 w-3.5" /></button>
-                    <button type="button" onClick={() => { setRole("employer"); setMode("signup"); setMessage(""); }} className="focus-ring inline-flex items-center gap-1 text-sm font-black text-violet-700 hover:text-violet-500 dark:text-violet-300">Register as Employer <ArrowRight className="h-3.5 w-3.5" /></button>
+                    <button type="button" onClick={() => { setRole("candidate"); setMode("signup"); setMessage(""); }} className="focus-ring inline-flex min-h-11 items-center gap-1 rounded-md px-2 text-sm font-black text-blue-700 hover:bg-blue-50 hover:text-blue-500 dark:text-blue-300 dark:hover:bg-blue-400/10">Register as Candidate <ArrowRight className="h-3.5 w-3.5" /></button>
+                    <button type="button" onClick={() => { setRole("employer"); setMode("signup"); setMessage(""); }} className="focus-ring inline-flex min-h-11 items-center gap-1 rounded-md px-2 text-sm font-black text-violet-700 hover:bg-violet-50 hover:text-violet-500 dark:text-violet-300 dark:hover:bg-violet-400/10">Register as Employer <ArrowRight className="h-3.5 w-3.5" /></button>
                   </div>
                 </>
               ) : (
                 <>
                   <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Already have an account?</p>
-                  <button type="button" onClick={() => { setMode("login"); setMessage(""); }} className="focus-ring mt-2 inline-flex items-center gap-1 text-sm font-black text-blue-700 hover:text-blue-500 dark:text-blue-300">Sign in instead <ArrowRight className="h-3.5 w-3.5" /></button>
+                  <button type="button" onClick={() => { setMode("login"); setMessage(""); }} className="focus-ring mt-2 inline-flex min-h-11 items-center gap-1 rounded-md px-2 text-sm font-black text-blue-700 hover:bg-blue-50 hover:text-blue-500 dark:text-blue-300 dark:hover:bg-blue-400/10">Sign in instead <ArrowRight className="h-3.5 w-3.5" /></button>
                 </>
               )}
             </div>

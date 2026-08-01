@@ -236,7 +236,7 @@ export default function JobItem({ job, matchScore }: { job: Job; matchScore: num
       >
         <div className={cn(
           "grid min-w-0 gap-3",
-          compactListMode ? "grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-[minmax(0,1fr)_auto]"
+          "grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto]"
         )}>
           <div className={cn("flex min-w-0 items-start", compactListMode ? "gap-3" : "gap-4")}>
             <div className={cn(
@@ -304,8 +304,8 @@ export default function JobItem({ job, matchScore }: { job: Job; matchScore: num
           </div>
 
           <div className={cn(
-            "flex shrink-0 items-start gap-2",
-            compactListMode ? "min-w-0 flex-wrap justify-start md:min-w-[72px] md:justify-end" : "flex-wrap justify-end md:min-w-[112px] md:flex-col md:items-end"
+            "flex min-w-0 shrink-0 flex-wrap items-center gap-2 md:items-start",
+            compactListMode ? "justify-start md:min-w-[72px] md:justify-end" : "justify-start border-t border-border pt-3 dark:border-white/10 md:min-w-[112px] md:flex-col md:items-end md:border-0 md:pt-0"
           )}>
             {isEmployer ? (
               <>

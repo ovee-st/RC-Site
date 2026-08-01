@@ -85,7 +85,7 @@ export default function JobsPage() {
             <button
               type="button"
               onClick={closeSelectedJob}
-              className="sticky top-0 z-10 ml-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full border border-border bg-surface text-text-muted shadow-soft transition hover:border-primary/25 hover:text-primary dark:border-white/10 dark:bg-slate-900"
+              className="sticky top-0 z-10 ml-auto mb-4 flex h-11 w-11 items-center justify-center rounded-full border border-border bg-surface text-text-muted shadow-soft transition hover:border-primary/25 hover:text-primary dark:border-white/10 dark:bg-slate-900"
               aria-label="Close details"
             >
               <X className="h-5 w-5" />

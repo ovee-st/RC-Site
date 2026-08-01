@@ -38,10 +38,23 @@ export default function ContactPage() {
           <Card className="rounded-md p-4 sm:p-6">
             <h2 className="text-xl font-black text-text-main dark:text-white">How can we help?</h2>
             <form className="mt-5 grid gap-4">
-              <Input name="name" placeholder="Your name" />
-              <Input name="email" type="email" placeholder="Work or personal email" />
-              <Input name="subject" placeholder="What do you need help with?" />
-              <textarea name="message" placeholder="Share the details our team should know" rows={6} className="rounded-md border border-border bg-white px-4 py-3 text-base font-semibold outline-none transition placeholder:text-text-muted focus:border-primary focus:ring-4 focus:ring-primary/10 sm:text-sm dark:border-white/10 dark:bg-white/5 dark:text-white" />
+              <label htmlFor="contact-name" className="grid gap-2 text-sm font-bold text-text-main dark:text-white">
+                Name
+                <Input id="contact-name" name="name" placeholder="Your name" autoComplete="name" />
+              </label>
+              <label htmlFor="contact-email" className="grid gap-2 text-sm font-bold text-text-main dark:text-white">
+                Email
+                <Input id="contact-email" name="email" type="email" placeholder="Work or personal email" autoComplete="email" />
+              </label>
+              <label htmlFor="contact-subject" className="grid gap-2 text-sm font-bold text-text-main dark:text-white">
+                Subject
+                <Input id="contact-subject" name="subject" placeholder="What do you need help with?" />
+              </label>
+              <label htmlFor="contact-message" className="grid gap-2 text-sm font-bold text-text-main dark:text-white">
+                Message
+                <span className="text-xs font-medium text-text-muted dark:text-slate-400">Include the context our team needs to route your request correctly.</span>
+                <textarea id="contact-message" name="message" placeholder="Share the details our team should know" rows={6} className="focus-ring rounded-control border border-border bg-white px-4 py-3 text-base font-medium text-text-main outline-none transition placeholder:font-normal placeholder:text-slate-400 hover:border-primary/30 focus:border-primary sm:text-sm dark:border-white/10 dark:bg-white/5 dark:text-white" />
+              </label>
               <Button type="button" className="w-full justify-center sm:w-auto">Send Your Message</Button>
             </form>
           </Card>
