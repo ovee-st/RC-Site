@@ -16,7 +16,6 @@ import {
   CreditCard,
   Download,
   Edit3,
-  Eye,
   FileText,
   Gift,
   LayoutDashboard,

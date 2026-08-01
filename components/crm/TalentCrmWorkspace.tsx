@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { BarChart3, BriefcaseBusiness, Building2, FileSignature, Loader2, Mail, Plus, RefreshCw, Search, Share2, Sparkles, UserPlus, UsersRound } from "lucide-react";
 import { compactAuthHeaders } from "@/lib/compactAuthToken";
 import type { RediscoveryCandidateDto, TalentCrmMetrics, TalentPoolDto, TalentPoolMemberDto } from "@/types/talentCrm";

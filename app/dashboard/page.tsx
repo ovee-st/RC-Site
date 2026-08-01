@@ -17,7 +17,6 @@ import AnalyticsPanel from "@/components/dashboard/AnalyticsPanel";
 import JobRecommendations from "@/components/dashboard/JobRecommendations";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import type { CandidateAnalytics, CandidateDocument, CandidateNotification, CandidateProfile, InterviewEvent, RecruiterMessage, SkillAssessment } from "@/types/candidate";
 import type { CandidateApplication, JobRecommendation } from "@/types/application";

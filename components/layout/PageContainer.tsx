@@ -1,5 +1,4 @@
 import { HTMLAttributes } from "react";
-import { cn } from "@/lib/cn";
 import Container from "@/components/layout/Container";
 import Section from "@/components/layout/Section";
 

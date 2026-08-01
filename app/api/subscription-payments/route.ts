@@ -47,7 +47,7 @@ async function getEmployerContext(adminClient: ReturnType<typeof createServerSup
     .select("role")
     .eq("id", authData.user.id)
     .maybeSingle();
-  const { data: userTypeProfile, error: userTypeError } = await adminClient
+  const { data: userTypeProfile } = await adminClient
     .from("profiles")
     .select("user_type")
     .eq("id", authData.user.id)
@@ -56,18 +56,6 @@ async function getEmployerContext(adminClient: ReturnType<typeof createServerSup
   const metadata = authData.user.user_metadata || {};
   const detectedRole = String(profile?.role || metadata.role || "").trim().toLowerCase();
   const detectedUserType = String(userTypeProfile?.user_type || metadata.user_type || metadata.userType || "").trim().toLowerCase();
-  console.info("[subscription-payments/create] authenticated user detected", {
-    userId: authData.user.id,
-    email: authData.user.email,
-    profileRole: profile?.role || null,
-    profileUserType: userTypeProfile?.user_type || null,
-    profileUserTypeError: userTypeError?.message || null,
-    metadataRole: metadata.role || null,
-    metadataUserType: metadata.user_type || metadata.userType || null,
-    detectedRole,
-    detectedUserType
-  });
-
   if (detectedRole !== "employer" && detectedUserType !== "employer") {
     throw new Error(`Only employers can submit subscription payment proof. Detected role: ${detectedRole || detectedUserType || "unknown"}.`);
   }
@@ -109,7 +97,6 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const planId = String(body.plan_id || body.planId || "").trim();
   const planSlug = String(body.plan_slug || body.planSlug || "").trim();
-  const selectedPlan = body.selected_plan || body.selectedPlan || null;
   const couponCode = String(body.coupon_code || body.couponCode || "").trim();
   const transactionId = String(body.transaction_id || body.transactionId || "").trim();
   const senderLast3Digits = String(body.sender_last_3_digits || body.senderLast3Digits || "").trim();
@@ -123,15 +110,6 @@ export async function POST(request: Request) {
 
     const adminClient = createServerSupabaseClient();
     const { user, employer } = await getEmployerContext(adminClient, token);
-    console.info("[subscription-payments/create] payload received", {
-      employerId: employer.id,
-      planId,
-      planSlug,
-      selectedPlan,
-      couponCode,
-      billingCycle,
-      paymentMethod
-    });
     let plan;
     try {
       plan = await getActivePlan(adminClient, planId || planSlug);
@@ -153,19 +131,6 @@ export async function POST(request: Request) {
       assertValidTransactionId(storedTransactionId);
       assertValidSenderDigits(storedSenderLast3Digits);
     }
-
-    console.info("[subscription-payments/create] resolved", {
-      employerId: employer.id,
-      requestedPlanId: planId,
-      resolvedPlanId: plan.id,
-      resolvedPlanSlug: plan.slug,
-      couponId: breakdown.coupon?.id ?? null,
-      couponCode: breakdown.coupon?.code ?? null,
-      originalAmount: breakdown.originalAmount,
-      discountAmount: breakdown.discountAmount,
-      finalAmount: breakdown.finalAmount,
-      zeroAmountPayment
-    });
 
     const duplicate = await adminClient
       .from("subscription_payment_requests")

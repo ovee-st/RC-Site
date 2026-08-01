@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { Award, CheckCircle2, Code2, GraduationCap } from "lucide-react";
+import { Award, Code2, GraduationCap } from "lucide-react";
 import type { SkillAssessment } from "@/types/candidate";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";

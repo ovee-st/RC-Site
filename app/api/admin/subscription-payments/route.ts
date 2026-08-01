@@ -103,7 +103,6 @@ export async function GET(request: Request) {
     const { data, error } = await query;
     const queryDuration = performance.now() - queryStartedAt;
     if (error) throw error;
-    console.info(`[admin-subscription-payments] payment_requests query completed in ${queryDuration.toFixed(1)}ms (${(data || []).length} rows)`);
     const response = NextResponse.json({ ok: true, requests: data || [] });
     response.headers.set("Server-Timing", [
       `admin-subscription-payments;dur=${(performance.now() - startedAt).toFixed(1)}`,

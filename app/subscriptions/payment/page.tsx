@@ -101,36 +101,13 @@ export default function ManualSubscriptionPaymentPage() {
   }, [selectedPlan.id]);
 
   async function getToken() {
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    const { data: sessionData } = await supabase.auth.getSession();
     let session = sessionData.session;
 
     if (!session && isSupabaseConfigured) {
-      const refresh = await supabase.auth.refreshSession().catch((error) => ({ data: { session: null }, error }));
+      const refresh = await supabase.auth.refreshSession().catch(() => ({ data: { session: null } }));
       session = refresh.data.session;
-      console.info("[subscription-payment-ui] refresh session result", {
-        hasSession: Boolean(session),
-        error: refresh.error?.message || null
-      });
     }
-
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-    console.info("[subscription-payment-ui] auth state before payment submit", {
-      authContextUserId: authUser?.id || null,
-      authContextEmail: authUser?.email || null,
-      authContextRole: authRole,
-      authContextUserType: authUser?.user_metadata?.user_type || null,
-      authLoading,
-      supabaseConfigured: isSupabaseConfigured,
-      hasSession: Boolean(session),
-      sessionUserId: session?.user?.id || null,
-      sessionUserRole: session?.user?.user_metadata?.role || null,
-      sessionUserType: session?.user?.user_metadata?.user_type || null,
-      getUserId: userData.user?.id || null,
-      getUserRole: userData.user?.user_metadata?.role || null,
-      getUserType: userData.user?.user_metadata?.user_type || null,
-      sessionError: sessionError?.message || null,
-      userError: userError?.message || null
-    });
 
     return session?.access_token || "";
   }
@@ -237,10 +214,6 @@ export default function ManualSubscriptionPaymentPage() {
         payment_screenshot: isZeroAmountPayment ? null : paymentScreenshot,
         billing_cycle: selectedPlan.billingType === "one-time" ? "one_time" : "monthly"
       };
-      console.info("[subscription-payment-ui] submit payment request", {
-        selectedPlan,
-        payload
-      });
       const response = await fetch("/api/subscription-payments", {
         method: "POST",
         headers: {
@@ -250,11 +223,6 @@ export default function ManualSubscriptionPaymentPage() {
         body: JSON.stringify(payload)
       });
       const responsePayload = await response.json().catch(() => ({}));
-      console.info("[subscription-payment-ui] submit payment response", {
-        ok: response.ok,
-        status: response.status,
-        responsePayload
-      });
       if (!response.ok) throw new Error(formatCouponMessageValue(responsePayload?.error || responsePayload) || "Could not submit payment request.");
       analyticsEvents.employerSubscriptionPurchase(selectedPlan.id, breakdown.finalAmount, paymentMethod);
       setMessageTone("success");

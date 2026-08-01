@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const protectedPrefixes = ["/admin", "/employee", "/employer", "/candidate", "/support"];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const requestHeaders = new Headers(request.headers);
   const correlationId = requestHeaders.get("x-correlation-id") || crypto.randomUUID();

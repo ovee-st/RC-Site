@@ -16,7 +16,6 @@ import {
   Settings,
   Sparkles,
   TicketCheck,
-  UserCog,
   UsersRound
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -40,7 +39,7 @@ const navItems = [
 
 export default function SupportLayout({ children, activeView = "dashboard" }: { children: ReactNode; activeView?: string }) {
   const pathname = usePathname();
-  const { user, role, loading } = useAuth();
+  const { role, loading } = useAuth();
 
   if (loading) {
     return <main className="grid min-h-[70vh] place-items-center px-6"><Card className="rounded-3xl p-6 font-bold text-text-muted">Loading support portal...</Card></main>;

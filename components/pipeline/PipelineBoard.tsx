@@ -13,7 +13,6 @@ import type { PipelineCandidateDto, PipelineDto, PipelineStageDto } from "@/type
 import ApplicationWorkflowDrawer from "@/components/pipeline/ApplicationWorkflowDrawer";
 import RecruiterDashboardMetrics from "@/components/pipeline/RecruiterDashboardMetrics";
 import Badge from "@/components/ui/Badge";
-import Card from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
 import Input from "@/components/ui/Input";

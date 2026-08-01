@@ -4,29 +4,22 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
-  ArrowUpRight,
-  BarChart3,
   BookOpen,
   CheckCircle2,
   Clock3,
-  FileText,
   Inbox,
-  LifeBuoy,
   MessageCircle,
-  NotebookTabs,
-  Send,
   ShieldCheck,
   Sparkles,
   Timer,
   UserRoundCheck,
-  UsersRound,
   Zap
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { isSupabaseConfigured } from "@/lib/supabaseClient";
 import { compactAuthHeaders } from "@/lib/compactAuthToken";
-import { isSupportStaffRole, canManageSupportAssignments, canEscalateSupport } from "@/lib/supportRoles";
-import { ticketStatuses, formatTicketStatus } from "@/lib/support";
+import { isSupportStaffRole } from "@/lib/supportRoles";
+import { formatTicketStatus } from "@/lib/support";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -64,12 +57,6 @@ const slaTargets = [
 async function authHeaders(): Promise<Record<string, string>> {
   if (!isSupabaseConfigured) return {};
   return compactAuthHeaders("SUPPORT_OPERATIONS_LIVE_CHAT");
-}
-
-function metricTone(value: number, warning = 5) {
-  if (value >= warning) return "text-amber-600 dark:text-amber-300";
-  if (value > 0) return "text-primary";
-  return "text-text-main dark:text-white";
 }
 
 function OpsMetric({ label, value, icon: Icon, helper }: { label: string; value: string | number; icon: any; helper: string }) {

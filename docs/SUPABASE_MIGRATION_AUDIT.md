@@ -9,11 +9,11 @@ Static inventory after the corrections:
 
 | Object | Count |
 | --- | ---: |
-| Public tables | 66 |
+| Public tables | 76 |
 | Foreign-key references | 145 |
-| Indexes | 84 |
-| RLS-enabled public tables | 66 |
-| Policies | 138 |
+| Indexes | 105 |
+| RLS-enabled public tables | 76 |
+| Policies | 144 |
 | Functions | 20 declarations / 19 names |
 | Triggers | 8 |
 

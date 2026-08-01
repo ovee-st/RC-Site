@@ -144,7 +144,6 @@ export default function LoginPage() {
       ? await supabase.auth.signInWithPassword({ email, password })
       : await supabase.auth.signUp({ email, password, options: { data: { full_name: name, role } } });
     setLoading(false);
-    const defaultProfile = getDefaultProfile(role, name);
     if (response.error) {
       setMessage(response.error.message);
       return;

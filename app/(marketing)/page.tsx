@@ -1,55 +1,26 @@
 "use client";
 
-import { motion } from "framer-motion";
-import {
-  ArrowRight,
-  Brain,
-  BriefcaseBusiness,
-  Building2,
-  KanbanSquare,
-  MessageSquareText,
-  ShieldCheck,
-  Sparkles,
-  Users
-} from "lucide-react";
+import dynamic from "next/dynamic";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import { LinkButton } from "@/components/ui/Button";
 import Container from "@/components/layout/Container";
 import { useAuth } from "@/hooks/useAuth";
-import StatsCards from "@/components/dashboard/StatsCards";
-import AIInsights from "@/components/dashboard/AIInsights";
-import ApplicationPipeline from "@/components/dashboard/ApplicationPipeline";
-import InterviewSection from "@/components/dashboard/InterviewSection";
-import AnalyticsPanel from "@/components/dashboard/AnalyticsPanel";
-import JobRecommendations from "@/components/dashboard/JobRecommendations";
-import ResumeSection from "@/components/dashboard/ResumeSection";
-import EmployerCommandCenter from "@/components/dashboard/EmployerCommandCenter";
-import DailyBrief from "@/components/ai-workspace/DailyBrief";
 import PublicHome from "@/components/home/PublicHome";
-import AdminPanel from "@/components/admin/AdminPanel";
 import type { CandidateAnalytics, CandidateDocument, CandidateProfile, InterviewEvent } from "@/types/candidate";
 import type { CandidateApplication, JobRecommendation } from "@/types/application";
 import { normalizeProfileImageUrl } from "@/lib/profileImageSync";
 
-const steps = [
-  { title: "Post the role", text: "Add category, skills, salary, deadline, and workplace preferences in a structured hiring form." },
-  { title: "AI ranks talent", text: "Profiles are matched by structured data and semantic similarity so strong fits surface first." },
-  { title: "Review top matches", text: "Recruiters see the top 5-10 candidates with explainable score breakdowns and missing skills." },
-  { title: "Move to hire", text: "Invite, shortlist, interview, and close roles from the ATS pipeline with fewer manual handoffs." }
-];
-
-const categories = [
-  { title: "White Collar", text: "Admin, HR, finance, customer support, IT, operations, sales, and office roles.", icon: Building2 },
-  { title: "Blue Collar", text: "Drivers, cleaners, security, production, hospitality, warehouse, and field teams.", icon: BriefcaseBusiness },
-  { title: "Business Promoters", text: "Promoters, brand ambassadors, field activation, retail support, and campaign staff.", icon: Users }
-];
-
-const outcomes = [
-  { label: "48h", title: "shortlist delivery", text: "Move from job post to qualified candidate review in days, not weeks." },
-  { label: "90%", title: "match accuracy target", text: "Blend AI similarity with structured hiring criteria for reliable ranking." },
-  { label: "10k+", title: "candidate pool", text: "Centralize candidates, skills, CVs, applications, and recruiter actions." }
-];
+const StatsCards = dynamic(() => import("@/components/dashboard/StatsCards"));
+const AIInsights = dynamic(() => import("@/components/dashboard/AIInsights"));
+const ApplicationPipeline = dynamic(() => import("@/components/dashboard/ApplicationPipeline"));
+const InterviewSection = dynamic(() => import("@/components/dashboard/InterviewSection"));
+const AnalyticsPanel = dynamic(() => import("@/components/dashboard/AnalyticsPanel"));
+const JobRecommendations = dynamic(() => import("@/components/dashboard/JobRecommendations"));
+const ResumeSection = dynamic(() => import("@/components/dashboard/ResumeSection"));
+const EmployerCommandCenter = dynamic(() => import("@/components/dashboard/EmployerCommandCenter"));
+const DailyBrief = dynamic(() => import("@/components/ai-workspace/DailyBrief"));
+const AdminPanel = dynamic(() => import("@/components/admin/AdminPanel"));
 
 const candidateHomeProfile: CandidateProfile = {
   id: "candidate-home",

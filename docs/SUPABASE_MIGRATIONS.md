@@ -12,6 +12,8 @@ Apply the root-level Supabase SQL files in the exact order defined by
   hardens its policies, timestamps, indexes, and schema diagnostics.
 - Performance indexes run after all feature tables exist.
 - Platform hardening runs last because it indexes ATS tables.
+- Production readiness adds the platform notification table used by account,
+  support, subscription, and communication workflows.
 
 Every migration is intended to be rerunnable. Run `npm test --
 tests/migrationChain.test.ts` before deployment to verify the manifest, table

@@ -1,5 +1,4 @@
 ﻿import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
 import AppLayout from "@/components/layout/AppLayout";
@@ -8,7 +7,6 @@ import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
 import { DEFAULT_DESCRIPTION, DEFAULT_TITLE, SITE_NAME, SITE_URL } from "@/lib/seo";
 import { generateOrganizationSchema, generateWebsiteSchema, serializeJsonLd } from "@/lib/schema";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const organizationSchema = generateOrganizationSchema({
   name: SITE_NAME,
   url: SITE_URL.toString(),
@@ -99,7 +97,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </head>
-      <body className={inter.variable}>
+      <body>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(organizationSchema) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(websiteSchema) }} />
         <AuthProvider>

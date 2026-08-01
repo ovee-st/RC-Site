@@ -88,7 +88,6 @@ type SelectedEmployerPlan = {
 };
 
 function logSubscriptionDebug(message: string, details: Record<string, unknown>, debugTrail?: SubscriptionDebugEvent[]) {
-  console.info(`[subscription-payments/debug] ${message}`, details);
   debugTrail?.push({ step: message, details });
 }
 

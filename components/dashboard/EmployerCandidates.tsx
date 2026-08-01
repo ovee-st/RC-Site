@@ -10,7 +10,6 @@ import Input from "@/components/ui/Input";
 import { demoCandidates } from "@/lib/demoData";
 import { matchCandidateToJob } from "@/lib/ai/matching";
 import type { Candidate } from "@/types";
-import { cn } from "@/lib/cn";
 import { useJobStore } from "@/store/useJobStore";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";

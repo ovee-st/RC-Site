@@ -370,7 +370,6 @@ export default function TicketCenter({ mode }: TicketCenterProps) {
   const isAgent = mode === "employee" || mode === "admin";
   const currentRole = normalizeSupportRole(roleValue);
   const userMetadata = (user?.user_metadata || {}) as Record<string, unknown>;
-  const displayName = user?.name || user?.user_metadata?.full_name || user?.email || "MXVL User";
   const username = user?.username || String(userMetadata.username || "") || `${currentRole}_${String(user?.id || "000000").slice(0, 6)}`;
   const selectedTicket = tickets.find((ticket) => ticket.id === selectedTicketId) || null;
   const selectedMessages = selectedTicket ? messagesByTicket[selectedTicket.id] || [] : [];

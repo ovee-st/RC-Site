@@ -35,7 +35,6 @@ export default function GoogleAnalytics() {
     if (lastPagePathRef.current === nextPagePath) return;
     track({ event: "page_view", page_location: pageLocation, page_title: pageTitle });
     lastPagePathRef.current = nextPagePath;
-    console.log("GA pageview sent", nextPagePath);
   }, [pathname]);
 
   if (!GA_MEASUREMENT_ID) return null;
@@ -53,8 +52,6 @@ export default function GoogleAnalytics() {
           window.gtag = gtag;
           gtag('js', new Date());
           gtag('config', '${GA_MEASUREMENT_ID}');
-          console.log('GA initialized');
-          console.log('GA pageview sent', window.location.pathname + window.location.search);
         `}
       </Script>
     </>

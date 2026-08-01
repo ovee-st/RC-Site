@@ -461,7 +461,6 @@ async function loadRecords(token: string, refreshToken: string, section: string,
       const rows = await safeSelect(adminClient, table);
       const duration = performance.now() - queryStartedAt;
       timings.push({ table, duration });
-      console.info(`[admin-records] ${table} query completed in ${duration.toFixed(1)}ms (${rows.length} rows)`);
       return [table, rows] as const;
     })
   );

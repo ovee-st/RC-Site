@@ -73,7 +73,7 @@ export async function readRecruitingRequest(request: Request) {
   let client: ReturnType<typeof createServerSupabaseClient>;
   try {
     client = createServerSupabaseClient();
-  } catch (error) {
+  } catch {
     return { response: NextResponse.json({ error: "Recruiting assistance is temporarily unavailable." }, { status: 500 }) } as const;
   }
 

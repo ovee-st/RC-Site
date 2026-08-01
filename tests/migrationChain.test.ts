@@ -100,6 +100,7 @@ describe("Supabase migration chain", () => {
     before("supabase-talent-crm-stabilization.sql", "supabase-performance-indexes.sql");
     before("supabase-talent-crm.sql", "supabase-platform-hardening.sql");
     before("supabase-platform-hardening.sql", "supabase-operations-intelligence.sql");
+    before("supabase-operations-intelligence.sql", "supabase-production-readiness.sql");
   });
 
   it("only creates indexes on existing public table columns", () => {
@@ -174,5 +175,16 @@ describe("Supabase migration chain", () => {
     expect(operations).toContain("feedback_hub");
     expect(operations).toContain("enable row level security");
     expect(operations).not.toMatch(/create\s+policy/i);
+  });
+
+  it("creates the platform notification contract used by application routes", () => {
+    const notifications = schema.get("notifications");
+    for (const column of ["id", "user_id", "type", "title", "message", "is_read", "href", "redirect_url", "created_at"]) {
+      expect(notifications, `public.notifications.${column}`).toContain(column);
+    }
+    const readiness = readFileSync(resolve(root, "supabase-production-readiness.sql"), "utf8");
+    expect(readiness).toContain("alter table public.notifications enable row level security");
+    expect(readiness).toContain("notifications_select_own");
+    expect(readiness).toContain("file_size_limit = excluded.file_size_limit");
   });
 });
