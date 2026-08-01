@@ -15,21 +15,21 @@ export default function HeroSection() {
         <div className="min-w-0 text-center sm:text-left">
           <Badge variant="primary" className="uppercase tracking-[0.16em]">AI Recruitment Operating System</Badge>
           <h1 className="mx-auto mt-4 max-w-4xl break-words text-[clamp(2.5rem,12vw,3.6rem)] font-black leading-[1.02] tracking-normal text-slate-950 dark:text-white sm:mx-0 sm:mt-6 sm:text-6xl lg:text-7xl">
-            Find Jobs. Hire Talent. <span className="bg-gradient-to-r from-blue-600 to-red-600 bg-clip-text text-transparent">Grow Together.</span>
+            One operating system for <span className="bg-gradient-to-r from-blue-600 to-red-600 bg-clip-text text-transparent">recruitment.</span>
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-slate-600 dark:text-slate-300 sm:mx-0 sm:mt-6 sm:text-lg sm:leading-8">
-            Find work that fits your ambitions or build a stronger team with one connected system for matching, recruiting, and career growth.
+            Candidates improve how they present, apply, and prepare. Employers source, evaluate, interview, hire, and nurture talent in one connected workspace.
           </p>
           <div className="mt-7 grid grid-cols-2 gap-3 sm:mt-8 sm:flex sm:flex-wrap">
             <LinkButton href="/jobs" className="w-full rounded-2xl px-4 py-4 text-sm font-black shadow-glow sm:w-auto sm:px-7 sm:text-base">
-              Explore Opportunities <ArrowRight className="ml-2 h-5 w-5" />
+              Start Your Career Journey <ArrowRight className="ml-2 h-5 w-5" />
             </LinkButton>
             <LinkButton href="/login" variant="secondary" className="w-full rounded-2xl px-4 py-4 text-sm font-black sm:w-auto sm:px-7 sm:text-base">
-              Start Hiring Smarter
+              Build Your Hiring Engine
             </LinkButton>
           </div>
           <p className="mt-4 flex items-start justify-center gap-2 text-left text-xs font-semibold leading-5 text-slate-500 dark:text-slate-400 sm:mt-5 sm:items-center sm:justify-start sm:text-sm">
-            <ShieldCheck className="h-4 w-4 text-emerald-500" /> Clearer career moves. More confident hiring decisions.
+            <ShieldCheck className="h-4 w-4 text-emerald-500" /> Explainable AI informs each step. People remain in control.
           </p>
         </div>
         <DashboardMockup />

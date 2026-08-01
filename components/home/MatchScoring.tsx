@@ -1,66 +1,41 @@
-﻿"use client";
+"use client";
 
-import { motion, useReducedMotion } from "framer-motion";
-import { Info, Sparkles } from "lucide-react";
+import { BadgeCheck, BrainCircuit, FileSearch, Scale, ShieldCheck, UserCheck } from "lucide-react";
 import Badge from "@/components/ui/Badge";
 import Card from "@/components/ui/Card";
 import Container from "@/components/layout/Container";
 import FadeInSection from "./FadeInSection";
+import BrandFlow from "./BrandFlow";
 
-const scores = [
-  { label: "Skills Match", value: 95, color: "bg-emerald-500" },
-  { label: "Experience Match", value: 92, color: "bg-emerald-500" },
-  { label: "Communication", value: 88, color: "bg-blue-500" },
-  { label: "Availability", value: 96, color: "bg-emerald-500" },
-  { label: "Salary Alignment", value: 90, color: "bg-yellow-400" }
+const reasoningFlow = [
+  { label: "Observation", detail: "What the record contains", icon: FileSearch },
+  { label: "Evidence", detail: "The source behind the signal", icon: BadgeCheck },
+  { label: "Confidence", detail: "How complete the evidence is", icon: BrainCircuit },
+  { label: "Recommendation", detail: "A reviewable next step", icon: ShieldCheck },
+  { label: "Human decision", detail: "A person chooses the outcome", icon: UserCheck }
+];
+
+const trustPrinciples = [
+  { title: "No hidden conclusion", text: "Recommendations show their supporting signals and unknowns." },
+  { title: "No automatic hiring decision", text: "Recruiters review, edit, accept, or reject every recommendation." },
+  { title: "No certainty theater", text: "MXVL distinguishes recorded observations, estimates, and recommendations." }
 ];
 
 export default function MatchScoring() {
-  const reduceMotion = useReducedMotion();
-
   return (
     <FadeInSection className="section-radial py-16 md:py-24">
       <Container>
-        <Card className="grid gap-8 overflow-hidden rounded-[2rem] p-6 md:p-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
-          <div>
-            <Badge variant="success"><Sparkles className="mr-1 h-3.5 w-3.5" /> Explainable AI with human control</Badge>
-            <h2 className="mt-4 text-3xl font-black tracking-normal text-slate-950 dark:text-white md:text-5xl">Transparent matching for jobs and talent.</h2>
-            <p className="mt-4 text-base leading-7 text-slate-600 dark:text-slate-300">Candidates see why a role may suit their profile. Employers see the signals behind a candidate recommendation, then review and decide for themselves. AI informs the process; it does not replace human judgment.</p>
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-400/20 dark:bg-blue-950/30">
-                <p className="text-xs font-black uppercase tracking-normal text-blue-600 dark:text-blue-300">For Candidates</p>
-                <p className="mt-2 text-sm font-bold text-slate-700 dark:text-slate-200">Understand which profile signals shaped each recommendation.</p>
-              </div>
-              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-400/20 dark:bg-emerald-950/30">
-                <p className="text-xs font-black uppercase tracking-normal text-emerald-600 dark:text-emerald-300">For Employers</p>
-                <p className="mt-2 text-sm font-bold text-slate-700 dark:text-slate-200">Review ranked fit signals before making your own shortlist.</p>
-              </div>
+        <Card className="overflow-hidden rounded-[2rem] p-6 md:p-8">
+          <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
+            <div>
+              <Badge variant="success"><Scale className="mr-1 h-3.5 w-3.5" /> Explainable AI, human decision</Badge>
+              <h2 className="mt-4 text-3xl font-black tracking-normal text-slate-950 dark:text-white md:text-5xl">See how a recommendation is formed.</h2>
+              <p className="mt-4 text-base leading-7 text-slate-600 dark:text-slate-300">MXVL organizes available evidence and proposes a next step. It also shows uncertainty, so candidates and employers can judge the recommendation rather than simply trust a score.</p>
             </div>
+            <div className="rounded-2xl border border-violet-200 bg-violet-50/70 p-4 dark:border-violet-400/20 dark:bg-violet-500/5 sm:p-5"><BrandFlow steps={reasoningFlow} tone="violet" compact /></div>
           </div>
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 dark:border-white/10 dark:bg-white/5">
-            <div className="mb-5 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Illustrative Match Breakdown</p>
-                <p className="mt-1 text-4xl font-black text-slate-950 dark:text-white">94%</p>
-              </div>
-              <div className="grid h-12 w-12 place-items-center rounded-2xl bg-blue-600 text-white"><Info /></div>
-            </div>
-            <div className="space-y-4">
-              {scores.map((score, index) => (
-                <div key={score.label}>
-                  <div className="mb-2 flex justify-between text-sm font-bold text-slate-600 dark:text-slate-300"><span>{score.label}</span><span>{score.value}%</span></div>
-                  <div className="h-2.5 rounded-full bg-slate-200 dark:bg-slate-800">
-                    <motion.div
-                      className={`${score.color} h-2.5 rounded-full`}
-                      initial={reduceMotion ? false : { width: 0 }}
-                      whileInView={reduceMotion ? undefined : { width: `${score.value}%` }}
-                      viewport={{ once: false }}
-                      transition={{ duration: 1.1, delay: index * 0.08, repeat: Infinity, repeatType: "reverse", repeatDelay: 1.5 }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
+          <div className="mt-8 grid gap-3 border-t border-slate-200 pt-6 dark:border-white/10 md:grid-cols-3">
+            {trustPrinciples.map((principle) => <div key={principle.title} className="rounded-xl bg-slate-50 p-4 dark:bg-white/[0.04]"><h3 className="text-sm font-black text-slate-950 dark:text-white">{principle.title}</h3><p className="mt-2 text-xs font-semibold leading-5 text-slate-500 dark:text-slate-400">{principle.text}</p></div>)}
           </div>
         </Card>
       </Container>

@@ -1,33 +1,16 @@
 "use client";
 
-import { BriefcaseBusiness, CheckCircle2, UserRound } from "lucide-react";
+import { ArrowRight, FileSearch, Network, Route } from "lucide-react";
 import Badge from "@/components/ui/Badge";
 import Card from "@/components/ui/Card";
 import Container from "@/components/layout/Container";
 import FadeInSection from "./FadeInSection";
 
-const candidateBenefits = ["Discover roles that fit", "Present a stronger resume", "Prepare for interviews with confidence", "Track every application", "Build career momentum"];
-const employerBenefits = ["Surface stronger candidates", "See hiring signals clearly", "Add expert recruiting capacity", "Build a reusable talent pipeline", "Move from shortlist to hire faster"];
-
-function BenefitColumn({ title, items, type }: { title: string; items: string[]; type: "candidate" | "employer" }) {
-  const candidate = type === "candidate";
-  return (
-    <Card variant="interactive" className="h-full rounded-3xl p-7">
-      <div className={`grid h-12 w-12 place-items-center rounded-2xl text-white ${candidate ? "bg-blue-600" : "bg-emerald-600"}`}>
-        {candidate ? <UserRound /> : <BriefcaseBusiness />}
-      </div>
-      <h3 className="mt-5 text-2xl font-black text-slate-950 dark:text-white">{title}</h3>
-      <div className="mt-6 grid gap-3">
-        {items.map((item) => (
-          <div key={item} className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
-            <CheckCircle2 className={`h-4 w-4 shrink-0 ${candidate ? "text-blue-600" : "text-emerald-600"}`} />
-            {item}
-          </div>
-        ))}
-      </div>
-    </Card>
-  );
-}
+const stories = [
+  { problem: "Recruiters lose time screening without a clear order.", solution: "MXVL organizes candidate evidence and explains fit signals.", outcome: "Teams focus attention on review, interviews, and decisions.", icon: FileSearch, tone: "blue" },
+  { problem: "Candidates often cannot see what happened after applying.", solution: "Applications, messages, interviews, and offers stay in one journey.", outcome: "Each person can see the current stage and the next useful action.", icon: Route, tone: "violet" },
+  { problem: "Hiring context gets split across tools and conversations.", solution: "ATS, AI, communication, offers, and Talent CRM share one workflow.", outcome: "Decisions remain accountable and promising talent stays connected.", icon: Network, tone: "emerald" }
+] as const;
 
 export default function ProblemSolution() {
   return (
@@ -35,11 +18,23 @@ export default function ProblemSolution() {
       <Container>
         <div className="mx-auto max-w-3xl text-center">
           <Badge variant="primary">Why MXVL</Badge>
-          <h2 className="mt-4 text-3xl font-black tracking-normal text-slate-950 dark:text-white md:text-5xl">Built for both sides of every great hire.</h2>
+          <h2 className="mt-4 text-3xl font-black tracking-normal text-slate-950 dark:text-white md:text-5xl">Turn recruitment friction into visible progress.</h2>
         </div>
-        <div className="mt-10 grid gap-6 lg:grid-cols-2">
-          <BenefitColumn title="Why Candidates Choose MXVL" items={candidateBenefits} type="candidate" />
-          <BenefitColumn title="Why Employers Choose MXVL" items={employerBenefits} type="employer" />
+        <div className="mt-10 grid gap-5 lg:grid-cols-3">
+          {stories.map((story) => {
+            const Icon = story.icon;
+            const iconTone = story.tone === "blue" ? "bg-blue-50 text-blue-600 dark:bg-blue-500/10" : story.tone === "violet" ? "bg-violet-50 text-violet-600 dark:bg-violet-500/10" : "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10";
+            return (
+              <Card key={story.problem} variant="interactive" className="h-full rounded-3xl p-6">
+                <span className={`grid h-11 w-11 place-items-center rounded-xl ${iconTone}`}><Icon className="h-5 w-5" /></span>
+                <p className="mt-5 text-xs font-black uppercase text-slate-400">Problem</p>
+                <h3 className="mt-2 text-lg font-black leading-7 text-slate-950 dark:text-white">{story.problem}</h3>
+                <div className="my-4 flex items-center gap-2 text-xs font-black text-blue-600"><ArrowRight className="h-4 w-4" />MXVL solution</div>
+                <p className="text-sm font-semibold leading-6 text-slate-600 dark:text-slate-300">{story.solution}</p>
+                <div className="mt-5 border-t border-slate-200 pt-4 dark:border-white/10"><p className="text-xs font-black uppercase text-emerald-600 dark:text-emerald-300">Outcome</p><p className="mt-2 text-sm font-bold leading-6 text-slate-800 dark:text-slate-200">{story.outcome}</p></div>
+              </Card>
+            );
+          })}
         </div>
       </Container>
     </FadeInSection>

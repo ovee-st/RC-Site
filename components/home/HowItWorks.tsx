@@ -1,16 +1,30 @@
-﻿"use client";
+"use client";
 
-import { ArrowRight } from "lucide-react";
+import { BadgeCheck, BriefcaseBusiness, FileSearch, FileText, Handshake, MessagesSquare, SearchCheck, Sparkles, Target, TrendingUp, UserCheck, UserRound, UsersRound } from "lucide-react";
 import Badge from "@/components/ui/Badge";
 import Card from "@/components/ui/Card";
 import Container from "@/components/layout/Container";
 import FadeInSection from "./FadeInSection";
+import BrandFlow from "./BrandFlow";
 
-const steps = [
-  { title: "Build Your Starting Point", text: "Showcase your experience as a candidate or define what a great hire looks like for your team." },
-  { title: "Discover Stronger Matches", text: "Relevant skills, experience, and role signals bring the right opportunities and people into focus." },
-  { title: "Move Forward with Clarity", text: "Apply, shortlist, prepare, interview, and keep every decision and next step visible." },
-  { title: "Turn the Right Match into Growth", text: "Land a role that moves your career forward or welcome a hire who strengthens your team." }
+const candidateJourney = [
+  { label: "Create profile", detail: "Present experience", icon: UserRound },
+  { label: "Resume analysis", detail: "Find evidence gaps", icon: FileSearch },
+  { label: "Job matching", detail: "See fit signals", icon: Target },
+  { label: "Apply", detail: "Track progress", icon: FileText },
+  { label: "Prepare", detail: "Practice by role", icon: Sparkles },
+  { label: "Interview", detail: "Move with context", icon: MessagesSquare },
+  { label: "Career growth", detail: "Choose the right offer", icon: TrendingUp }
+];
+
+const employerJourney = [
+  { label: "Create job", detail: "Define the need", icon: BriefcaseBusiness },
+  { label: "Optimize", detail: "Improve job clarity", icon: Sparkles },
+  { label: "Rank talent", detail: "Review evidence", icon: SearchCheck },
+  { label: "Shortlist", detail: "Keep decisions visible", icon: UserCheck },
+  { label: "Interview", detail: "Coordinate the team", icon: UsersRound },
+  { label: "Offer and hire", detail: "Close with control", icon: BadgeCheck },
+  { label: "Talent CRM", detail: "Nurture future talent", icon: Handshake }
 ];
 
 export default function HowItWorks() {
@@ -18,21 +32,19 @@ export default function HowItWorks() {
     <FadeInSection className="py-16 md:py-24">
       <Container>
         <div className="mb-10 max-w-3xl">
-          <Badge variant="primary">How it works</Badge>
-          <h2 className="mt-4 text-3xl font-black tracking-normal text-slate-950 dark:text-white md:text-5xl">From first signal to the right next step.</h2>
+          <Badge variant="primary">How MXVL works</Badge>
+          <h2 className="mt-4 text-3xl font-black tracking-normal text-slate-950 dark:text-white md:text-5xl">See the whole journey before you begin.</h2>
+          <p className="mt-4 text-base leading-7 text-slate-600 dark:text-slate-300">MXVL keeps the work before, during, and after a hiring decision connected for both sides.</p>
         </div>
-        <div className="relative grid gap-5 lg:grid-cols-4">
-          <div className="absolute left-0 right-0 top-10 hidden h-px bg-gradient-to-r from-blue-200 via-blue-500 to-red-200 lg:block" />
-          {steps.map((step, index) => (
-            <Card key={step.title} variant="interactive" className="relative rounded-3xl p-6">
-              <div className="mb-6 flex items-center justify-between">
-                <span className="grid h-12 w-12 place-items-center rounded-2xl bg-blue-600 text-lg font-black text-white shadow-lg">{index + 1}</span>
-                {index < steps.length - 1 ? <ArrowRight className="hidden h-5 w-5 text-blue-500 lg:block" /> : null}
-              </div>
-              <h3 className="text-lg font-black text-slate-950 dark:text-white">{step.title}</h3>
-              <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">{step.text}</p>
-            </Card>
-          ))}
+        <div className="grid gap-6">
+          <Card className="rounded-3xl p-5 sm:p-6">
+            <div className="mb-5 flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-blue-600 text-white"><UserRound className="h-5 w-5" /></span><div><p className="text-xs font-black uppercase text-blue-600 dark:text-blue-300">Candidate journey</p><h3 className="text-lg font-black text-slate-950 dark:text-white">From profile to career progress</h3></div></div>
+            <BrandFlow steps={candidateJourney} tone="blue" />
+          </Card>
+          <Card className="rounded-3xl p-5 sm:p-6">
+            <div className="mb-5 flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-600 text-white"><BriefcaseBusiness className="h-5 w-5" /></span><div><p className="text-xs font-black uppercase text-emerald-600 dark:text-emerald-300">Employer journey</p><h3 className="text-lg font-black text-slate-950 dark:text-white">From hiring need to lasting talent relationship</h3></div></div>
+            <BrandFlow steps={employerJourney} tone="emerald" />
+          </Card>
         </div>
       </Container>
     </FadeInSection>
