@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowRight, BadgeCheck, Bell, BriefcaseBusiness, Building2, CalendarClock, CheckCircle2, CreditCard, Eye, Home, Info, LogOut, Mail, Menu, Settings, UserRound, Users, X, XCircle, type LucideIcon } from "lucide-react";
+import { ArrowRight, BadgeCheck, Bell, BriefcaseBusiness, Building2, CalendarClock, CheckCircle2, CreditCard, Eye, Home, Info, LogOut, Mail, Menu, MessageSquare, Settings, UserRound, Users, X, XCircle, type LucideIcon } from "lucide-react";
 import { type MouseEvent as ReactMouseEvent, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -15,6 +15,8 @@ import { cn } from "@/lib/cn";
 import { clearStoredAuthIdentity, MOCK_USER_KEY } from "@/lib/accountIdentity";
 import { getBestAvatarUrl } from "@/lib/authUserSync";
 import { getProfileThumbnailUrl } from "@/lib/profileImageSync";
+import { compactAuthHeaders } from "@/lib/compactAuthToken";
+import { getSmartEngagement } from "@/lib/communications/smartEngagement";
 
 const SITE_LOGO_LIGHT = "/mxvl-logo.webp";
 const SITE_LOGO_DARK = "/mxvl-logo-dark.webp";
@@ -28,23 +30,27 @@ const navItemsByRole = {
   candidate: [
     { label: "Home", href: "/" },
     { label: "Jobs", href: "/jobs" },
-    { label: "My Applications", href: "/candidate/portal" }
+    { label: "My Applications", href: "/candidate/portal" },
+    { label: "Communication", href: "/communication-center" }
   ],
   employer: [
     { label: "Home", href: "/employer" },
     { label: "Jobs", href: "/jobs" },
     { label: "Candidates", href: "/employer/candidates" },
     { label: "Talent CRM", href: "/employer/talent-crm" },
+    { label: "Communication", href: "/communication-center" },
     { label: "We Hire for You", href: "/we-hire-for-you" },
     { label: "Plans", href: "/subscriptions" }
   ],
   employee: [
     { label: "Support Desk", href: "/employee" },
+    { label: "Communication", href: "/communication-center" },
     { label: "Tickets", href: "/employee/tickets" },
     { label: "Live Chat", href: "/employee/live-chat" }
   ],
   support: [
     { label: "Dashboard", href: "/support" },
+    { label: "Communication", href: "/communication-center" },
     { label: "Inbox", href: "/support/inbox" },
     { label: "Tickets", href: "/support/tickets" },
     { label: "Live Chat", href: "/support/live-chat" },
@@ -52,6 +58,7 @@ const navItemsByRole = {
   ],
   admin: [
     { label: "Admin", href: "/admin" },
+    { label: "Communication", href: "/communication-center" },
     { label: "Users", href: "/admin/users" },
     { label: "Candidates", href: "/admin/candidates" },
     { label: "Employers", href: "/admin/employers" },
@@ -61,6 +68,7 @@ const navItemsByRole = {
   ],
   viewer: [
     { label: "Admin", href: "/admin" },
+    { label: "Communication", href: "/communication-center" },
     { label: "Users", href: "/admin/users" },
     { label: "Candidates", href: "/admin/candidates" },
     { label: "Employers", href: "/admin/employers" },
@@ -646,9 +654,15 @@ export default function Navbar() {
   };
 
 
-  const clearRoleNotifications = () => {
+  const clearRoleNotifications = async () => {
     setClearedNotificationIds((previous) => Array.from(new Set([...previous, ...allRoleNotifications.map((notification) => notification.id)])));
     setNotificationsOpen(false);
+    try {
+      const auth = await compactAuthHeaders("navbar_notifications");
+      await fetch("/api/communication-center", { method: "PATCH", headers: { "Content-Type": "application/json", ...auth }, body: JSON.stringify({ action: "mark_all_read" }), keepalive: true });
+    } catch {
+      // The local cleared state keeps the bell responsive if the network is unavailable.
+    }
   };
 
   const notificationBell = showRoleNotifications ? (
@@ -668,6 +682,7 @@ export default function Navbar() {
             {visibleRoleNotifications.length > 9 ? "9+" : visibleRoleNotifications.length}
           </span>
         ) : null}
+        {visibleRoleNotifications.some((notification) => notification.tone === "red" || notification.tone === "amber") ? <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-amber-400 ring-2 ring-white dark:ring-slate-950" aria-label="Priority notification" /> : null}
       </button>
       <AnimatePresence>
         {notificationsOpen ? (
@@ -691,7 +706,7 @@ export default function Navbar() {
                   onClick={clearRoleNotifications}
                   className="rounded-full border border-gray-200 px-3 py-1.5 text-xs font-bold text-text-muted transition hover:border-blue-200 hover:text-primary dark:border-white/10 dark:text-slate-300 dark:hover:border-blue-400/40"
                 >
-                  Clear
+                  Mark all read
                 </button>
               ) : null}
             </div>
@@ -699,6 +714,7 @@ export default function Navbar() {
               {visibleRoleNotifications.length ? (
                 visibleRoleNotifications.map((notification) => {
                   const Icon = notification.icon;
+                  const guidance = getSmartEngagement({ role: resolvedRole === "employer" ? "employer" : "candidate", category: notification.title, title: notification.title, summary: notification.message, href: notification.href });
                   return (
                     <Link
                       key={notification.id}
@@ -712,6 +728,8 @@ export default function Navbar() {
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm font-black text-text-main dark:text-white">{notification.title}</span>
                         <span className="mt-1 block text-xs font-semibold leading-5 text-text-muted dark:text-slate-400">{notification.message}</span>
+                        <span className="mt-2 block text-[11px] font-semibold leading-4 text-text-muted dark:text-slate-400"><strong className="text-text-main dark:text-white">Why it matters:</strong> {guidance.whyItMatters}</span>
+                        <span className="mt-2 inline-flex items-center gap-1 text-[11px] font-black text-primary">Recommended: {guidance.recommendedAction.label}<ArrowRight className="h-3 w-3" /></span>
                         <span className="mt-2 block text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
                           {getNotificationTimeLabel(notification.createdAt)}
                         </span>
@@ -729,6 +747,7 @@ export default function Navbar() {
                 </div>
               )}
             </div>
+            <div className="border-t border-gray-100 p-3 dark:border-white/10"><Link href="/communication-center" onClick={() => setNotificationsOpen(false)} className="focus-ring flex min-h-11 items-center justify-center gap-2 rounded-control text-sm font-black text-primary hover:bg-primary/5"><MessageSquare className="h-4 w-4" />Open Communication Center</Link></div>
           </motion.div>
         ) : null}
       </AnimatePresence>
