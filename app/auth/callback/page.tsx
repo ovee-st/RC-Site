@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { roleHomeRoutes } from "@/lib/rbac";
-import { useUserStore } from "@/store/useUserStore";
+import { useAuth } from "@/hooks/useAuth";
 
 type OAuthRole = "candidate" | "employer";
 
@@ -17,7 +17,7 @@ function getSelectedRole(url: URL): OAuthRole {
 
 export default function AuthCallbackPage() {
   const router = useRouter();
-  const { setUser } = useUserStore();
+  const { refreshAuth } = useAuth();
   const [message, setMessage] = useState("Completing Google login...");
 
   useEffect(() => {
@@ -57,19 +57,12 @@ export default function AuthCallbackPage() {
         const profile = payload.profile || {};
         const metadata = authUser.user_metadata || {};
         const role = profile.role || metadata.role || selectedRole;
-        const name = profile.full_name || profile.name || metadata.full_name || metadata.name || authUser.email?.split("@")[0] || "MXVL User";
-        const avatar = profile.avatar_url || profile.photo_url || metadata.avatar_url || metadata.picture || metadata.photo_url || null;
-        const email = profile.email || authUser.email || "";
 
-        setUser({
-          id: authUser.id,
-          name,
-          email,
-          avatar
-        }, role);
+        await refreshAuth();
 
         if (!active) return;
         router.replace(roleHomeRoutes[role as keyof typeof roleHomeRoutes] || "/");
+        router.refresh();
       } catch (error) {
         if (!active) return;
         setMessage(error instanceof Error ? error.message : "Could not complete Google login.");
@@ -81,7 +74,7 @@ export default function AuthCallbackPage() {
     return () => {
       active = false;
     };
-  }, [router, setUser]);
+  }, [refreshAuth, router]);
 
   return (
     <main className="grid min-h-[calc(100vh-4rem)] place-items-center bg-bg px-6 dark:bg-slate-950">

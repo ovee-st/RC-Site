@@ -22,14 +22,14 @@ import {
 import { Button } from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
-import { useUserStore } from "@/store/useUserStore";
 import { cn } from "@/lib/cn";
 import { demoCandidates } from "@/lib/demoData";
-import { AUTH_CHANGE_EVENT, MOCK_USER_KEY, createStableUsername } from "@/lib/accountIdentity";
+import { MOCK_USER_KEY, createStableUsername } from "@/lib/accountIdentity";
 import { roleHomeRoutes } from "@/lib/rbac";
 import { analyticsEvents } from "@/lib/analytics";
 import PasswordAssistant from "@/components/auth/PasswordAssistant";
 import { getPasswordStrength } from "@/lib/passwordStrength";
+import { useAuth } from "@/hooks/useAuth";
 
 const metrics = [
   { value: "One", label: "Connected Workspace", icon: UsersRound, tone: "text-blue-600 dark:text-blue-300" },
@@ -97,7 +97,7 @@ async function resolveUserRole(authUser: { id?: string; email?: string | null; u
 
 export default function LoginPage() {
   const router = useRouter();
-  const { setUser } = useUserStore();
+  const { refreshAuth } = useAuth();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [role, setRole] = useState<LoginRole>("candidate");
   const [email, setEmail] = useState("");
@@ -109,7 +109,7 @@ export default function LoginPage() {
   const [passwordSubmitAttempted, setPasswordSubmitAttempted] = useState(false);
   const [capsLockOn, setCapsLockOn] = useState(false);
 
-  const persistAuthFallback = (nextUser: { id: string; name: string; email: string; avatar?: string; username?: string }, nextRole: ResolvedRole) => {
+  const persistMockAuth = (nextUser: { id: string; name: string; email: string; avatar?: string; username?: string }, nextRole: ResolvedRole) => {
     if (typeof window === "undefined") return;
     const username = nextUser.username || createStableUsername(nextUser.name, nextUser.email, nextUser.id);
 
@@ -125,7 +125,6 @@ export default function LoginPage() {
         role: nextRole
       }
     }));
-    window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
   };
 
   const submit = async (event?: FormEvent<HTMLFormElement>) => {
@@ -141,10 +140,11 @@ export default function LoginPage() {
     if (!isSupabaseConfigured) {
       const defaultProfile = getDefaultProfile(role, name);
       const fallbackUser = { id: "demo-user", name: defaultProfile.name, email, avatar: defaultProfile.avatar, username: createStableUsername(defaultProfile.name, email, "demo-user") };
-      setUser(fallbackUser, role);
-      persistAuthFallback(fallbackUser, role);
+      persistMockAuth(fallbackUser, role);
+      await refreshAuth();
       setLoading(false);
       router.push(role === "employer" ? "/employer" : "/");
+      router.refresh();
       return;
     }
 
@@ -162,18 +162,13 @@ export default function LoginPage() {
     const user = response.data.user;
     const resolvedRole = mode === "login" ? await resolveUserRole(user, role) : role;
     if (mode === "login") analyticsEvents.firstLogin(resolvedRole, "email");
-    const metadata = user?.user_metadata || {};
-    const resolvedDefaultProfile = getDefaultProfile(resolvedRole, name);
-    const displayName = metadata.full_name || metadata.name || resolvedDefaultProfile.name || email.split("@")[0];
-    const avatar = metadata.avatar_url || metadata.picture || metadata.photo_url || resolvedDefaultProfile.avatar;
-    const loggedInUser = { id: user?.id || "demo-user", name: displayName, email, avatar, username: metadata.username || createStableUsername(displayName, email, user?.id || "demo-user") };
-    setUser(loggedInUser, resolvedRole);
-    persistAuthFallback(loggedInUser, resolvedRole);
+    await refreshAuth();
     if (mode === "signup") {
       if (resolvedRole === "employer") analyticsEvents.employerRegistration();
       else analyticsEvents.candidateRegistration();
     }
     router.push(roleHomeRoutes[resolvedRole] || "/");
+    router.refresh();
   };
 
   const continueWithGoogle = async () => {

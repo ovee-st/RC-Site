@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { demoCandidates } from "@/lib/demoData";
 import { AUTH_CHANGE_EVENT, MOCK_USER_KEY, getStableUsername } from "@/lib/accountIdentity";
@@ -10,7 +10,8 @@ import { stripInlineAuthAvatarMetadata } from "@/lib/profileImageSync";
 export const AuthContext = createContext({
   user: null,
   loading: true,
-  role: null
+  role: null,
+  refreshAuth: async () => {}
 });
 
 const PROFILE_CACHE_TTL_MS = 60_000;
@@ -187,28 +188,36 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
+  const refreshAuthRef = useRef(async () => {});
+  const refreshAuth = useCallback(() => refreshAuthRef.current(), []);
 
   useEffect(() => {
     let active = true;
+    let authRevision = 0;
 
-    function applyMockUser() {
+    function isCurrent(revision) {
+      return active && revision === authRevision;
+    }
+
+    function applyMockUser(revision) {
       const mockUser = applyUserDefaults(getMockUser());
 
-      if (!active) return;
+      if (!isCurrent(revision)) return;
 
       setUser(mockUser);
       setRole(normalizeRole(mockUser?.role));
       setLoading(false);
     }
 
-    async function syncAuth(authUser) {
+    async function syncAuth(authUser, revision) {
       if (!authUser) {
         if (isSupabaseConfigured) {
+          if (!isCurrent(revision)) return;
           setUser(null);
           setRole(null);
           setLoading(false);
         } else {
-          applyMockUser();
+          applyMockUser(revision);
         }
         return;
       }
@@ -223,7 +232,7 @@ export function AuthProvider({ children }) {
       }
       const provisionalRole = normalizeRole(authUser?.user_metadata?.role || fallbackUser?.role);
 
-      if (active) {
+      if (isCurrent(revision)) {
         setUser(normalizeUser(currentAuthUser, null, fallbackUser));
         setRole(provisionalRole);
         setLoading(false);
@@ -231,7 +240,7 @@ export function AuthProvider({ children }) {
 
       const profile = await loadProfile(currentAuthUser).catch(() => null);
 
-      if (!active) return;
+      if (!isCurrent(revision)) return;
 
       setUser(normalizeUser(currentAuthUser, profile, fallbackUser));
       setRole(normalizeRole(profile?.role || currentAuthUser?.user_metadata?.role || fallbackUser?.role));
@@ -239,29 +248,31 @@ export function AuthProvider({ children }) {
     }
 
     async function hydrate() {
+      const revision = ++authRevision;
       setLoading(true);
 
       if (!isSupabaseConfigured) {
-        applyMockUser();
+        applyMockUser(revision);
         return;
       }
 
-      const { data } = await supabase.auth.getSession();
-      await syncAuth(data?.session?.user || null);
+      const { data, error } = await supabase.auth.getSession();
+      if (!isCurrent(revision)) return;
+      if (error) {
+        setUser(null);
+        setRole(null);
+        setLoading(false);
+        return;
+      }
+      await syncAuth(data?.session?.user || null, revision);
     }
 
-    hydrate();
+    refreshAuthRef.current = hydrate;
+    void hydrate();
 
     const handleFallbackAuthChange = () => {
-      if (isSupabaseConfigured) {
-        profileCache.clear();
-        supabase.auth.getUser().then(({ data }) => {
-          syncAuth(data?.user || null);
-        });
-        return;
-      }
-
-      applyMockUser();
+      profileCache.clear();
+      void hydrate();
     };
 
     const handleStorageChange = (event) => {
@@ -278,12 +289,14 @@ export function AuthProvider({ children }) {
         active = false;
         window.removeEventListener(AUTH_CHANGE_EVENT, handleFallbackAuthChange);
         window.removeEventListener("storage", handleStorageChange);
+        refreshAuthRef.current = async () => {};
       };
     }
 
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_OUT") profileCache.clear();
-      syncAuth(session?.user || null);
+      const revision = ++authRevision;
+      void syncAuth(session?.user || null, revision);
     });
 
     return () => {
@@ -291,10 +304,11 @@ export function AuthProvider({ children }) {
       window.removeEventListener(AUTH_CHANGE_EVENT, handleFallbackAuthChange);
       window.removeEventListener("storage", handleStorageChange);
       listener?.subscription?.unsubscribe();
+      refreshAuthRef.current = async () => {};
     };
   }, []);
 
-  const value = useMemo(() => ({ user, loading, role }), [user, loading, role]);
+  const value = useMemo(() => ({ user, loading, role, refreshAuth }), [user, loading, refreshAuth, role]);
 
   return (
     <AuthContext.Provider value={value}>

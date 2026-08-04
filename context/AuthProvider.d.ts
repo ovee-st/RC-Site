@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-export type AuthRole = "candidate" | "employer" | "admin" | "viewer" | null;
+export type AuthRole = "candidate" | "employer" | "employee" | "support_agent" | "support_senior" | "support_manager" | "admin" | "viewer" | null;
 
 export type AuthUser = {
   id: string;
@@ -25,6 +25,7 @@ export const AuthContext: import("react").Context<{
   user: AuthUser | null;
   loading: boolean;
   role: AuthRole;
+  refreshAuth: () => Promise<void>;
 }>;
 
 export function AuthProvider({ children }: { children: ReactNode }): JSX.Element;
@@ -33,4 +34,5 @@ export function useAuth(): {
   user: AuthUser | null;
   loading: boolean;
   role: AuthRole;
+  refreshAuth: () => Promise<void>;
 };

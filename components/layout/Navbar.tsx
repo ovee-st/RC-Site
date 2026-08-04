@@ -12,7 +12,7 @@ import GlobalSearch from "@/components/search/GlobalSearch";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/cn";
-import { clearStoredAuthIdentity, MOCK_USER_KEY } from "@/lib/accountIdentity";
+import { AUTH_CHANGE_EVENT, clearStoredAuthIdentity, MOCK_USER_KEY } from "@/lib/accountIdentity";
 import { getBestAvatarUrl } from "@/lib/authUserSync";
 import { getProfileThumbnailUrl } from "@/lib/profileImageSync";
 import { compactAuthHeaders } from "@/lib/compactAuthToken";
@@ -87,7 +87,6 @@ const mobilePublicNavItems = [
   { label: "Contact", href: "/contact", icon: Mail }
 ];
 
-const AUTH_CHANGE_EVENT = "mx-auth-change";
 const EMPLOYER_PANEL_EVENT = "mx-employer-panel-change";
 const CANDIDATE_PROFILE_KEY = "mx_candidate_profile";
 const EMPLOYER_PROFILE_KEY = "mx_employer_profile";
@@ -312,7 +311,7 @@ export default function Navbar() {
   const mobileMenuButtonRef = useRef<HTMLButtonElement | null>(null);
   const mobileDrawerRef = useRef<HTMLDivElement | null>(null);
   const mobileDrawerCloseRef = useRef<HTMLButtonElement | null>(null);
-  const { user, role, loading } = useAuth();
+  const { user, role, loading, refreshAuth } = useAuth();
   const currentRole = role as string | null;
   const isSupportRole = currentRole === "support_agent" || currentRole === "support_senior" || currentRole === "support_manager";
   const profileHref = currentRole === "admin" || currentRole === "viewer" ? "/admin/profile" : currentRole === "employee" || isSupportRole ? "/support/profile" : currentRole === "employer" ? "/employer#profile" : "/candidate?view=profile";
@@ -344,7 +343,7 @@ export default function Navbar() {
     : [];
   const homeHref = resolvedRole === "admin" || resolvedRole === "viewer" ? "/admin" : resolvedRole === "support" ? "/support" : resolvedRole === "employee" ? "/employee" : resolvedRole === "employer" ? "/employer" : "/";
   const isAdminNavigation = resolvedRole === "admin" || resolvedRole === "viewer";
-  const showRoleNotifications = Boolean(user) && (resolvedRole === "candidate" || resolvedRole === "employer");
+  const showRoleNotifications = Boolean(user);
   const notificationStorageKey = user?.id ? `${ROLE_NOTIFICATION_STORAGE_PREFIX}:${resolvedRole}:${user.id}` : `${ROLE_NOTIFICATION_STORAGE_PREFIX}:${resolvedRole}:guest`;
   const fallbackNotifications = useMemo(
     () => (showRoleNotifications ? getFallbackNotifications(resolvedRole, displayName) : []),
@@ -615,11 +614,6 @@ export default function Navbar() {
   }, [fullAvatarSrc]);
 
   const handleLogout = async () => {
-    if (typeof window !== "undefined") {
-      clearStoredAuthIdentity();
-      window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
-    }
-
     try {
       if (isSupabaseConfigured) {
         await supabase.auth.signOut({ scope: "local" });
@@ -627,6 +621,8 @@ export default function Navbar() {
     } finally {
       if (typeof window !== "undefined") {
         clearStoredAuthIdentity();
+        if (!isSupabaseConfigured) window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
+        await refreshAuth();
         window.location.replace("/login");
       }
     }
@@ -863,6 +859,8 @@ export default function Navbar() {
             </div>
           ) : null}
         </div>
+
+        {!loading && user ? <div className="lg:hidden">{notificationBell}</div> : null}
 
         <motion.button
           ref={mobileMenuButtonRef}
