@@ -7,11 +7,18 @@ export default function ServiceWorkerRegister() {
     if (process.env.NODE_ENV !== "production") return;
     if (!("serviceWorker" in navigator)) return;
 
-    window.addEventListener("load", () => {
-      navigator.serviceWorker.register("/sw.js").catch(() => {
+    const register = () => {
+      navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" }).then((registration) => {
+        void registration.update();
+      }).catch(() => {
         // The website should keep working even if installability is unavailable.
       });
-    });
+    };
+
+    if (document.readyState === "complete") register();
+    else window.addEventListener("load", register, { once: true });
+
+    return () => window.removeEventListener("load", register);
   }, []);
 
   return null;

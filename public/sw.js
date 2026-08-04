@@ -1,4 +1,4 @@
-const CACHE_NAME = "mxvl-shell-v1";
+const CACHE_NAME = "mxvl-shell-v2";
 const STATIC_ASSETS = [
   "/",
   "/jobs",
@@ -30,6 +30,21 @@ self.addEventListener("fetch", (event) => {
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request).catch(() => caches.match("/").then((response) => response || Response.error()))
+    );
+    return;
+  }
+
+  if (url.pathname.startsWith("/_next/")) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok && ["script", "style", "font"].includes(request.destination)) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request).then((response) => response || Response.error()))
     );
     return;
   }
