@@ -31,5 +31,7 @@ describe("authentication state consistency", () => {
     expect(provider).toContain("let authRevision = 0");
     expect(provider).toContain("revision === authRevision");
     expect(provider).toContain("refreshAuthRef.current = hydrate");
+    expect(provider).toContain("await supabase.auth.getUser()");
+    expect(provider).toContain("if (userError || !userData?.user)");
   });
 });

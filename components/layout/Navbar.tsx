@@ -795,7 +795,7 @@ export default function Navbar() {
             <span className="max-w-[8.5rem] truncate whitespace-nowrap text-sm font-black tracking-tight text-text-main sm:max-w-none dark:text-white">MX Venture Lab</span>
           </Link>
 
-          <nav className={cn("hidden min-w-0 items-center whitespace-nowrap lg:flex", isAdminNavigation ? "gap-3 xl:gap-4" : "gap-3 xl:gap-5 2xl:gap-6")}>
+          <nav className={cn("hidden min-w-0 items-center whitespace-nowrap", resolvedRole === "guest" ? "lg:flex" : "xl:flex", isAdminNavigation ? "gap-3 xl:gap-4" : "gap-3 xl:gap-5 2xl:gap-6")}>
             {navItems.map((item) => {
               const active = isActiveRoute(pathname, item.href);
               return (
@@ -821,11 +821,11 @@ export default function Navbar() {
           </nav>
         </div>
 
-        <div className={cn("hidden shrink-0 justify-center lg:flex", isAdminNavigation ? "lg:w-[240px] xl:w-[280px]" : "lg:w-[220px] xl:w-[260px] 2xl:w-[320px]")}>
+        <div className={cn("hidden shrink-0 justify-center", resolvedRole === "guest" ? "lg:flex" : "xl:flex", isAdminNavigation ? "xl:w-[280px]" : "lg:w-[220px] xl:w-[260px] 2xl:w-[320px]")}>
           <GlobalSearch className={cn(isAdminNavigation ? "md:w-[220px] lg:w-[240px] xl:w-[280px]" : "md:w-[200px] lg:w-[220px] xl:w-[260px] 2xl:w-[320px]")} />
         </div>
 
-        <div className={cn("hidden shrink-0 items-center justify-end gap-2 lg:flex xl:gap-3", isAdminNavigation ? "w-[150px] xl:w-[170px]" : "w-[190px] xl:w-[220px] 2xl:w-[240px]")}>
+        <div className={cn("hidden shrink-0 items-center justify-end gap-2 xl:gap-3", resolvedRole === "guest" ? "lg:flex" : "xl:flex", isAdminNavigation ? "xl:w-[170px]" : "lg:w-[190px] xl:w-[220px] 2xl:w-[240px]")}>
           {!loading && !user ? (
             <LinkButton href="/login" className="whitespace-nowrap rounded-full px-5 py-2">Login</LinkButton>
           ) : null}
@@ -860,7 +860,7 @@ export default function Navbar() {
           ) : null}
         </div>
 
-        {!loading && user ? <div className="lg:hidden">{notificationBell}</div> : null}
+        {!loading && user ? <div className="xl:hidden">{notificationBell}</div> : null}
 
         <motion.button
           ref={mobileMenuButtonRef}
@@ -868,7 +868,7 @@ export default function Navbar() {
           whileTap={{ scale: 0.97 }}
           whileHover={{ scale: 1.01 }}
           transition={{ duration: 0.16, ease: "easeOut" }}
-          className="focus-ring inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-text-muted hover:bg-primary/5 hover:text-primary lg:hidden"
+          className={cn("focus-ring inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-text-muted hover:bg-primary/5 hover:text-primary", resolvedRole === "guest" ? "lg:hidden" : "xl:hidden")}
           onClick={() => setOpen((value) => !value)}
           aria-label={open ? "Close navigation" : "Open navigation"}
           aria-expanded={open}
@@ -882,7 +882,7 @@ export default function Navbar() {
         ? createPortal(
           <AnimatePresence>
             {open ? (
-              <div className="fixed inset-0 z-[200] lg:hidden">
+              <div className={cn("fixed inset-0 z-[200]", resolvedRole === "guest" ? "lg:hidden" : "xl:hidden")}>
                 <motion.button
                   type="button"
                   initial={{ opacity: 0 }}

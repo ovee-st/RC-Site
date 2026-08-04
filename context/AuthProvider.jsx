@@ -256,15 +256,32 @@ export function AuthProvider({ children }) {
         return;
       }
 
-      const { data, error } = await supabase.auth.getSession();
-      if (!isCurrent(revision)) return;
-      if (error) {
+      try {
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        if (!isCurrent(revision)) return;
+        if (sessionError || !sessionData?.session) {
+          setUser(null);
+          setRole(null);
+          setLoading(false);
+          return;
+        }
+
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        if (!isCurrent(revision)) return;
+        if (userError || !userData?.user) {
+          setUser(null);
+          setRole(null);
+          setLoading(false);
+          return;
+        }
+
+        await syncAuth(userData.user, revision);
+      } catch {
+        if (!isCurrent(revision)) return;
         setUser(null);
         setRole(null);
         setLoading(false);
-        return;
       }
-      await syncAuth(data?.session?.user || null, revision);
     }
 
     refreshAuthRef.current = hydrate;
