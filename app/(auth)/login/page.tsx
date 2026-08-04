@@ -28,6 +28,8 @@ import { demoCandidates } from "@/lib/demoData";
 import { AUTH_CHANGE_EVENT, MOCK_USER_KEY, createStableUsername } from "@/lib/accountIdentity";
 import { roleHomeRoutes } from "@/lib/rbac";
 import { analyticsEvents } from "@/lib/analytics";
+import PasswordAssistant from "@/components/auth/PasswordAssistant";
+import { getPasswordStrength } from "@/lib/passwordStrength";
 
 const metrics = [
   { value: "One", label: "Connected Workspace", icon: UsersRound, tone: "text-blue-600 dark:text-blue-300" },
@@ -104,6 +106,8 @@ export default function LoginPage() {
   const [name, setName] = useState("MX User");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [passwordSubmitAttempted, setPasswordSubmitAttempted] = useState(false);
+  const [capsLockOn, setCapsLockOn] = useState(false);
 
   const persistAuthFallback = (nextUser: { id: string; name: string; email: string; avatar?: string; username?: string }, nextRole: ResolvedRole) => {
     if (typeof window === "undefined") return;
@@ -128,6 +132,10 @@ export default function LoginPage() {
     event?.preventDefault();
     setMessage("");
     if (!email || !password) return setMessage("Email and password are required.");
+    if (mode === "signup" && !getPasswordStrength(password).isValid) {
+      setPasswordSubmitAttempted(true);
+      return;
+    }
     setLoading(true);
 
     if (!isSupabaseConfigured) {
@@ -145,7 +153,10 @@ export default function LoginPage() {
       : await supabase.auth.signUp({ email, password, options: { data: { full_name: name, role } } });
     setLoading(false);
     if (response.error) {
-      setMessage(response.error.message);
+      const isPasswordRejection = mode === "signup" && /password/i.test(response.error.message);
+      setMessage(isPasswordRejection
+        ? "This password does not meet MXVL's security requirements. Please choose a different password."
+        : response.error.message);
       return;
     }
     const user = response.data.user;
@@ -326,12 +337,33 @@ export default function LoginPage() {
                 Password
                 <div className="relative">
                   <LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <Input value={password} onChange={(event) => setPassword(event.target.value)} type={showPassword ? "text" : "password"} placeholder="Enter your password" autoComplete={mode === "login" ? "current-password" : "new-password"} className="h-12 rounded-md bg-white pl-12 pr-14 shadow-none dark:bg-slate-950/60" />
+                  <Input
+                    value={password}
+                    onChange={(event) => {
+                      setPassword(event.target.value);
+                      if (passwordSubmitAttempted) setPasswordSubmitAttempted(false);
+                    }}
+                    onKeyDown={(event) => setCapsLockOn(event.getModifierState("CapsLock"))}
+                    onKeyUp={(event) => setCapsLockOn(event.getModifierState("CapsLock"))}
+                    onBlur={() => setCapsLockOn(false)}
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter your password"
+                    autoComplete={mode === "login" ? "current-password" : "new-password"}
+                    aria-describedby={mode === "signup" ? "password-assistant" : undefined}
+                    aria-invalid={mode === "signup" && passwordSubmitAttempted && !getPasswordStrength(password).isValid}
+                    className="h-12 rounded-md bg-white pl-12 pr-14 shadow-none dark:bg-slate-950/60"
+                  />
                   <button type="button" onClick={() => setShowPassword((current) => !current)} className="focus-ring absolute right-1 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-white" aria-label={showPassword ? "Hide password" : "Show password"}>
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
               </label>
+
+              {mode === "signup" ? (
+                <div id="password-assistant">
+                  <PasswordAssistant password={password} capsLockOn={capsLockOn} showInvalidError={passwordSubmitAttempted} />
+                </div>
+              ) : null}
 
               <Button type="submit" disabled={loading} className="mt-1 h-12 w-full gap-2 rounded-md text-sm font-black">
                 {loading ? "Please wait..." : mode === "login" ? "Login to MXVL" : `Register as ${role === "candidate" ? "Candidate" : "Employer"}`}
@@ -353,14 +385,14 @@ export default function LoginPage() {
                 <>
                   <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">New to MXVL?</p>
                   <div className="mt-2 flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
-                    <button type="button" onClick={() => { setRole("candidate"); setMode("signup"); setMessage(""); }} className="focus-ring inline-flex min-h-11 items-center gap-1 rounded-md px-2 text-sm font-black text-blue-700 hover:bg-blue-50 hover:text-blue-500 dark:text-blue-300 dark:hover:bg-blue-400/10">Register as Candidate <ArrowRight className="h-3.5 w-3.5" /></button>
-                    <button type="button" onClick={() => { setRole("employer"); setMode("signup"); setMessage(""); }} className="focus-ring inline-flex min-h-11 items-center gap-1 rounded-md px-2 text-sm font-black text-violet-700 hover:bg-violet-50 hover:text-violet-500 dark:text-violet-300 dark:hover:bg-violet-400/10">Register as Employer <ArrowRight className="h-3.5 w-3.5" /></button>
+                    <button type="button" onClick={() => { setRole("candidate"); setMode("signup"); setMessage(""); setPasswordSubmitAttempted(false); }} className="focus-ring inline-flex min-h-11 items-center gap-1 rounded-md px-2 text-sm font-black text-blue-700 hover:bg-blue-50 hover:text-blue-500 dark:text-blue-300 dark:hover:bg-blue-400/10">Register as Candidate <ArrowRight className="h-3.5 w-3.5" /></button>
+                    <button type="button" onClick={() => { setRole("employer"); setMode("signup"); setMessage(""); setPasswordSubmitAttempted(false); }} className="focus-ring inline-flex min-h-11 items-center gap-1 rounded-md px-2 text-sm font-black text-violet-700 hover:bg-violet-50 hover:text-violet-500 dark:text-violet-300 dark:hover:bg-violet-400/10">Register as Employer <ArrowRight className="h-3.5 w-3.5" /></button>
                   </div>
                 </>
               ) : (
                 <>
                   <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Already have an account?</p>
-                  <button type="button" onClick={() => { setMode("login"); setMessage(""); }} className="focus-ring mt-2 inline-flex min-h-11 items-center gap-1 rounded-md px-2 text-sm font-black text-blue-700 hover:bg-blue-50 hover:text-blue-500 dark:text-blue-300 dark:hover:bg-blue-400/10">Sign in instead <ArrowRight className="h-3.5 w-3.5" /></button>
+                  <button type="button" onClick={() => { setMode("login"); setMessage(""); setPasswordSubmitAttempted(false); setCapsLockOn(false); }} className="focus-ring mt-2 inline-flex min-h-11 items-center gap-1 rounded-md px-2 text-sm font-black text-blue-700 hover:bg-blue-50 hover:text-blue-500 dark:text-blue-300 dark:hover:bg-blue-400/10">Sign in instead <ArrowRight className="h-3.5 w-3.5" /></button>
                 </>
               )}
             </div>
