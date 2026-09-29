@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowRight, BadgeCheck, Bell, BriefcaseBusiness, Building2, CalendarClock, CheckCircle2, CreditCard, Eye, Home, Info, LogOut, Mail, Menu, MessageSquare, Settings, UserRound, Users, X, XCircle, type LucideIcon } from "lucide-react";
+import { ArrowRight, BadgeCheck, Bell, BriefcaseBusiness, Building2, CalendarClock, CheckCircle2, ChevronDown, CreditCard, Eye, Home, Info, LogOut, Mail, Menu, MessageSquare, Settings, UserRound, Users, X, XCircle, type LucideIcon } from "lucide-react";
 import { type MouseEvent as ReactMouseEvent, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -34,13 +34,13 @@ const navItemsByRole = {
     { label: "Communication", href: "/communication-center" }
   ],
   employer: [
-    { label: "Home", href: "/employer" },
-    { label: "Jobs", href: "/jobs" },
-    { label: "Candidates", href: "/employer/candidates" },
-    { label: "Talent CRM", href: "/employer/talent-crm" },
-    { label: "Communication", href: "/communication-center" },
-    { label: "We Hire for You", href: "/we-hire-for-you" },
-    { label: "Plans", href: "/subscriptions" }
+    { label: "Home", href: "/employer", priority: "primary" },
+    { label: "Jobs", href: "/jobs", priority: "primary" },
+    { label: "Candidates", href: "/employer/candidates", priority: "primary" },
+    { label: "Talent CRM", href: "/employer/talent-crm", priority: "secondary" },
+    { label: "Communication", href: "/communication-center", priority: "secondary" },
+    { label: "We Hire for You", href: "/we-hire-for-you", priority: "secondary" },
+    { label: "Plans", href: "/subscriptions", priority: "secondary" }
   ],
   employee: [
     { label: "Support Desk", href: "/employee" },
@@ -299,6 +299,7 @@ export default function Navbar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [profileAvatar, setProfileAvatar] = useState<string | null>(null);
   const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
@@ -307,6 +308,7 @@ export default function Navbar() {
   const [remoteNotifications, setRemoteNotifications] = useState<NavbarNotification[]>([]);
   const [clearedNotificationIds, setClearedNotificationIds] = useState<string[]>([]);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
+  const moreMenuRef = useRef<HTMLDivElement | null>(null);
   const notificationMenuRef = useRef<HTMLDivElement | null>(null);
   const mobileMenuButtonRef = useRef<HTMLButtonElement | null>(null);
   const mobileDrawerRef = useRef<HTMLDivElement | null>(null);
@@ -338,6 +340,9 @@ export default function Navbar() {
   const initials = getInitials(displayName);
   const resolvedRole = user ? (currentRole === "admin" ? "admin" : currentRole === "viewer" ? "viewer" : isSupportRole ? "support" : currentRole === "employee" ? "employee" : currentRole === "employer" ? "employer" : "candidate") : "guest";
   const navItems = navItemsByRole[resolvedRole];
+  const employerPrimaryNavItems = resolvedRole === "employer" ? navItems.filter((item) => "priority" in item && item.priority === "primary") : navItems;
+  const employerSecondaryNavItems = resolvedRole === "employer" ? navItems.filter((item) => "priority" in item && item.priority === "secondary") : [];
+  const employerDesktopNavigation = resolvedRole === "employer";
   const mobileWorkspaceItems = user
     ? navItems.filter((item) => !mobilePublicNavItems.some((publicItem) => publicItem.href === item.href))
     : [];
@@ -357,6 +362,7 @@ export default function Navbar() {
 
   useEffect(() => {
     setOpen(false);
+    setMoreOpen(false);
   }, [pathname]);
 
   useEffect(() => {
@@ -560,6 +566,28 @@ export default function Navbar() {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [profileOpen]);
+
+  useEffect(() => {
+    if (!moreOpen) return;
+
+    const handlePointerDown = (event: globalThis.MouseEvent) => {
+      const target = event.target as Node | null;
+      if (target && moreMenuRef.current?.contains(target)) return;
+      setMoreOpen(false);
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMoreOpen(false);
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [moreOpen]);
 
   useEffect(() => {
     let active = true;
@@ -785,8 +813,8 @@ export default function Navbar() {
         scrolled && "bg-white/64 shadow-md backdrop-blur-xl dark:bg-slate-950/62"
       )}
     >
-      <div className={cn("mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6", isAdminNavigation ? "gap-3 xl:gap-4" : "gap-4 xl:gap-6 2xl:gap-10")}>
-        <div className={cn("flex min-w-0 flex-1 items-center", isAdminNavigation ? "gap-4 xl:gap-5" : "gap-4 xl:gap-6 2xl:gap-8")}>
+      <div className={cn("mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6", employerDesktopNavigation ? "gap-3" : isAdminNavigation ? "gap-3 xl:gap-4" : "gap-4 xl:gap-6 2xl:gap-10")}>
+        <div className={cn("flex min-w-0 flex-1 items-center", employerDesktopNavigation ? "gap-4" : isAdminNavigation ? "gap-4 xl:gap-5" : "gap-4 xl:gap-6 2xl:gap-8")}>
           <Link href={homeHref} className="flex min-w-0 shrink-0 items-center gap-2 sm:gap-3">
             <div className="grid h-10 w-10 shrink-0 place-items-center overflow-visible sm:h-12 sm:w-12">
               <Image src={SITE_LOGO_LIGHT} alt="MX Venture Lab logo" width={48} height={48} className="h-10 w-10 object-contain sm:h-12 sm:w-12 dark:hidden" priority />
@@ -795,8 +823,8 @@ export default function Navbar() {
             <span className="max-w-[8.5rem] truncate whitespace-nowrap text-sm font-black tracking-tight text-text-main sm:max-w-none dark:text-white">MX Venture Lab</span>
           </Link>
 
-          <nav className={cn("hidden min-w-0 items-center whitespace-nowrap", resolvedRole === "guest" ? "lg:flex" : "xl:flex", isAdminNavigation ? "gap-3 xl:gap-4" : "gap-3 xl:gap-5 2xl:gap-6")}>
-            {navItems.map((item) => {
+          <nav className={cn("hidden min-w-0 items-center whitespace-nowrap", employerDesktopNavigation || resolvedRole === "guest" ? "lg:flex" : "xl:flex", employerDesktopNavigation ? "gap-2 xl:gap-3" : isAdminNavigation ? "gap-3 xl:gap-4" : "gap-3 xl:gap-5 2xl:gap-6")} aria-label="Primary navigation">
+            {employerPrimaryNavItems.map((item) => {
               const active = isActiveRoute(pathname, item.href);
               return (
                 <Link
@@ -818,14 +846,69 @@ export default function Navbar() {
                 </Link>
               );
             })}
+
+            {employerSecondaryNavItems.length ? (
+              <div ref={moreMenuRef} className="relative shrink-0">
+                <button
+                  type="button"
+                  className={cn(
+                    "focus-ring inline-flex min-h-11 items-center gap-1.5 rounded-md px-3 text-sm font-medium text-gray-600 transition hover:bg-primary/5 hover:text-blue-600 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-blue-300",
+                    employerSecondaryNavItems.some((item) => isActiveRoute(pathname, item.href)) && "bg-primary/5 text-blue-600 dark:bg-primary/10 dark:text-blue-300"
+                  )}
+                  onClick={() => {
+                    setProfileOpen(false);
+                    setNotificationsOpen(false);
+                    setMoreOpen((value) => !value);
+                  }}
+                  aria-haspopup="menu"
+                  aria-expanded={moreOpen}
+                  aria-controls="employer-more-navigation"
+                >
+                  More <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", moreOpen && "rotate-180")} aria-hidden="true" />
+                </button>
+                <AnimatePresence>
+                  {moreOpen ? (
+                    <motion.div
+                      id="employer-more-navigation"
+                      role="menu"
+                      aria-label="More employer navigation"
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.16, ease: "easeOut" }}
+                      className="absolute left-0 top-full z-50 mt-2 w-56 rounded-xl border border-gray-200 bg-white p-2 shadow-md dark:border-white/10 dark:bg-slate-950"
+                    >
+                      {employerSecondaryNavItems.map((item) => {
+                        const active = isActiveRoute(pathname, item.href);
+                        return (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            role="menuitem"
+                            onClick={() => setMoreOpen(false)}
+                            className={cn(
+                              "focus-ring flex min-h-11 items-center rounded-md px-3 text-sm font-medium text-text-muted transition hover:bg-primary/5 hover:text-primary dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-blue-300",
+                              active && "bg-primary/8 text-primary dark:bg-primary/15 dark:text-blue-300"
+                            )}
+                            aria-current={active ? "page" : undefined}
+                          >
+                            {item.label}
+                          </Link>
+                        );
+                      })}
+                    </motion.div>
+                  ) : null}
+                </AnimatePresence>
+              </div>
+            ) : null}
           </nav>
         </div>
 
-        <div className={cn("hidden shrink-0 justify-center", resolvedRole === "guest" ? "lg:flex" : "xl:flex", isAdminNavigation ? "xl:w-[280px]" : "lg:w-[220px] xl:w-[260px] 2xl:w-[320px]")}>
-          <GlobalSearch className={cn(isAdminNavigation ? "md:w-[220px] lg:w-[240px] xl:w-[280px]" : "md:w-[200px] lg:w-[220px] xl:w-[260px] 2xl:w-[320px]")} />
+        <div className={cn("hidden shrink-0 justify-center", employerDesktopNavigation || resolvedRole === "guest" ? "lg:flex" : "xl:flex", employerDesktopNavigation ? "w-[200px] min-[1200px]:w-[240px] min-[1440px]:w-[320px]" : isAdminNavigation ? "xl:w-[280px]" : "lg:w-[220px] xl:w-[260px] 2xl:w-[320px]")}>
+          <GlobalSearch className={cn(employerDesktopNavigation ? "w-full" : isAdminNavigation ? "md:w-[220px] lg:w-[240px] xl:w-[280px]" : "md:w-[200px] lg:w-[220px] xl:w-[260px] 2xl:w-[320px]")} />
         </div>
 
-        <div className={cn("hidden shrink-0 items-center justify-end gap-2 xl:gap-3", resolvedRole === "guest" ? "lg:flex" : "xl:flex", isAdminNavigation ? "xl:w-[170px]" : "lg:w-[190px] xl:w-[220px] 2xl:w-[240px]")}>
+        <div className={cn("hidden shrink-0 items-center justify-end gap-2 xl:gap-3", employerDesktopNavigation || resolvedRole === "guest" ? "lg:flex" : "xl:flex", employerDesktopNavigation ? "w-[132px] min-[1200px]:w-[170px]" : isAdminNavigation ? "xl:w-[170px]" : "lg:w-[190px] xl:w-[220px] 2xl:w-[240px]")}>
           {!loading && !user ? (
             <LinkButton href="/login" className="whitespace-nowrap rounded-full px-5 py-2">Login</LinkButton>
           ) : null}
@@ -841,7 +924,7 @@ export default function Navbar() {
                 }}
               >
                 <span className="block h-8 w-8 shrink-0 overflow-hidden rounded-full">{avatar}</span>
-                <span className="max-w-28 truncate text-sm font-medium text-text-main dark:text-white">{displayName}</span>
+                <span className={cn("max-w-28 truncate text-sm font-medium text-text-main dark:text-white", employerDesktopNavigation && "hidden min-[1200px]:block")}>{displayName}</span>
                 {verified ? <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" /> : null}
               </button>
               <AnimatePresence>
@@ -860,7 +943,7 @@ export default function Navbar() {
           ) : null}
         </div>
 
-        {!loading && user ? <div className="xl:hidden">{notificationBell}</div> : null}
+        {!loading && user ? <div className={cn(employerDesktopNavigation ? "lg:hidden" : "xl:hidden")}>{notificationBell}</div> : null}
 
         <motion.button
           ref={mobileMenuButtonRef}
@@ -868,7 +951,7 @@ export default function Navbar() {
           whileTap={{ scale: 0.97 }}
           whileHover={{ scale: 1.01 }}
           transition={{ duration: 0.16, ease: "easeOut" }}
-          className={cn("focus-ring inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-text-muted hover:bg-primary/5 hover:text-primary", resolvedRole === "guest" ? "lg:hidden" : "xl:hidden")}
+          className={cn("focus-ring inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-text-muted hover:bg-primary/5 hover:text-primary", employerDesktopNavigation || resolvedRole === "guest" ? "lg:hidden" : "xl:hidden")}
           onClick={() => setOpen((value) => !value)}
           aria-label={open ? "Close navigation" : "Open navigation"}
           aria-expanded={open}
@@ -882,7 +965,7 @@ export default function Navbar() {
         ? createPortal(
           <AnimatePresence>
             {open ? (
-              <div className={cn("fixed inset-0 z-[200]", resolvedRole === "guest" ? "lg:hidden" : "xl:hidden")}>
+              <div className={cn("fixed inset-0 z-[200]", employerDesktopNavigation || resolvedRole === "guest" ? "lg:hidden" : "xl:hidden")}>
                 <motion.button
                   type="button"
                   initial={{ opacity: 0 }}
